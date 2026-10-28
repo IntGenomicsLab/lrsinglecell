@@ -13,21 +13,10 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { LRSINGLECELL  } from './workflows/lrsinglecell'
+include { LRSINGLECELL               } from './workflows/lrsinglecell'
 include { PIPELINE_INITIALISATION } from './subworkflows/local/utils_nfcore_lrsinglecell_pipeline'
 include { PIPELINE_COMPLETION     } from './subworkflows/local/utils_nfcore_lrsinglecell_pipeline'
 include { getGenomeAttribute      } from './subworkflows/local/utils_nfcore_lrsinglecell_pipeline'
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    GENOME PARAMETER VALUES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-// TODO nf-core: Remove this line if you don't need a FASTA file
-//   This is an example of how to use getGenomeAttribute() to fetch parameters
-//   from igenomes.config using `--genome`
-params.fasta = getGenomeAttribute('fasta')
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -39,7 +28,6 @@ params.fasta = getGenomeAttribute('fasta')
 // WORKFLOW: Run main analysis pipeline depending on type of input
 //
 workflow INTGENOMICSLAB_LRSINGLECELL {
-
     take:
     samplesheet // channel: samplesheet read in from --input
 
@@ -99,6 +87,7 @@ workflow {
         params.monochrome_logs,
         INTGENOMICSLAB_LRSINGLECELL.out.multiqc_report
     )
+
 }
 
 /*

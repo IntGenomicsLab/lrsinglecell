@@ -3,14 +3,169 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.0.0 - [unreleased<!-- TODO nf-core: replace with date on release -->]
+## v1.0.0 - [2026-10-28]
 
-Initial release of IntGenomicsLab/lrsinglecell, created with the [nf-core](https://nf-co.re/) template.
+First release of LRSinglecell. The pipeline is a continuation of the `scdnalong` branch of
+[ljwharbers/scnanoseq](https://github.com/ljwharbers/scnanoseq/tree/scdnalong) (at `1ff784a`), itself built on
+[nf-core/scnanoseq](https://github.com/nf-core/scnanoseq) v1.3.0, rebuilt on the nf-core/tools 4.1.0 template as a
+standalone IntGenomicsLab pipeline. The changes below are relative to nf-core/scnanoseq v1.3.0.
 
-### `Added`
+### Pipeline
 
-### `Fixed`
+- Renamed to `IntGenomicsLab/lrsinglecell`; the entry workflow is `INTGENOMICSLAB_LRSINGLECELL` and the software versions file is `pipeline_info/lrsinglecell_software_mqc_versions.yml`
+- Moved to the nf-core/tools 4.1.0 template (minimum Nextflow `25.10.4`, `nf-schema` 2.7.2, updated `utils_*` subworkflows and `multiqc` module)
 
-### `Dependencies`
+### Enhancements
 
-### `Deprecated`
+- DNA samples are now deduplicated by `mark_dna_duplicates.py` instead of `picard MarkDuplicates`. Within a barcode it keeps Picard's single-end key and also merges the two records flexiplex writes for one raw read, up to 10 bp of 5' jitter between reads that read through to the far adapter, and A-A fragments read from the other end; on `chrM`/`MT` only the exact relations apply. On three libraries this recovers 99% of the same-molecule pairs Picard missed (judged by heterozygous-SNP haplotypes) without adding false merges, raising the DNA duplicate rate by 1-2.5 points. The duplicate flag now also reaches secondary and supplementary alignments, and the marked BAM is published as written, without a second sort. Metrics stay in Picard format for MultiQC, next to a per-rule `*.dedup_summary.tsv`; see [`docs/output.md`](docs/output.md#dna-duplicate-marking)
+- Added support for processing single-cell/nuclei DNA samples alongside cDNA samples in the same pipeline run, via a new optional `type` column (`dna`/`cdna`) in the input samplesheet
+- Added `flexiplex/discovery`, `flexiplex/filter` and `flexiplex/assign` modules for barcode extraction, filtering and assignment
+- Added `demultiplex_flexiplex` and `demultiplex_blaze` subworkflows, replacing the previous inline demultiplexing steps in the main workflow
+- Added `align_deduplicate_dna` subworkflow (`minimap2` alignment, `mark_dna_duplicates.py`, `BAM_STATS_SAMTOOLS`) for DNA sample processing
+- Added `demux_tool_cdna`/`demux_tool_dna` parameters to select `flexiplex` or `blaze` for cDNA demultiplexing (DNA currently supports `flexiplex` only)
+- Added `lrkallisto` as a third `--quantifier` option: an alignment-free path that pseudoaligns the demultiplexed FASTQ with lr-kallisto (`kallisto bus --long`), counts genes with `bustools count --genecounts` and quantifies transcripts with `kallisto quant-tcc --long`, deduplicating UMIs with `bustools` in both cases. Adds a `test_lrkallisto` profile and the `gffread` module for transcript sequence extraction
+- Bumped IsoQuant to v3.13.1
+- Deduplication now groups UMIs by feature rather than by alignment position. Genome alignments are tagged with a gene by gene-body overlap (new `tag_genes` and `split_gene_status` modules, `GX`/`GN`/`GS` tags) and grouped with `umi_tools --per-gene`; reads with an ambiguous gene call or none are deduplicated positionally and merged back, so no reads are dropped. Transcriptome alignments use `umi_tools --per-contig`, where a contig is a transcript. **This substantially changes absolute UMI counts** — on the data this was developed against, total duplicate removal rose from 6.5% to ~34%, i.e. previous counts were inflated by roughly 1.6x. Relative expression is essentially unchanged (Spearman 0.998, no genes lost), so clustering and ratio-based analyses are unaffected, but UMIs per cell, library complexity and saturation estimates will differ from earlier releases. Revert with `--dedup_per_gene=false` / `--dedup_per_contig=false`
+- Added a per-sample UMI deduplication summary (`<sample>/<type>/{genome,transcriptome}/qc/umitools/dedup/*.umi_dedup_summary.tsv`) with input reads, output reads, duplicate reads and duplication rate, summed over the per-chunk `umi_tools dedup` runs by the new `umitools_dedup_summary` module, and shown as a "UMI-tools Deduplication" table in the MultiQC report. Previously the `umi_tools` logs were discarded and no duplication rate was reported
+- `umi_tools dedup` now always takes the cell barcode from the corrected `CB` tag. Previously this applied only when `--demux_tool_cdna flexiplex` was set; the `blaze` path fell back to reading the raw, uncorrected barcode out of the read name, which fragmented cells and made the two demultiplexing paths incomparable
+- Bumped flexiplex to v1.02.7 and run it with `-a true`, so it reports every read rather than only the reads it could assign. Reads from a droplet below the knee are no longer dropped for want of a _known_ barcode, and the uncorrected barcode comes back in `CR`, which is what makes such a droplet distinguishable from a read with no barcode region at all. v1.02.7 also fixes an out-of-bounds read in flexiplex's UMI handling that only triggers on UMI-less protocols, i.e. the DNA path
+- Removed the `flexiformatter` module. It existed to move the barcode and UMI from the read name into BAM tags, which is no longer needed: flexiplex writes `CB`/`CR`/`UB`/`UR` into the FASTQ comment itself, and `minimap2 -y` now carries them onto every alignment. `-y` is applied only when demultiplexing with flexiplex, since a basecaller comment on any other FASTQ would be copied in verbatim and produce unparseable records
+- Deduplication now groups on `XB`/`UB` rather than `CB`/`UR`. `XB` is a derived tag holding the corrected barcode for a called cell and the uncorrected one for a droplet flexiplex could not match to the known list, so uncalled droplets stay separate instead of pooling into a single `-` cell. `UB` is flexiplex's corrected UMI; `UR` holds the raw one. The `blaze` path writes both tags too, so the two demultiplexers stay comparable. DNA `picard MarkDuplicates` keys on `XB` for the same reason
+- Reads in which flexiplex found no barcode region at all are now discarded during assignment rather than carried through the pipeline. They belong to no droplet, called or empty, and flexiplex gives them a one-character UMI placeholder instead of a real UMI. Dropping them at the FASTQ stage keeps them out of alignment entirely and means every alignment downstream has a real `CR`, a real `XB` and a full-width UMI
+- Added a second IsoQuant run over the same alignments, published to `isoquant_all_droplets/`, grouping on `XB` so that droplets below the knee are quantified alongside the called cells. The existing `isoquant/` run is unchanged and still groups on `CB`
+- Added the lr-kallisto equivalent of that second pass, published to `lrkallisto_all_droplets/`: a new `lrkallisto_count` subworkflow runs the counting half (`split_bc_umi` -> `kallisto bus` -> `bustools` -> `kallisto quant-tcc`) twice off the same reads and the same index, once keyed on the barcode flexiplex matched to the known list and once on `XB`. The existing `lrkallisto/` outputs are unchanged
+- Bounded that all-droplet pass. `XB` is the raw uncorrected barcode below the knee and the pass deliberately skips `bustools correct`, so nothing limited the column count and sequencing error alone minted a barcode per read — on a full sample ~14.1M columns against ~8.8k called cells, which the long-read EM could not finish. `split_bc_umi` now takes an allowlist built from the read counts flexiplex has already collected, so barcodes below `--lrkallisto_all_min_reads` are dropped before pseudoalignment. At the default of 100 that is ~233k columns retaining ~54% of the below-knee reads, and it bounds `kallisto bus` and `bustools` as well as the EM
+- The lr-kallisto `gene/` matrix is the integer UMI count matrix from `bustools count --genecounts --umi-gene`, in both the `lrkallisto/` and `lrkallisto_all_droplets/` passes. The `kallisto quant-tcc` EM gene abundances were considered for it and rejected: they are fractional (0.25, 0.333333, ...), which CellBender and every other tool with a count likelihood reject, and they inflate `nFeature` in the Seurat QC because any nonzero EM weight counts as a detected gene. The all-droplet matrix exists for exactly that ambient/empty-droplet use. The published matrix is the standard kb-python gene matrix: a UMI compatible with more than one gene is discarded rather than distributed, so gene totals are lower than the EM totals by the gene-ambiguous fraction (28% on the chr21 test data, a worst case for so small a reference). `--multimapping` is deliberately not used for the gene count, since with `--genecounts` it splits ambiguous UMIs evenly and reintroduces the fractions; it can only be added through the separate `ext.args2` of `BUSTOOLS_TCC`, and the module then fails rather than publish a fractional matrix under an `integer` header. `gene/features.tsv.gz` carries gene id, gene name and feature type, so the directory reads as a Cell Ranger v3 MEX directory. The EM gene abundances are still published as `quant/matrix.abundance.gene.mtx`. The `transcript/` matrix (and the oarfish matrix) remain EM estimates and stay fractional, so their Seurat QC `nFeature` still counts every nonzero EM weight and is not comparable with the IsoQuant transcript QC
+- The cDNA genome alignment is now produced whenever there are cDNA reads, rather than only when a genome quantifier was requested. Previously `--quantifier lrkallisto` skipped the entire cDNA alignment arm, so an lr-kallisto run produced no cDNA BAM at all; the BAM is a deliverable in its own right (coverage, IGV, fusions, variants) and is independent of how the reads are quantified. lr-kallisto still pseudoaligns from the FASTQ and consumes nothing from this alignment
+
+### Parameter changes
+
+- `--whitelist` replaced by `--whitelist_dna` and `--whitelist_cdna`
+- Bundled whitelists in `assets/` changed from `.zip` to `.gz`
+- Added `--split_amount` parameter to control FASTQ/barcode splitting for parallelization
+- Added `--kallisto_kmer_size` (default: `63`), `--kallisto_threshold` (default: `0.8`), `--kallisto_platform` (default: `ONT`) and `--kallisto_dlist` (default: `true`) for the `lrkallisto` quantifier
+- Added `--lrkallisto_all_min_reads` (default: `100`), the minimum read count for a barcode to enter the lr-kallisto all-droplet matrix. `0` restores the previous unbounded behaviour
+- Added `--skip_lrkallisto_all_droplets` (default: `false`) to skip the lr-kallisto all-droplet counting pass entirely
+- Added `--skip_cdna_dedup` (default: `false`), which turns off `umi_tools` deduplication on the cDNA arm only. `--skip_dedup` continues to govern the DNA arm's `picard MarkDuplicates`, so the now-always-on cDNA deduplication chain can be turned down without silently un-deduplicating the DNA BAM
+- Added `--dedup_per_gene` (default: `true`, genome alignments) and `--dedup_per_contig` (default: `true`, transcriptome alignments) to control UMI grouping. `--dedup_per_gene` requires `--gtf`
+
+### Fixes
+
+- Fixed the three `flexiplex` modules declaring `conda "${moduleDir}/environment.yml"` when the file on disk is `environment.yaml`, which left them unresolvable under `-profile conda`
+- `split_gene_status` no longer emits an empty BAM. `umi_tools` aborts on one, and a contig with no annotation produces exactly that — 50 of 85 contigs on a real GRCh38 run
+- Fixed `split_amount` parameter type coercion so it is read as an integer under the Nextflow v2 strict syntax parser
+- Fixed the transcriptome deduplication path dropping the sample `type` from the metadata when splitting the BAM by transcript group, which published the deduplicated BAM, its samtools stats and the oarfish outputs under `<sample>/null/transcriptome/` instead of `<sample>/<type>/transcriptome/`
+- Corrected `docs/output.md`, which listed the deduplicated BAMs under `bam/dedup_umitools/` and `bam/dedup_picard/` while the pipeline publishes them under `bam/dedup/`
+- Fixed the `10X_5v3` UMI width used by the `lrkallisto` quantifier (10, not 12), which otherwise caused every read to be dropped by `split_bc_umi.py`'s length check
+- Fixed `SAMTOOLS_INDEX_DEDUP` in the `dedup_umis` subworkflow indexing the `umi_tools` output channel unconditionally, which left the `--dedup_tool picard` branch indexing a channel that was never populated
+- The `picard MarkDuplicates` duplication metrics are no longer discarded on the DNA branch. `PICARD_MARKDUPLICATES.out.metrics` was emitted by the module but published nowhere and never passed to MultiQC, so a DNA run reported no duplicate rate at all. The metrics are now published to `<sample>/dna/qc/dedup/*.metrics.txt` and summarised in the MultiQC report
+- Added `analysis/dna_dedup/`, a standalone QC script and write-up quantifying what MarkDuplicates keys on for ONT single-end reads. It confirms the soft-clip problem behind the per-gene UMI grouping change does not affect the DNA branch, because the variable adapter clip sits at the read's 3' end while MarkDuplicates anchors on the 5' end
+- `--quantifier` now defaults to `null` rather than an empty string. `--quantifier` has been optional since DNA support was added, since DNA samples are aligned and deduplicated but never quantified, but the empty default was still checked against the parameter's own regex and failed it. Every DNA-only run therefore aborted at parameter validation with `"" does not match regular expression`, `-profile test_dna` included. The samplesheet-aware check that errors only when a `cdna` row is present and no quantifier was given is now what actually reports the problem. Added `tests/dna.nf.test` so the DNA-only path is covered by nf-test
+- Removed four module includes from the `process_longread_scrna` subworkflow that were never invoked (`PICARD_MARKDUPLICATES`, `SAMTOOLS_FLAGSTAT_DEDUP`, `SAMTOOLS_INDEX_DEDUP`, `SAMTOOLS_FILTER_DEDUP`), along with the `conf/modules.config` selector for `SAMTOOLS_FILTER_DEDUP`, which matched no process. The underlying modules are all still used elsewhere; only the dead aliases are gone
+- DNA samtools QC files are no longer named with a doubled type suffix. The `BAM_STATS_SAMTOOLS` prefix appended a literal `.dna` on top of the `meta.type` interpolation, so a DNA sample produced `<id>.dna.dna.flagstat`. They are now `<id>.dna.flagstat`/`.idxstats`/`.stats`. File contents are unchanged; MultiQC sample labels lose the duplicate suffix too. The `PICARD_MARKDUPLICATES` prefix carried the same doubled literal and is fixed alongside it, so the newly published duplication metrics are `<id>.dna.dedup.metrics.txt`
+- Fixed two `tests/.nftignore` patterns that had silently stopped matching. `**/genome/isoquant/*.mtx` and its `isoquant_all_droplets` counterpart were added to keep the count matrices out of content checking, but the published path later gained two nested `<sample>.<type>/` levels, so the matrices were being md5-compared again. Also added the DNA dedup BAM and its index, which are not byte-reproducible between runs -- `samtools sort` ties are resolved differently across runs -- and whose cDNA equivalents were already ignored. Both files are still checked by name. The newly published MarkDuplicates metrics are ignored for content on the same grounds: the file carries a `# Started on:` timestamp and the full work-directory command line, which is why the nf-core module test snapshots only its first three lines
+- Fixed flexiplex being unable to demultiplex `10X_5v3` and `10X_3v4` cDNA. The explicit 5' v3 pattern was guarded by `barcode_format == "10x5v3"`, which never matches the schema value `10X_5v3`, so both formats fell through to a derived `-d 10x5v3` / `-d 10x3v4` preset that flexiplex does not have. Every format is now mapped explicitly: `10X_3v4` uses `-d 10x3v3` (same geometry, different whitelist) and `10X_5v3` uses the 5' flanks with a 10 bp UMI
+
+## nf-core/scnanoseq history
+
+The entries below are the changelog of nf-core/scnanoseq up to v1.3.0, on which LRSinglecell is based. Issue and pull request links refer to that repository.
+
+### v1.3.0 [2026-06-26]
+
+#### Credits
+
+Special thanks to a new contributor to scnanoseq:
+
+- [Nick Youngblut](https://github.com/nick-youngblut)
+
+#### Enhancements
+
+- [#94](https://github.com/nf-core/scnanoseq/issues/94) Strict syntax conversion: converted entire workflow to strict syntax and reorganized into `<name>/main.nf` directory structure
+- [#93](https://github.com/nf-core/scnanoseq/issues/93) and [#55](https://github.com/nf-core/scnanoseq/issues/55) Upgraded IsoQuant from v3.6.1 to v3.13.0 and removed chromosome-splitting logic in the IsoQuant subworkflow due to improvements in IsoQuant; IsoQuant now processes all chromosomes in a single invocation
+- [#65](https://github.com/nf-core/scnanoseq/pull/65) and [#61](https://github.com/nf-core/scnanoseq/issues/61) Replaced NanoFilt with Chopper for read filtering, with gzip compression of intermediate split FASTQ files to reduce disk usage
+- [#87](https://github.com/nf-core/scnanoseq/issues/87) Added `--skip_blaze_demux` parameter to allow skipping BLAZE demultiplexing
+- Added `SPLIT_SEQ` module using seqkit for splitting FASTQ files, replacing the previous split approach
+- Updated `CAT_FASTQ` to the nf-core module which now supports compressed inputs
+- Moved gzip compression to pre-extraction step to minimize uncompressed FASTQ footprint in work directories
+- Upgraded nf-core template from 3.2.1 to 3.5.1
+
+#### Parameter changes
+
+- `--skip_fastqc` default changed from `false` to `true` (disabled by default due to runtime issues with long-read data)
+- `--skip_fastq_nanocomp` default changed from `false` to `true`
+- `--skip_bam_nanocomp` default changed from `false` to `true`
+- [#99](https://github.com/nf-core/scnanoseq/issues/99) `--skip_toulligqc` default changed from `false` to `true`
+- `--skip_blaze_demux` added (default: `true`)
+
+#### Fixes
+
+- [#83](https://github.com/nf-core/scnanoseq/issues/83) Isoquant count matrix headers are now compatible with Seurat (removed leading `#` from header line). Note that lastest version of IsoQuant also resolves this issue.
+
+#### Software dependencies
+
+| Dependency | Old version | New version |
+| ---------- | ----------- | ----------- |
+| `IsoQuant` | 3.6.1       | 3.13.0      |
+| `Chopper`  | -           | 0.10.0      |
+| `NanoFilt` | 2.8.0       | removed     |
+
+### v1.2.2 [2026-03-09]
+
+#### Fixes
+
+- Fixed error that would occur when a large amount of transcripts were used to split a bam by replacing samtools_view with a custom script.
+
+### v1.2.1 [2025-09-02]
+
+#### Fixes
+
+- Fixed issue where `-resume` would not always cache IsoQuant steps, resulting in silently skipping chromosomes
+
+### v1.2.0 [2025-06-09]
+
+#### Enhancements
+
+- Fixed issue with linting.yml preventing automatic template PRs
+- Upgraded nf-core template to 3.2.1
+- Upgraded nanocomp nf-core module (no version change)
+- (https://github.com/nf-core/scnanoseq/issues/44) All output files produced by isoquant are now produced in the results file
+- (https://github.com/nf-core/scnanoseq/issues/45) Reference files are now accepted in .zip format
+- (https://github.com/nf-core/scnanoseq/issues/47) BLAZE scripts has been removed from the repo so the actual published code can be used
+- (https://github.com/nf-core/scnanoseq/issues/47) Added new whitelists for 10X 3v4 and 10X 5v3
+- (https://github.com/nf-core/scnanoseq/issues/56) Fixed an error where using `--skip_dedup` would end the pipeline early
+- (https://github.com/nf-core/scnanoseq/issues/58) Fixed UMI length for 5 prime chemistries
+- Fixed an error caused by `--skip_qc` and `--skip_seurat`
+- Seurat process now places the seurat object to pipeline outputs
+- No longer output uncorrected correct barcodes
+- Updated metro diagram
+
+#### Software dependencies
+
+| Dependency | Old version | New version |
+| ---------- | ----------- | ----------- |
+| `BLAZE`    | 2.2.0       | 2.5.1       |
+
+### v1.1.0 [2025-03-18]
+
+#### Enhancements
+
+- Inputs for IsoQuant are split on chromosome to allow for faster processing
+- The read counts QC metric is now able to leverage NanoPlot counts if FastQC is skipped
+- Added `oarfish` as an option for quantification
+- Added `picard markdupes` as an option for deduplication
+
+#### Fixes
+
+- The 'Post Trim Read QC' and 'Post Extract Read QC' nodes on the metro diagram have been placed in correct locations (closes issue #36)
+- The BLAZE process in the example config has been corrected to use cpus instead of `--threads`
+
+#### Software dependencies
+
+| Dependency | Old version | New version |
+| ---------- | ----------- | ----------- |
+| `IsoQuant` | 3.5.0       | 3.6.1       |
+| `MultiQC`  | 1.25        | 1.25.1      |
+
+### v1.0.0 [2024-10-07]
+
+Initial release of nf-core/scnanoseq, created with the [nf-core](https://nf-co.re/) template.

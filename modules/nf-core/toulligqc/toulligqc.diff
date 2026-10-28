@@ -1,0 +1,15 @@
+Changes in module 'nf-core/toulligqc'
+'modules/nf-core/toulligqc/environment.yml' is unchanged
+'modules/nf-core/toulligqc/meta.yml' is unchanged
+Changes in 'toulligqc/main.nf':
+--- modules/nf-core/toulligqc/main.nf
++++ modules/nf-core/toulligqc/main.nf
+@@ -1,5 +1,5 @@
+ process TOULLIGQC {
+-    label 'process_low'
++    label 'process_high'
+     tag "${meta.id}"
+
+'modules/nf-core/toulligqc/tests/main.nf.test' is unchanged
+'modules/nf-core/toulligqc/tests/main.nf.test.snap' is unchanged
+************************************************************

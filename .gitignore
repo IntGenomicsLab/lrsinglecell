@@ -8,3 +8,12 @@ testing*
 *.pyc
 null/
 .lineage/
+test.sh
+params.yml
+samplesheet.csv
+*.swp
+input*
+null/
+tmp/
+.nf-test*
+CLAUDE.local.md

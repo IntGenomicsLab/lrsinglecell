@@ -31,8 +31,6 @@ To contribute code to any nf-core pipeline:
 
 If you are not used to this workflow with Git, see the [GitHub documentation](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests) or [Git resources](https://try.github.io/) for more information.
 
-
-
 ### GitHub Codespaces
 
 You can contribute to IntGenomicsLab/lrsinglecell without installing a local development environment on your machine by using [GitHub Codespaces](https://github.com/codespaces).
@@ -164,4 +162,6 @@ If you update images or graphics, follow the nf-core [style guidelines](https://
 
 ## Pipeline specific contribution guidelines
 
-<!-- TODO nf-core: Add any pipeline specific contribution guidelines here, such as coding styles, procedures, checklists etc. -->
+- Run the pipeline tests with a container profile, e.g. `nf-test test tests/ --profile +singularity` (or `+docker`).
+- Changes to scripts in `bin/` that have a unit test suite under `tests/bin/` should keep it passing; those suites run in the `bin-tests.yml` workflow.
+- Add a line to the top section of `CHANGELOG.md` for any user-facing change.
