@@ -1,22 +1,4 @@
-repository_type: pipeline
-
-nf_core_version: 4.1.0
-
 lint:
-  files_unchanged:
-    - CODE_OF_CONDUCT.md
-    - assets/nf-core-lrsinglecell_logo_light.png
-    - docs/images/nf-core-lrsinglecell_logo_light.png
-    - docs/images/nf-core-lrsinglecell_logo_dark.png
-    - .github/ISSUE_TEMPLATE/bug_report.yml
-    - .github/PULL_REQUEST_TEMPLATE.md
-    - assets/email_template.txt
-    - docs/README.md
-  nextflow_config:
-    - manifest.name
-    - manifest.homePage
-  multiqc_config:
-    - report_comment
   files_exist:
     - CODE_OF_CONDUCT.md
     - assets/nf-core-lrsinglecell_logo_light.png
@@ -25,14 +7,30 @@ lint:
     - .github/ISSUE_TEMPLATE/config.yml
     - .github/workflows/awstest.yml
     - .github/workflows/awsfulltest.yml
-
+  files_unchanged:
+    - LICENSE
+    - CODE_OF_CONDUCT.md
+    - assets/nf-core-lrsinglecell_logo_light.png
+    - docs/images/nf-core-lrsinglecell_logo_light.png
+    - docs/images/nf-core-lrsinglecell_logo_dark.png
+    - .github/ISSUE_TEMPLATE/bug_report.yml
+    - .github/PULL_REQUEST_TEMPLATE.md
+    - assets/email_template.txt
+    - docs/README.md
+  multiqc_config:
+    - report_comment
+  nextflow_config:
+    - manifest.name
+    - manifest.homePage
+nf_core_version: 4.2.1
+repository_type: pipeline
 template:
-  org: IntGenomicsLab
-  name: lrsinglecell
-  description: Single-cell long-read cDNA and DNA pipeline
   author: Luuk Harbers
-  version: 1.0.0
-  force: true
+  description: Single-cell long-read cDNA and DNA pipeline
+  force: false
+  is_nfcore: false
+  name: lrsinglecell
+  org: IntGenomicsLab
   outdir: .
   skip_features: []
-  is_nfcore: false
+  version: 1.0.0
