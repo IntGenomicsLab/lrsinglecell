@@ -166,6 +166,8 @@ LRSinglecell is written and maintained by [Luuk Harbers](https://github.com/ljwh
 
 It is derived from [nf-core/scnanoseq](https://github.com/nf-core/scnanoseq), originally written by [Austyn Trull](https://github.com/atrull314) and [Dr. Lara Ianov](https://github.com/lianov) at the University of Alabama at Birmingham Biological Data Science Core (U-BDS). We thank them and the nf-core/scnanoseq contributors for the foundation this pipeline builds on.
 
+The test data lives in [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell) and is copied from the nf-core/scnanoseq test data in [nf-core/test-datasets](https://github.com/nf-core/test-datasets/tree/scnanoseq) (MIT).
+
 ## Contributions and Support
 
 If you would like to contribute to this pipeline, please see the [contributing guidelines](docs/CONTRIBUTING.md).

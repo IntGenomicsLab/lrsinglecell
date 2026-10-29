@@ -13,6 +13,7 @@ standalone IntGenomicsLab pipeline. The changes below are relative to nf-core/sc
 ### Pipeline
 
 - Renamed to `IntGenomicsLab/lrsinglecell`; the entry workflow is `INTGENOMICSLAB_LRSINGLECELL` and the software versions file is `pipeline_info/lrsinglecell_software_mqc_versions.yml`
+- Test profiles read their data from [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell) (`lrsinglecell/`), copied unchanged from nf-core/test-datasets `scnanoseq`
 - Moved to the nf-core/tools 4.2.1 template (minimum Nextflow `25.10.4`, `nf-schema` 2.7.3, `nft-utils` 1.2.1, updated `utils_*` subworkflows, `multiqc` module and `fastqc` module (FastQC 0.13.0, only used with `--skip_fastqc false`))
 
 ### Enhancements
