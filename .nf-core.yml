@@ -9,6 +9,8 @@ lint:
     - .github/workflows/awsfulltest.yml
   files_unchanged:
     - LICENSE
+    - .gitignore
+    - .github/workflows/branch.yml
     - CODE_OF_CONDUCT.md
     - assets/nf-core-lrsinglecell_logo_light.png
     - docs/images/nf-core-lrsinglecell_logo_light.png
@@ -17,6 +19,8 @@ lint:
     - .github/PULL_REQUEST_TEMPLATE.md
     - assets/email_template.txt
     - docs/README.md
+  template_strings:
+    - bin/seurat_qc.R
   multiqc_config:
     - report_comment
   nextflow_config:
