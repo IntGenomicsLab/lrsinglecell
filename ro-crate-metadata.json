@@ -22,14 +22,20 @@
             "@id": "./",
             "@type": "Dataset",
             "creativeWorkStatus": "Stable",
-            "datePublished": "2026-10-28T10:23:18+00:00",
-            "description": "# LRSinglecell\n\n[![GitHub Actions CI Status](https://github.com/IntGenomicsLab/lrsinglecell/actions/workflows/nf-test.yml/badge.svg)](https://github.com/IntGenomicsLab/lrsinglecell/actions/workflows/nf-test.yml)\n[![GitHub Actions Linting Status](https://github.com/IntGenomicsLab/lrsinglecell/actions/workflows/linting.yml/badge.svg)](https://github.com/IntGenomicsLab/lrsinglecell/actions/workflows/linting.yml)\n[![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)\n\n[![Nextflow](https://img.shields.io/badge/version-%E2%89%A525.10.4-green?style=flat&logo=nextflow&logoColor=white&color=%230DC09D&link=https%3A%2F%2Fnextflow.io)](https://www.nextflow.io/)\n[![nf-core template version](https://img.shields.io/badge/nf--core_template-4.1.0-green?style=flat&logo=nfcore&logoColor=white&color=%2324B064&link=https%3A%2F%2Fnf-co.re)](https://github.com/nf-core/tools/releases/tag/4.1.0)\n[![run with conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)\n[![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)\n[![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)\n\n## Introduction\n\n**LRSinglecell** (`IntGenomicsLab/lrsinglecell`) is a bioinformatics pipeline for single-cell/nuclei long-read sequencing data from Oxford Nanopore. It processes 10X Genomics cDNA libraries (gene and isoform quantification) and single-cell DNA libraries, either separately or together in one run (e.g. 10X Multiome), from raw FASTQ to deduplicated per-cell BAMs, feature-barcode matrices and QC reports.\n\nLRSinglecell is derived from [nf-core/scnanoseq](https://github.com/nf-core/scnanoseq) v1.3.0 and extends it with DNA support, flexiplex demultiplexing, gene-aware UMI deduplication and an lr-kallisto quantifier. See the [CHANGELOG](CHANGELOG.md) for everything that differs from nf-core/scnanoseq.\n\nThe pipeline is built using [Nextflow](https://www.nextflow.io) and the [nf-core](https://nf-co.re) template, with one container per process for reproducibility.\n\n## Pipeline summary\n\n![LRSinglecell diagram](assets/lrsinglecell_tube_map.png)\n\n1. Raw read QC ([`NanoPlot`](https://github.com/wdecoster/NanoPlot), optionally [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [`NanoComp`](https://github.com/wdecoster/nanocomp) and [`ToulligQC`](https://github.com/GenomiqueENS/toulligQC))\n2. Optional FASTQ splitting for parallelisation ([`seqkit`](https://bioinf.shenwei.me/seqkit/))\n3. Read trimming and filtering ([`Chopper`](https://github.com/wdecoster/chopper))\n4. Barcode and UMI demultiplexing, per data type:\n   - cDNA: [`flexiplex`](https://github.com/DavidsonGroup/flexiplex) (default) or [`BLAZE`](https://github.com/shimlab/BLAZE) with barcode correction\n   - DNA: [`flexiplex`](https://github.com/DavidsonGroup/flexiplex)\n5. cDNA:\n   1. Alignment to the genome and/or transcriptome ([`minimap2`](https://github.com/lh3/minimap2)) and alignment QC ([`SAMtools`](http://www.htslib.org/doc/samtools.html), [`RSeQC`](https://rseqc.sourceforge.net/))\n   2. Gene tagging and gene/transcript-aware UMI deduplication ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools))\n   3. Quantification with any combination of [`IsoQuant`](https://github.com/ablab/IsoQuant) (gene + transcript), [`oarfish`](https://github.com/COMBINE-lab/oarfish) (transcript) and [`lr-kallisto`](https://github.com/pachterlab/kallisto) (gene + transcript, alignment-free), for called cells and, optionally, all droplets\n   4. Preliminary matrix QC ([`Seurat`](https://github.com/satijalab/seurat))\n6. DNA:\n   1. Alignment to the genome ([`minimap2`](https://github.com/lh3/minimap2))\n   2. Barcode-aware fragment duplicate marking (`bin/mark_dna_duplicates.py`)\n   3. Alignment QC ([`SAMtools`](http://www.htslib.org/doc/samtools.html))\n7. QC report for raw and processed reads, alignment, deduplication and matrices ([`MultiQC`](http://multiqc.info/))\n\n## Usage\n\n> [!NOTE]\n> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/get_started/environment_setup/overview) on how to set-up Nextflow. Make sure to test your setup with `-profile test` (cDNA), `-profile test_dna` (DNA) or `-profile test_mixed` (both) before running the workflow on actual data.\n\nFirst, prepare a samplesheet with your input data that looks as follows:\n\n```csv title=\"samplesheet.csv\"\nsample,fastq,cell_count,type\nCONTROL_REP1,AEG588A1_S1.fastq.gz,5000,cdna\nCONTROL_REP1,AEG588A1_S2.fastq.gz,5000,cdna\nCONTROL_REP1,AEG588A1_DNA.fastq.gz,5000,dna\n```\n\nEach row represents a single-end FASTQ file. Rows with the same `sample` and `type` are merged before processing. `cell_count` is the expected number of cells, and `type` (`cdna` or `dna`, default `cdna`) selects the processing arm.\n\nNow, you can run the pipeline using:\n\n```bash\nnextflow run IntGenomicsLab/lrsinglecell \\\n   -profile <docker/singularity/.../institute> \\\n   --input samplesheet.csv \\\n   --genome_fasta genome.fa \\\n   --gtf genes.gtf \\\n   --barcode_format 10X_3v3 \\\n   --quantifier isoquant \\\n   --outdir <OUTDIR>\n```\n\n`--quantifier` (`isoquant`, `oarfish`, `lrkallisto`, comma-separated) is only required when the samplesheet contains cDNA samples.\n\n> [!WARNING]\n> Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/running/run-pipelines#using-parameter-files).\n\nFor more details and further functionality, please refer to the [usage documentation](docs/usage.md) and the [parameter schema](nextflow_schema.json).\n\n## Pipeline output\n\nThe main outputs are, per sample and data type, deduplicated BAMs and (for cDNA) gene- and transcript-level feature-barcode matrices that can be read directly by `Seurat` and similar packages, together with QC metrics and a MultiQC report. For details about the output files and reports, please refer to the [output documentation](docs/output.md).\n\n## Troubleshooting\n\nIf you experience any issues, please [open an issue on our GitHub repository](https://github.com/IntGenomicsLab/lrsinglecell/issues/new/choose). However, some resolutions for common issues will be noted below:\n\n- Due to the nature of the data this pipeline analyzes, some tools may experience increased runtimes. For some of the custom tools made for this pipeline (`preextract_fastq.py` and `correct_barcodes.py`), we have leveraged the splitting done via the `split_amount` parameter to decrease their overall runtimes. The `split_amount` parameter will split the input FASTQs into a number of FASTQ files, each containing a number of lines based on the value used for this parameter. As a result, it is important not to set this parameter to be too low as doing so would cause the creation of a large number of files the pipeline will be processed. While this value can be highly dependent on the data, a good starting point for an analysis would be to set this value to `500000`. If you find that `PREEXTRACT_FASTQ` and `CORRECT_BARCODES` are still taking long amounts of time to run, it would be worth reducing this parameter to `200000` or `100000`, but keeping the value on the order of hundred of thousands or tens of thousands should help with keeping the total number of processes minimal. An example of setting this parameter to be equal to 500000 is shown below:\n\n```yml title=\"params.yml\"\nsplit_amount: 500000\n```\n\n- We have seen a recurrent node failure on slurm clusters that does seem to be related to submission of Nextflow jobs. This issue is not related to this pipeline per se, but rather to Nextflow itself. We are currently working on a resolution. But we have two methods that appear to help overcome should this issue arise:\n  1. Provide a custom config that increases the memory request for the job that failed. This may take a couple attempts to find the correct requests, but we have noted that there does appear to be a memory issue occasionally with these errors.\n  2. Request an interactive session with a decent amount of time and memory and CPUs in order to run the pipeline on the single node. Note that this will take time as there will be minimal parallelization, but this does seem to resolve the issue.\n- We note that umitools dedup can take a large amount of time in order to perform deduplication. One approach we have implemented to assist with speed is to split input files based on chromosome. However for the transcriptome aligned bams, there is some additional work required that involves grouping transcripts into appropriate chromosomes. In order to accomplish this, the pipeline needs to parse the transcript id from the transcriptome FASTA file. The transcript id is often nested in the sequence identifier with additional data and the data is delimited. We have included the delimiters used by reference files obtained from GENCODE, NCBI, and Ensembl. However in case you wish to explicitly control this or if the reference file source uses a different delimiter, you are able to manually set it via the `--fasta_delimiter` parameter.\n- We acknowledge that analyzing PromethION data is a common use case for this pipeline. Currently, the pipeline has been developed with defaults to analyze GridION and average sized PromethION data. For cases, where jobs have fail due for larger PromethION datasets, the defaults can be overwritten by a custom configuation file (provided by the `-c` Nextflow option) where resources can be increased (substantially in some cases). Below are some of the overrides we have used, and while these amounts may not work on every dataset, these will hopefully at least note which processes will need to have their resources increased:\n\n```groovy title=\"custom.config\"\n\nprocess\n{\n    withName: '.*:.*FASTQC.*'\n    {\n        cpus = 20\n    }\n}\n\nprocess\n{\n    withName: '.*:BLAZE'\n    {\n        cpus = 30\n    }\n}\n\nprocess\n{\n    withName: '.*:TAG_BARCODES'\n    {\n        memory = '60.GB'\n    }\n}\n\nprocess\n{\n    withName: '.*:SAMTOOLS_SORT'\n    {\n        cpus = 20\n    }\n}\n\nprocess\n{\n    withName: '.*:MINIMAP2_ALIGN'\n    {\n        cpus = 20\n    }\n}\n\nprocess\n{\n    withName: '.*:ISOQUANT'\n    {\n        cpus = 30\n        memory = '85.GB'\n    }\n}\n```\n\nWe further note that while we encourage the use of `split_amount` as discussed above for larger datasets, the pipeline can be executed without enabling this parameter. When doing this, please consider increasing the time limit to `CORRECT_BARCODES` as it can take hours instead of minutes when `split_amount` is disabled:\n\n```groovy title=\"custom.config\"\n//NOTE: with split_amount disabled, consider increasing the time limit to CORRECT_BARCODES\nprocess\n{\n    withName: '.*:CORRECT_BARCODES'\n    {\n        time = '15.h'\n    }\n}\n```\n\n## Credits\n\nLRSinglecell is written and maintained by [Luuk Harbers](https://github.com/ljwharbers) at the [Integrative Cancer Genomics Lab](https://github.com/IntGenomicsLab) (VIB-KU Leuven).\n\nIt is derived from [nf-core/scnanoseq](https://github.com/nf-core/scnanoseq), originally written by [Austyn Trull](https://github.com/atrull314) and [Dr. Lara Ianov](https://github.com/lianov) at the University of Alabama at Birmingham Biological Data Science Core (U-BDS). We thank them and the nf-core/scnanoseq contributors for the foundation this pipeline builds on.\n\n## Contributions and Support\n\nIf you would like to contribute to this pipeline, please see the [contributing guidelines](docs/CONTRIBUTING.md).\n\n## Citations\n\nIf you use LRSinglecell for your analysis, please also cite nf-core/scnanoseq, on which it is based:\n\n> **scnanoseq: an nf-core pipeline for Oxford Nanopore single-cell RNA-sequencing**\n>\n> Austyn Trull, Elizabeth A. Worthey, Lara Ianov\n>\n> Bioinformatics, Volume 41, Issue 9, September 2025, btaf487, <https://doi.org/10.1093/bioinformatics/btaf487>\n\nAn extensive list of references for the tools used by the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file.\n\nThis pipeline uses code and infrastructure developed and maintained by the [nf-core](https://nf-co.re) community, reused here under the [MIT license](https://github.com/nf-core/tools/blob/main/LICENSE).\n\n> **The nf-core framework for community-curated bioinformatics pipelines.**\n>\n> Philip Ewels, Alexander Peltzer, Sven Fillinger, Harshil Patel, Johannes Alneberg, Andreas Wilm, Maxime Ulysse Garcia, Paolo Di Tommaso & Sven Nahnsen.\n>\n> _Nat Biotechnol._ 2020 Feb 13. doi: [10.1038/s41587-020-0439-x](https://dx.doi.org/10.1038/s41587-020-0439-x)\n\n> **Empowering bioinformatics communities with Nextflow and nf-core.**\n>\n> Langer, B.E., Amaral, A., Baudement, MO. et al.\n>\n> _Genome Biol_ 2025 July 29. doi [10.1186/s13059-025-03673-9](https://doi.org/10.1186/s13059-025-03673-9)\n",
+            "datePublished": "2026-10-29T12:13:33+00:00",
+            "description": "# LRSinglecell\n\n[![GitHub Actions CI Status](https://github.com/IntGenomicsLab/lrsinglecell/actions/workflows/nf-test.yml/badge.svg)](https://github.com/IntGenomicsLab/lrsinglecell/actions/workflows/nf-test.yml)\n[![GitHub Actions Linting Status](https://github.com/IntGenomicsLab/lrsinglecell/actions/workflows/linting.yml/badge.svg)](https://github.com/IntGenomicsLab/lrsinglecell/actions/workflows/linting.yml)\n[![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)\n\n[![Nextflow](https://img.shields.io/badge/version-%E2%89%A525.10.4-green?style=flat&logo=nextflow&logoColor=white&color=%230DC09D&link=https%3A%2F%2Fnextflow.io)](https://www.nextflow.io/)\n[![nf-core template version](https://img.shields.io/badge/nf--core_template-4.2.1-green?style=flat&logo=nfcore&logoColor=white&color=%2324B064&link=https%3A%2F%2Fnf-co.re)](https://github.com/nf-core/tools/releases/tag/4.2.1)\n[![run with conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)\n[![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)\n[![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)\n\n## Introduction\n\n**LRSinglecell** (`IntGenomicsLab/lrsinglecell`) is a bioinformatics pipeline for single-cell/nuclei long-read sequencing data from Oxford Nanopore. It processes 10X Genomics cDNA libraries (gene and isoform quantification) and single-cell DNA libraries, either separately or together in one run (e.g. 10X Multiome), from raw FASTQ to deduplicated per-cell BAMs, feature-barcode matrices and QC reports.\n\nLRSinglecell is derived from [nf-core/scnanoseq](https://github.com/nf-core/scnanoseq) v1.3.0 and extends it with DNA support, flexiplex demultiplexing, gene-aware UMI deduplication and an lr-kallisto quantifier. See the [CHANGELOG](CHANGELOG.md) for everything that differs from nf-core/scnanoseq.\n\nThe pipeline is built using [Nextflow](https://www.nextflow.io) and the [nf-core](https://nf-co.re) template, with one container per process for reproducibility.\n\n## Pipeline summary\n\n![LRSinglecell diagram](assets/lrsinglecell_tube_map.png)\n\n1. Raw read QC ([`NanoPlot`](https://github.com/wdecoster/NanoPlot), optionally [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [`NanoComp`](https://github.com/wdecoster/nanocomp) and [`ToulligQC`](https://github.com/GenomiqueENS/toulligQC))\n2. Optional FASTQ splitting for parallelisation ([`seqkit`](https://bioinf.shenwei.me/seqkit/))\n3. Read trimming and filtering ([`Chopper`](https://github.com/wdecoster/chopper))\n4. Barcode and UMI demultiplexing, per data type:\n   - cDNA: [`flexiplex`](https://github.com/DavidsonGroup/flexiplex) (default) or [`BLAZE`](https://github.com/shimlab/BLAZE) with barcode correction\n   - DNA: [`flexiplex`](https://github.com/DavidsonGroup/flexiplex)\n5. cDNA:\n   1. Alignment to the genome and/or transcriptome ([`minimap2`](https://github.com/lh3/minimap2)) and alignment QC ([`SAMtools`](http://www.htslib.org/doc/samtools.html), [`RSeQC`](https://rseqc.sourceforge.net/))\n   2. Gene tagging and gene/transcript-aware UMI deduplication ([`UMI-tools`](https://github.com/CGATOxford/UMI-tools))\n   3. Quantification with any combination of [`IsoQuant`](https://github.com/ablab/IsoQuant) (gene + transcript), [`oarfish`](https://github.com/COMBINE-lab/oarfish) (transcript) and [`lr-kallisto`](https://github.com/pachterlab/kallisto) (gene + transcript, alignment-free), for called cells and, optionally, all droplets\n   4. Preliminary matrix QC ([`Seurat`](https://github.com/satijalab/seurat))\n6. DNA:\n   1. Alignment to the genome ([`minimap2`](https://github.com/lh3/minimap2))\n   2. Barcode-aware fragment duplicate marking (`bin/mark_dna_duplicates.py`)\n   3. Alignment QC ([`SAMtools`](http://www.htslib.org/doc/samtools.html))\n7. QC report for raw and processed reads, alignment, deduplication and matrices ([`MultiQC`](http://multiqc.info/))\n\n## Usage\n\n> [!NOTE]\n> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/get_started/environment_setup/overview) on how to set-up Nextflow. Make sure to test your setup with `-profile test` (cDNA), `-profile test_dna` (DNA) or `-profile test_mixed` (both) before running the workflow on actual data.\n\nFirst, prepare a samplesheet with your input data that looks as follows:\n\n```csv title=\"samplesheet.csv\"\nsample,fastq,cell_count,type\nCONTROL_REP1,AEG588A1_S1.fastq.gz,5000,cdna\nCONTROL_REP1,AEG588A1_S2.fastq.gz,5000,cdna\nCONTROL_REP1,AEG588A1_DNA.fastq.gz,5000,dna\n```\n\nEach row represents a single-end FASTQ file. Rows with the same `sample` and `type` are merged before processing. `cell_count` is the expected number of cells, and `type` (`cdna` or `dna`, default `cdna`) selects the processing arm.\n\nNow, you can run the pipeline using:\n\n```bash\nnextflow run IntGenomicsLab/lrsinglecell \\\n   -profile <docker/singularity/.../institute> \\\n   --input samplesheet.csv \\\n   --genome_fasta genome.fa \\\n   --gtf genes.gtf \\\n   --barcode_format 10X_3v3 \\\n   --quantifier isoquant \\\n   --outdir <OUTDIR>\n```\n\n`--quantifier` (`isoquant`, `oarfish`, `lrkallisto`, comma-separated) is only required when the samplesheet contains cDNA samples.\n\n> [!WARNING]\n> Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/running/run-pipelines#using-parameter-files).\n\nFor more details and further functionality, please refer to the [usage documentation](docs/usage.md) and the [parameter schema](nextflow_schema.json).\n\n## Pipeline output\n\nThe main outputs are, per sample and data type, deduplicated BAMs and (for cDNA) gene- and transcript-level feature-barcode matrices that can be read directly by `Seurat` and similar packages, together with QC metrics and a MultiQC report. For details about the output files and reports, please refer to the [output documentation](docs/output.md).\n\n## Troubleshooting\n\nIf you experience any issues, please [open an issue on our GitHub repository](https://github.com/IntGenomicsLab/lrsinglecell/issues/new/choose). However, some resolutions for common issues will be noted below:\n\n- Due to the nature of the data this pipeline analyzes, some tools may experience increased runtimes. For some of the custom tools made for this pipeline (`preextract_fastq.py` and `correct_barcodes.py`), we have leveraged the splitting done via the `split_amount` parameter to decrease their overall runtimes. The `split_amount` parameter will split the input FASTQs into a number of FASTQ files, each containing a number of lines based on the value used for this parameter. As a result, it is important not to set this parameter to be too low as doing so would cause the creation of a large number of files the pipeline will be processed. While this value can be highly dependent on the data, a good starting point for an analysis would be to set this value to `500000`. If you find that `PREEXTRACT_FASTQ` and `CORRECT_BARCODES` are still taking long amounts of time to run, it would be worth reducing this parameter to `200000` or `100000`, but keeping the value on the order of hundred of thousands or tens of thousands should help with keeping the total number of processes minimal. An example of setting this parameter to be equal to 500000 is shown below:\n\n```yml title=\"params.yml\"\nsplit_amount: 500000\n```\n\n- We have seen a recurrent node failure on slurm clusters that does seem to be related to submission of Nextflow jobs. This issue is not related to this pipeline per se, but rather to Nextflow itself. We are currently working on a resolution. But we have two methods that appear to help overcome should this issue arise:\n  1. Provide a custom config that increases the memory request for the job that failed. This may take a couple attempts to find the correct requests, but we have noted that there does appear to be a memory issue occasionally with these errors.\n  2. Request an interactive session with a decent amount of time and memory and CPUs in order to run the pipeline on the single node. Note that this will take time as there will be minimal parallelization, but this does seem to resolve the issue.\n- We note that umitools dedup can take a large amount of time in order to perform deduplication. One approach we have implemented to assist with speed is to split input files based on chromosome. However for the transcriptome aligned bams, there is some additional work required that involves grouping transcripts into appropriate chromosomes. In order to accomplish this, the pipeline needs to parse the transcript id from the transcriptome FASTA file. The transcript id is often nested in the sequence identifier with additional data and the data is delimited. We have included the delimiters used by reference files obtained from GENCODE, NCBI, and Ensembl. However in case you wish to explicitly control this or if the reference file source uses a different delimiter, you are able to manually set it via the `--fasta_delimiter` parameter.\n- We acknowledge that analyzing PromethION data is a common use case for this pipeline. Currently, the pipeline has been developed with defaults to analyze GridION and average sized PromethION data. For cases, where jobs have fail due for larger PromethION datasets, the defaults can be overwritten by a custom configuation file (provided by the `-c` Nextflow option) where resources can be increased (substantially in some cases). Below are some of the overrides we have used, and while these amounts may not work on every dataset, these will hopefully at least note which processes will need to have their resources increased:\n\n```groovy title=\"custom.config\"\n\nprocess\n{\n    withName: '.*:.*FASTQC.*'\n    {\n        cpus = 20\n    }\n}\n\nprocess\n{\n    withName: '.*:BLAZE'\n    {\n        cpus = 30\n    }\n}\n\nprocess\n{\n    withName: '.*:TAG_BARCODES'\n    {\n        memory = '60.GB'\n    }\n}\n\nprocess\n{\n    withName: '.*:SAMTOOLS_SORT'\n    {\n        cpus = 20\n    }\n}\n\nprocess\n{\n    withName: '.*:MINIMAP2_ALIGN'\n    {\n        cpus = 20\n    }\n}\n\nprocess\n{\n    withName: '.*:ISOQUANT'\n    {\n        cpus = 30\n        memory = '85.GB'\n    }\n}\n```\n\nWe further note that while we encourage the use of `split_amount` as discussed above for larger datasets, the pipeline can be executed without enabling this parameter. When doing this, please consider increasing the time limit to `CORRECT_BARCODES` as it can take hours instead of minutes when `split_amount` is disabled:\n\n```groovy title=\"custom.config\"\n//NOTE: with split_amount disabled, consider increasing the time limit to CORRECT_BARCODES\nprocess\n{\n    withName: '.*:CORRECT_BARCODES'\n    {\n        time = '15.h'\n    }\n}\n```\n\n## Credits\n\nLRSinglecell is written and maintained by [Luuk Harbers](https://github.com/ljwharbers) at the [Integrative Cancer Genomics Lab](https://github.com/IntGenomicsLab) (VIB-KU Leuven).\n\nIt is derived from [nf-core/scnanoseq](https://github.com/nf-core/scnanoseq), originally written by [Austyn Trull](https://github.com/atrull314) and [Dr. Lara Ianov](https://github.com/lianov) at the University of Alabama at Birmingham Biological Data Science Core (U-BDS). We thank them and the nf-core/scnanoseq contributors for the foundation this pipeline builds on.\n\n## Contributions and Support\n\nIf you would like to contribute to this pipeline, please see the [contributing guidelines](docs/CONTRIBUTING.md).\n\n## Citations\n\nIf you use LRSinglecell for your analysis, please also cite nf-core/scnanoseq, on which it is based:\n\n> **scnanoseq: an nf-core pipeline for Oxford Nanopore single-cell RNA-sequencing**\n>\n> Austyn Trull, Elizabeth A. Worthey, Lara Ianov\n>\n> Bioinformatics, Volume 41, Issue 9, September 2025, btaf487, <https://doi.org/10.1093/bioinformatics/btaf487>\n\nAn extensive list of references for the tools used by the pipeline can be found in the [`CITATIONS.md`](CITATIONS.md) file.\n\nThis pipeline uses code and infrastructure developed and maintained by the [nf-core](https://nf-co.re) community, reused here under the [MIT license](https://github.com/nf-core/tools/blob/main/LICENSE).\n\n> **The nf-core framework for community-curated bioinformatics pipelines.**\n>\n> Philip Ewels, Alexander Peltzer, Sven Fillinger, Harshil Patel, Johannes Alneberg, Andreas Wilm, Maxime Ulysse Garcia, Paolo Di Tommaso & Sven Nahnsen.\n>\n> _Nat Biotechnol._ 2020 Feb 13. doi: [10.1038/s41587-020-0439-x](https://dx.doi.org/10.1038/s41587-020-0439-x)\n\n> **Empowering bioinformatics communities with Nextflow and nf-core.**\n>\n> Langer, B.E., Amaral, A., Baudement, MO. et al.\n>\n> _Genome Biol_ 2025 July 29. doi [10.1186/s13059-025-03673-9](https://doi.org/10.1186/s13059-025-03673-9)\n",
             "hasPart": [
                 {
                     "@id": "main.nf"
                 },
                 {
+                    "@id": "assets/lrsinglecell_tube_map.png"
+                },
+                {
                     "@id": "assets/"
+                },
+                {
+                    "@id": "bin/"
                 },
                 {
                     "@id": "conf/"
@@ -38,7 +44,13 @@
                     "@id": "docs/"
                 },
                 {
+                    "@id": "docs/images/"
+                },
+                {
                     "@id": "modules/"
+                },
+                {
+                    "@id": "modules/local/"
                 },
                 {
                     "@id": "modules/nf-core/"
@@ -93,7 +105,7 @@
             },
             "mentions": [
                 {
-                    "@id": "#49c4bb77-ecfc-4e1c-bce1-e5a397f60da9"
+                    "@id": "#4b2ee9f3-373e-448f-a113-4969dc6e97a5"
                 }
             ],
             "name": "IntGenomicsLab/lrsinglecell"
@@ -120,20 +132,39 @@
                 "SoftwareSourceCode",
                 "ComputationalWorkflow"
             ],
-            "contributor": [
+            "author": [
                 {
                     "@id": "https://orcid.org/0000-0003-3910-6497"
                 }
             ],
-            "dateCreated": "",
-            "dateModified": "2026-10-28T11:23:18Z",
+            "contributor": [
+                {
+                    "@id": "https://orcid.org/0000-0002-9262-4202"
+                },
+                {
+                    "@id": "https://orcid.org/0000-0002-1859-2118"
+                }
+            ],
+            "dateCreated": [
+                "",
+                "2026-10-28T12:41:28Z"
+            ],
+            "dateModified": "2026-10-29T13:13:33Z",
             "dct:conformsTo": "https://bioschemas.org/profiles/ComputationalWorkflow/1.0-RELEASE/",
+            "image": {
+                "@id": "assets/lrsinglecell_tube_map.png"
+            },
             "keywords": [
                 "nf-core",
                 "nextflow"
             ],
             "license": [
                 "MIT"
+            ],
+            "maintainer": [
+                {
+                    "@id": "https://orcid.org/0000-0003-3910-6497"
+                }
             ],
             "name": [
                 "IntGenomicsLab/lrsinglecell"
@@ -165,11 +196,19 @@
             "version": "!>=25.10.4"
         },
         {
-            "@id": "#49c4bb77-ecfc-4e1c-bce1-e5a397f60da9",
+            "@id": "assets/lrsinglecell_tube_map.png",
+            "@type": [
+                "File",
+                "ImageObject"
+            ],
+            "name": "Workflow diagram"
+        },
+        {
+            "@id": "#4b2ee9f3-373e-448f-a113-4969dc6e97a5",
             "@type": "TestSuite",
             "instance": [
                 {
-                    "@id": "#0680fc13-44d5-441e-b59a-3d917effd548"
+                    "@id": "#12b92131-ce8d-48a3-8758-3716217cabac"
                 }
             ],
             "mainEntity": {
@@ -178,7 +217,7 @@
             "name": "Test suite for IntGenomicsLab/lrsinglecell"
         },
         {
-            "@id": "#0680fc13-44d5-441e-b59a-3d917effd548",
+            "@id": "#12b92131-ce8d-48a3-8758-3716217cabac",
             "@type": "TestInstance",
             "name": "GitHub Actions workflow for testing IntGenomicsLab/lrsinglecell",
             "resource": "repos/IntGenomicsLab/lrsinglecell/actions/workflows/nf-test.yml",
@@ -201,6 +240,11 @@
             "description": "Additional files"
         },
         {
+            "@id": "bin/",
+            "@type": "Dataset",
+            "description": "Scripts that must be callable from a pipeline process"
+        },
+        {
             "@id": "conf/",
             "@type": "Dataset",
             "description": "Configuration files"
@@ -211,9 +255,19 @@
             "description": "Markdown files for documenting the pipeline"
         },
         {
+            "@id": "docs/images/",
+            "@type": "Dataset",
+            "description": "Images for the documentation files"
+        },
+        {
             "@id": "modules/",
             "@type": "Dataset",
             "description": "Modules used by the pipeline"
+        },
+        {
+            "@id": "modules/local/",
+            "@type": "Dataset",
+            "description": "Pipeline-specific modules"
         },
         {
             "@id": "modules/nf-core/",
@@ -299,7 +353,24 @@
         {
             "@id": "https://orcid.org/0000-0003-3910-6497",
             "@type": "Person",
-            "name": "Luuk Harbers"
+            "affiliation": "VIB Center for Cancer Biology, VIB, Leuven, Belgium",
+            "email": "luuk.harbers@kuleuven.be",
+            "name": "Luuk Harbers",
+            "url": "https://github.com/ljwharbers"
+        },
+        {
+            "@id": "https://orcid.org/0000-0002-9262-4202",
+            "@type": "Person",
+            "affiliation": "University of Alabama at Birmingham, Birmingham, AL, USA",
+            "name": "Austyn Trull",
+            "url": "https://github.com/atrull314"
+        },
+        {
+            "@id": "https://orcid.org/0000-0002-1859-2118",
+            "@type": "Person",
+            "affiliation": "University of Alabama at Birmingham, Birmingham, AL, USA",
+            "name": "Lara Ianov",
+            "url": "https://github.com/lianov"
         }
     ]
 }

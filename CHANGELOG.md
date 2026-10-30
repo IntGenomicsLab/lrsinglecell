@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 First release of LRSinglecell. The pipeline is a continuation of the `scdnalong` branch of
 [ljwharbers/scnanoseq](https://github.com/ljwharbers/scnanoseq/tree/scdnalong) (at `1ff784a`), itself built on
-[nf-core/scnanoseq](https://github.com/nf-core/scnanoseq) v1.3.0, rebuilt on the nf-core/tools 4.1.0 template as a
+[nf-core/scnanoseq](https://github.com/nf-core/scnanoseq) v1.3.0, rebuilt on the nf-core/tools 4.2.1 template as a
 standalone IntGenomicsLab pipeline. The changes below are relative to nf-core/scnanoseq v1.3.0.
 
 ### Pipeline
 
 - Renamed to `IntGenomicsLab/lrsinglecell`; the entry workflow is `INTGENOMICSLAB_LRSINGLECELL` and the software versions file is `pipeline_info/lrsinglecell_software_mqc_versions.yml`
-- Moved to the nf-core/tools 4.1.0 template (minimum Nextflow `25.10.4`, `nf-schema` 2.7.2, updated `utils_*` subworkflows and `multiqc` module)
+- Moved to the nf-core/tools 4.2.1 template (minimum Nextflow `25.10.4`, `nf-schema` 2.7.3, `nft-utils` 1.2.1, updated `utils_*` subworkflows, `multiqc` module and `fastqc` module (FastQC 0.13.0, only used with `--skip_fastqc false`))
 
 ### Enhancements
 
