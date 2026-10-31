@@ -3,7 +3,7 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.0.0 - [2026-10-28]
+## v1.0.0 - [2026-10-31]
 
 First release of LRSinglecell. The pipeline is a continuation of the `scdnalong` branch of
 [ljwharbers/scnanoseq](https://github.com/ljwharbers/scnanoseq/tree/scdnalong) (at `1ff784a`), itself built on
@@ -66,6 +66,13 @@ standalone IntGenomicsLab pipeline. The changes below are relative to nf-core/sc
 - DNA samtools QC files are no longer named with a doubled type suffix. The `BAM_STATS_SAMTOOLS` prefix appended a literal `.dna` on top of the `meta.type` interpolation, so a DNA sample produced `<id>.dna.dna.flagstat`. They are now `<id>.dna.flagstat`/`.idxstats`/`.stats`. File contents are unchanged; MultiQC sample labels lose the duplicate suffix too. The `PICARD_MARKDUPLICATES` prefix carried the same doubled literal and is fixed alongside it, so the newly published duplication metrics are `<id>.dna.dedup.metrics.txt`
 - Fixed two `tests/.nftignore` patterns that had silently stopped matching. `**/genome/isoquant/*.mtx` and its `isoquant_all_droplets` counterpart were added to keep the count matrices out of content checking, but the published path later gained two nested `<sample>.<type>/` levels, so the matrices were being md5-compared again. Also added the DNA dedup BAM and its index, which are not byte-reproducible between runs -- `samtools sort` ties are resolved differently across runs -- and whose cDNA equivalents were already ignored. Both files are still checked by name. The newly published MarkDuplicates metrics are ignored for content on the same grounds: the file carries a `# Started on:` timestamp and the full work-directory command line, which is why the nf-core module test snapshots only its first three lines
 - Fixed flexiplex being unable to demultiplex `10X_5v3` and `10X_3v4` cDNA. The explicit 5' v3 pattern was guarded by `barcode_format == "10x5v3"`, which never matches the schema value `10X_5v3`, so both formats fell through to a derived `-d 10x5v3` / `-d 10x3v4` preset that flexiplex does not have. Every format is now mapped explicitly: `10X_3v4` uses `-d 10x3v3` (same geometry, different whitelist) and `10X_5v3` uses the 5' flanks with a 10 bp UMI
+- Transcriptome `umi_tools dedup` now gets `--per-gene --per-contig` instead of `--per-contig` alone, which umi_tools rejects (`need to use --per-gene with --per-contig`). Every run with a transcriptome quantifier (`oarfish`) failed at this step. No test profile exercises oarfish, so it was found by the real-data release test
+
+### Known issues
+
+- The called-cell IsoQuant (`isoquant/`) and oarfish matrices contain a `-` barcode column. Running flexiplex with `-a true` leaves `CB` as `-` on reads that matched no known barcode, and these passes group on `CB`, so all such reads pool into one pseudo-cell. On the release test (one 10X Multiome cDNA library, 4,379 called cells) it held 51-55% of all counts. Drop the `-` column before downstream analysis. The `lrkallisto/` matrices and the all-droplet passes (`isoquant_all_droplets/`, `lrkallisto_all_droplets/`, keyed on `XB`) are not affected
+- `group_transcripts.sh` takes the transcript id from GTF field 12. In a versioned Ensembl/Cell Ranger GTF that field is the `gene_version` value, so every transcript is assigned to `chr_Unknown` and transcriptome deduplication runs as a single task instead of one per chromosome. Results are unaffected; only parallelism is lost. GENCODE GTFs, where `transcript_id` is the second attribute, are grouped correctly. This behaviour is inherited from nf-core/scnanoseq
+- No nf-test profile runs `oarfish`, so the transcriptome deduplication and oarfish path is covered only by `-profile test_full`
 
 ## nf-core/scnanoseq history
 
