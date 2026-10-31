@@ -66,13 +66,14 @@ jobs:
       fail-fast: false
       matrix:
         shard: ${{ fromJson(needs.nf-test-changes.outputs.shard) }}
-        profile: [conda, docker, singularity]
+        # conda is not tested: its environments resolve unpinned dependencies
+        # (e.g. plotly>=6 breaks NanoPlot 1.46.1), so it fails on drift
+        # unrelated to the pipeline.
+        profile: [docker, singularity]
         isMain:
           - ${{ github.base_ref == 'master' || github.base_ref == 'main' }}
-        # Exclude conda and singularity on dev
+        # Exclude singularity on dev
         exclude:
-          - isMain: false
-            profile: "conda"
           - isMain: false
             profile: "singularity"
         NXF_VER:
