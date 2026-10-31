@@ -209,7 +209,7 @@
                 "dedup_per_contig": {
                     "type": "boolean",
                     "description": "Group umis by transcript instead of by alignment position when deduplicating a transcriptome alignment.",
-                    "help_text": "On a transcriptome alignment each contig is a transcript, so umi_tools --per-contig groups by transcript. This is the transcriptome equivalent of dedup_per_gene and needs no gene tag, since every mapped read has a reference name. It is deliberately not applied to genome alignments, where a contig is a whole chromosome.",
+                    "help_text": "On a transcriptome alignment each contig is a transcript, so umi_tools --per-gene --per-contig groups by transcript. This is the transcriptome equivalent of dedup_per_gene and needs no gene tag, since every mapped read has a reference name. It is deliberately not applied to genome alignments, where a contig is a whole chromosome.",
                     "default": true,
                     "fa_icon": "fas fa-object-group"
                 }
@@ -517,7 +517,7 @@
                 },
                 "trace_report_suffix": {
                     "type": "string",
-                    "fa_icon": "far calendar",
+                    "fa_icon": "far fa-calendar",
                     "description": "Suffix to add to the trace report filename. Default is the date and time in the format yyyy-MM-dd_HH-mm-ss.",
                     "hidden": true
                 },
