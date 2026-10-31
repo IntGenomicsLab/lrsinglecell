@@ -46,7 +46,8 @@ workflow DEDUP_UMIS {
         //
         // Per-gene grouping only makes sense on a genome alignment, and only
         // umi_tools can do it. On a transcriptome alignment the equivalent is
-        // --per-contig, which is applied through ext.args and needs no gene tag.
+        // --per-gene --per-contig, which is applied through ext.args and needs
+        // no gene tag.
         //
         def val_per_gene = val_genome_aligned && val_dedup_tool == 'umitools' && params.dedup_per_gene
 
