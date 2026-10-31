@@ -50,7 +50,7 @@
                     "ucsc": 482
                 },
                 "Workflow": {
-                    "IntGenomicsLab/lrsinglecell": "v1.0.0"
+                    "IntGenomicsLab/lrsinglecell": "v1.1.0dev"
                 }
             },
             [
