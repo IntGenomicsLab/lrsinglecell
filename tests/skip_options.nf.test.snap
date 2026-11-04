@@ -279,10 +279,20 @@
                 "batch_qcs/read_counts",
                 "batch_qcs/read_counts/read_counts.csv",
                 "pipeline_info",
-                "pipeline_info/lrsinglecell_software_mqc_versions.yml"
+                "pipeline_info/lrsinglecell_software_mqc_versions.yml",
+                "references",
+                "references/dna",
+                "references/dna/minimap_index",
+                "references/dna/minimap_index/chr21.mmi",
+                "references/genome",
+                "references/genome/minimap_index",
+                "references/genome/minimap_index/chr21.mmi",
+                "references/transcriptome",
+                "references/transcriptome/minimap_index",
+                "references/transcriptome/minimap_index/chr21.mmi"
             ]
         ],
-        "timestamp": "2026-11-04T15:31:28.571116203",
+        "timestamp": "2026-11-04T16:12:26.13219868",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"
@@ -474,10 +484,17 @@
                 "batch_qcs/read_counts",
                 "batch_qcs/read_counts/read_counts.csv",
                 "pipeline_info",
-                "pipeline_info/lrsinglecell_software_mqc_versions.yml"
+                "pipeline_info/lrsinglecell_software_mqc_versions.yml",
+                "references",
+                "references/dna",
+                "references/dna/minimap_index",
+                "references/dna/minimap_index/chr21.mmi",
+                "references/genome",
+                "references/genome/minimap_index",
+                "references/genome/minimap_index/chr21.mmi"
             ]
         ],
-        "timestamp": "2026-11-04T15:30:49.297044511",
+        "timestamp": "2026-11-04T16:11:31.313691042",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"
