@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - "bin/mark_dna_duplicates.py"
+      - "bin/tag_genes.py"
       - "tests/bin/**"
       - ".github/workflows/bin-tests.yml"
   workflow_dispatch: null
@@ -31,3 +32,18 @@ jobs:
         run: |
           docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
             python -m unittest -v tests/bin/test_mark_dna_duplicates.py
+
+  tag-genes:
+    name: tag_genes.py
+    runs-on: ubuntu-latest
+    env:
+      # same image as modules/local/tag_genes
+      IMAGE: quay.io/biocontainers/pysam:0.19.1--py310hff46b53_1
+    steps:
+      - name: Check out pipeline code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Run unit tests
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
+            python -m unittest -v tests/bin/test_tag_genes.py
