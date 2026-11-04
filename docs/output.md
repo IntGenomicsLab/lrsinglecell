@@ -311,7 +311,7 @@ Users should note that `oarfish` requires input reads to be deduplicated, so the
     - `qc/`
       - `dedup/`
         - `*.dedup.metrics.txt` : Duplication metrics in Picard's `DuplicationMetrics` format, summarised in the MultiQC report.
-        - `*.dedup.dedup_summary.tsv` : Molecules, duplicates and duplicate sets, the duplicate rate without the mitochondrial genome (`nuclear_duplicate_rate`), the duplicates each rule added, secondary/supplementary records flagged, and the 3' adapter classes seen.
+        - `*.dedup.dedup_summary.tsv` : Molecules, duplicates and duplicate sets, the duplicate rate without the mitochondrial genome (`nuclear_duplicate_rate`), the duplicates each rule added, secondary/supplementary records flagged, and the 3' adapter classes seen. `no_barcode` counts primary reads without a cell barcode tag; they are left unflagged and are not counted in `primary_reads` (inside the pipeline every DNA read has one, so it is 0).
 
 </details>
 
