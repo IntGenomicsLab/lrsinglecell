@@ -126,6 +126,33 @@ workflow DEDUP_UMIS {
                 )
                 ch_split_bam = SPLIT_BAM.out.split_bam
                 ch_versions = ch_versions.mix(SPLIT_BAM.out.versions_split_bam)
+
+                //
+                // Stop if a BAM with reads was split into chunks that are all empty.
+                // That happens when the names in the transcript groups do not match
+                // the BAM reference names, and would otherwise surface much later as
+                // an empty oarfish matrix. Chunks are grouped back to their sample the
+                // same way SAMTOOLS_MERGE does below.
+                //
+                SPLIT_BAM.out.read_counts
+                    .map{
+                        meta, counts ->
+                            def fields = counts.text.trim().tokenize('\t')
+                            [ meta.id.split(/\./)[0], fields[0] as Long, fields[1] as Long ]
+                    }
+                    .groupTuple()
+                    .map{
+                        sample, n_input, n_split ->
+                            if (n_input.max() > 0 && n_split.sum() == 0) {
+                                error(
+                                    "SPLIT_BAM: the ${n_split.size()} transcript-group chunks of sample '${sample}' contain no reads, " +
+                                    "although its transcriptome BAM has ${n_input.max()} mapped reads. None of the transcript names " +
+                                    "written by GROUP_TRANSCRIPTS match the BAM reference names: check that the transcript FASTA " +
+                                    "is the one the reads were aligned to and, if its headers are delimited, that --fasta_delimiter is right."
+                                )
+                            }
+                            sample
+                    }
             }
 
             //

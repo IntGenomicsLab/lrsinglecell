@@ -5,6 +5,8 @@ on:
   pull_request:
     paths:
       - "bin/mark_dna_duplicates.py"
+      - "bin/group_transcripts.sh"
+      - "bin/split_bam.py"
       - "tests/bin/**"
       - ".github/workflows/bin-tests.yml"
   workflow_dispatch: null
@@ -14,8 +16,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # same image as modules/local/mark_duplicates_dna
+  # same image as modules/local/mark_duplicates_dna and modules/local/split_bam
   IMAGE: quay.io/biocontainers/mulled-v2-bb96c7354781ab52d8e69ccff89587598dc87fea:ad24cd6a9acfe3ff51beb4c454076e18e778f7c0-0
+  # same image as modules/local/group_transcripts
+  UBUNTU_IMAGE: nf-core/ubuntu:20.04
 
 jobs:
   mark-dna-duplicates:
@@ -31,3 +35,34 @@ jobs:
         run: |
           docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
             python -m unittest -v tests/bin/test_mark_dna_duplicates.py
+
+  split-bam:
+    name: split_bam.py
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pipeline code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Run unit tests
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
+            python -m unittest -v tests/bin/test_split_bam.py
+
+  group-transcripts:
+    name: group_transcripts.sh
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pipeline code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      # The test runs on the runner's python and calls the script through a wrapper, so
+      # the script itself runs under the module image's bash and awk (mawk)
+      - name: Run unit tests
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          export GROUP_TRANSCRIPTS_WRAPPER="docker run --rm -v $GITHUB_WORKSPACE:$GITHUB_WORKSPACE -v $TMPDIR:$TMPDIR $UBUNTU_IMAGE"
+          python3 -m unittest -v tests/bin/test_group_transcripts.py
+
+      - name: Run unit tests with the runner's awk
+        run: python3 -m unittest -v tests/bin/test_group_transcripts.py
