@@ -368,7 +368,7 @@
                 },
                 "skip_dedup": {
                     "type": "boolean",
-                    "description": "Skip deduplication: UMI dedup on the cDNA arm and duplicate marking on the DNA arm.",
+                    "description": "Skip duplicate marking on the DNA arm. cDNA UMI deduplication is controlled by `--skip_cdna_dedup`.",
                     "fa_icon": "fas fa-forward"
                 },
                 "skip_cdna_dedup": {
