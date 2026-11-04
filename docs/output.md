@@ -340,8 +340,10 @@ When demultiplexing with flexiplex, IsoQuant is run twice off the same alignment
 
 - `isoquant/` groups on `CB`, so it covers the cells flexiplex matched to the known
   barcode list. This is the matrix to use for ordinary analysis, and the one Seurat QC
-  is run against. Reads that matched no known barcode collect in a single `-` column,
-  which should be dropped.
+  is run against. IsoQuant puts the reads that matched no known barcode in a single
+  `-` column; `drop_barcode.py` removes that column (and its entry in the barcode list)
+  before the matrices are published or reach Seurat QC, so the published matrices hold
+  the called cells only.
 - `isoquant_all_droplets/` groups on `XB`, which falls back to the uncorrected barcode.
   Droplets below the knee called by `flexiplex-filter` therefore appear here under their
   own barcode alongside the called cells, which is what makes ambient/empty-droplet
