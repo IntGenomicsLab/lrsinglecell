@@ -2,15 +2,14 @@
 // Performs feature quantification for long read single-cell rna data
 //
 
-include { SAMTOOLS_SORT } from '../../../modules/nf-core/samtools/sort/main'
-include { OARFISH       } from '../../../modules/local/oarfish'
-include { QC_SCRNA      } from '../../../subworkflows/local/qc_scrna'
+include { SAMTOOLS_FILTER_SORT } from '../../../modules/local/samtools_filter_sort'
+include { OARFISH              } from '../../../modules/local/oarfish'
+include { QC_SCRNA             } from '../../../subworkflows/local/qc_scrna'
 
 workflow QUANTIFY_SCRNA_OARFISH {
     take:
         ch_bam      // channel: [ val(meta), path(bam) ]
         ch_flagstat // channel: [ val(meta), path(flagstat) ]
-        ch_fasta    // channel: [ val(meta), path(fasta) ]
 
         val_skip_qc     // bool: Skip qc steps
         val_skip_seurat // bool: Skip seurat qc steps
@@ -19,14 +18,20 @@ workflow QUANTIFY_SCRNA_OARFISH {
         ch_versions = channel.empty()
 
         //
-        // MODULE: Samtools Sort
+        // MODULE: Drop reads without a called-cell barcode and sort by barcode
         //
-        SAMTOOLS_SORT ( ch_bam, ch_fasta.first(), "bai" )
+        // flexiplex -a true leaves CB as '-' on reads that matched no known
+        // barcode. oarfish groups on CB, so without this filter all of them
+        // would pool into a single '-' pseudo-cell. Filtering in the sort that
+        // oarfish needs anyway costs no extra pass over the BAM.
+        //
+        SAMTOOLS_FILTER_SORT ( ch_bam )
+        ch_versions = ch_versions.mix(SAMTOOLS_FILTER_SORT.out.versions_samtools_filter_sort)
 
         //
         // MODULE: Oarfish
         //
-        OARFISH ( SAMTOOLS_SORT.out.bam )
+        OARFISH ( SAMTOOLS_FILTER_SORT.out.bam )
         ch_versions = ch_versions.mix(OARFISH.out.versions_oarfish)
 
         ch_transcript_qc_stats = channel.empty()

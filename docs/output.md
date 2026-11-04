@@ -348,8 +348,8 @@ When demultiplexing with flexiplex, IsoQuant is run twice off the same alignment
   estimation possible. It has no `-` column: reads with no barcode region at all were
   dropped during assignment.
 
-`oarfish` groups on `CB` too, so its transcript matrix gains the same droppable `-`
-column.
+`oarfish` groups on `CB` too, but reads whose `CB` is `-` are removed before it runs,
+so its transcript matrix holds the called cells only and has no `-` column.
 
 ### oarfish
 
