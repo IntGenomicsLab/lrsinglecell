@@ -148,7 +148,6 @@ workflow PROCESS_LONGREAD_SCRNA {
             QUANTIFY_SCRNA_OARFISH (
                 ch_bam,
                 ch_flagstat,
-                ch_fasta,
                 val_skip_qc,
                 val_skip_seurat
             )
