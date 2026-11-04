@@ -3,6 +3,13 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.0.1 - [unreleased]
+
+### Fixes
+
+- Fixed sample ids containing a `.` being truncated at the first `.` in UMI deduplication ([#8](https://github.com/IntGenomicsLab/lrsinglecell/issues/8)). The `dedup_umis` subworkflow recovered the sample id from the per-chunk file names, so `S1.a` and `S1.b` both became `S1`: with otherwise equal metadata the two samples were merged into one deduplicated BAM and one dedup summary, otherwise they were published under the truncated id. Chunks now carry the sample id in their metadata (`sample_id`) and are folded back from it. Transcript-group chunks are also named after the full contig name rather than the part before its first `.` (e.g. `KI270728.1`). Adds a `-stub` pipeline test, `tests/sample_ids.nf.test`, with ids `S1.a`/`S1.b` on both the genome and the transcriptome paths
+- `tag_genes.py` now checks that the BAM and the GTF use the same contig names before tagging ([#17](https://github.com/IntGenomicsLab/lrsinglecell/issues/17)). With a naming mismatch (`chr1` vs `1`) every read was tagged `GS=none`, and per-gene deduplication silently fell back to positional for the whole sample. It now fails when the BAM header shares no contig with the GTF seqnames that carry genes, pointing out a `chr` prefix difference when that is the cause, and warns with the overlap fraction when fewer than half of those seqnames are in the BAM. The fraction of `GS=none` alignments is reported in its log. Adds the unit test `tests/bin/test_tag_genes.py`, run by the `bin-tests` workflow
+
 ## v1.1.0dev - [unreleased]
 
 ## v1.0.0 - [2026-10-31]
