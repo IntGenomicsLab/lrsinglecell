@@ -10,6 +10,7 @@ on:
       - "bin/tag_genes.py"
       - "bin/correct_barcodes.py"
       - "bin/pre_extract_barcodes.py"
+      - "bin/drop_barcode.py"
       - "tests/bin/**"
       - ".github/workflows/bin-tests.yml"
   workflow_dispatch: null
@@ -112,3 +113,18 @@ jobs:
         run: |
           docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
             python -m unittest -v tests/bin/test_pre_extract_barcodes.py
+
+  drop-barcode:
+    name: drop_barcode.py
+    runs-on: ubuntu-latest
+    env:
+      # same image as modules/local/drop_barcode
+      IMAGE: quay.io/biocontainers/python:3.10.4
+    steps:
+      - name: Check out pipeline code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Run unit tests
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
+            python -m unittest -v tests/bin/test_drop_barcode.py
