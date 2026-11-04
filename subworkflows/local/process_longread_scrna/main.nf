@@ -123,7 +123,7 @@ workflow PROCESS_LONGREAD_SCRNA {
             ch_bai = DEDUP_UMIS.out.dedup_bai
             ch_flagstat = DEDUP_UMIS.out.dedup_flagstat
             ch_dedup_summary = DEDUP_UMIS.out.dedup_summary
-            ch_versions = DEDUP_UMIS.out.versions
+            ch_versions = ch_versions.mix(DEDUP_UMIS.out.versions)
         } else {
 
             ch_bam = ch_tagged_bam

@@ -73,8 +73,38 @@ OTHERS = [
     ("r1a", "chr1", 71000, 256),
 ]
 
+# name, contig, start: primaries without an XB tag, at one 5' position and strand. They
+# would be R1 duplicates of each other under one (empty) barcode; they are skipped instead
+NO_BARCODE = [
+    ("nb1", "chr1", 40000),
+    ("nb2", "chr1", 40000),
+]
+
 DUPS_DEFAULT = {"r1b", "r1c", "r2a", "x_+1of1", "aa2", "m1b", "mx_+1of1"}
 DUPS_NO_EXACT_ONLY = DUPS_DEFAULT | {"m2a", "maa2"}
+
+
+# Runs the script given as its first argument with decide_contig replaced by a worker
+# that dies as an OOM-killed one would
+CRASH_WRAPPER = """
+import importlib.util
+import os
+import sys
+
+
+def decide_contig(job):
+    os._exit(9)
+
+
+if __name__ == "__main__":
+    script = sys.argv.pop(1)
+    spec = importlib.util.spec_from_file_location("mark_dna_duplicates", script)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    mod.decide_contig = decide_contig
+    sys.argv[0] = script
+    mod.main()
+"""
 
 
 def make_record(header, name, contig, start, length, reverse, clip, xb, q, flag=0):
@@ -95,7 +125,8 @@ def make_record(header, name, contig, start, length, reverse, clip, xb, q, flag=
         r.query_sequence = body + clip
         r.cigartuples = [(0, length)] + ([(4, len(clip))] if clip else [])
     r.query_qualities = pysam.qualitystring_to_array(chr(q + 33) * len(r.query_sequence))
-    r.set_tag("XB", xb)
+    if xb is not None:
+        r.set_tag("XB", xb)
     return r
 
 
@@ -110,6 +141,8 @@ def build_bam(path):
             out.write(make_record(header, name, contig, start, length, rev, clip, xb, q))
         for name, contig, start, flag in OTHERS:
             out.write(make_record(header, name, contig, start, 200, False, "", "AAA", 30, flag))
+        for name, contig, start in NO_BARCODE:
+            out.write(make_record(header, name, contig, start, 300, False, "", None, 30))
         u = pysam.AlignedSegment(header)
         u.query_name = "unmapped1"
         u.flag = 4
@@ -186,6 +219,7 @@ class MarkDnaDuplicatesTest(unittest.TestCase):
     def test_summary(self):
         s = read_summary(self.default["summary"])
         self.assertEqual(s["primary_reads"], str(len(PRIMARIES)))
+        self.assertEqual(s["no_barcode"], str(len(NO_BARCODE)))
         self.assertEqual(s["duplicates"], str(len(DUPS_DEFAULT)))
         # every default duplicate set is a pair: 5 on chr1, 2 on chrM
         self.assertEqual(s["duplicate_sets"], "7")
@@ -204,6 +238,28 @@ class MarkDnaDuplicatesTest(unittest.TestCase):
         self.assertEqual(s2["exact_only_contigs_primary_reads"], "0")
         self.assertEqual(s2["nuclear_duplicate_rate"], f"{len(DUPS_NO_EXACT_ONLY) / len(PRIMARIES):.6f}")
 
+    def test_no_barcode_reads_skipped(self):
+        recs = [r for r in self.records(self.default["bam"]) if r.query_name.startswith("nb")]
+        # written out, never flagged and not part of a duplicate set
+        self.assertEqual(sorted(r.query_name for r in recs), ["nb1", "nb2"])
+        self.assertFalse(any(r.is_duplicate or r.has_tag("DS") for r in recs))
+
+    def test_worker_death_exits_nonzero(self):
+        # A worker killed mid-task (as by the OOM killer) must fail the run, not hang it.
+        # The wrapper loads the script as a module and swaps in a worker that ends its own
+        # process with os._exit, so no test-only path is needed in the script itself.
+        d = self.tmp.name
+        wrapper = os.path.join(d, "crash_wrapper.py")
+        with open(wrapper, "w") as fh:
+            fh.write(CRASH_WRAPPER)
+        out = {k: os.path.join(d, f"crash.{k}") for k in ("bam", "metrics", "summary")}
+        res = subprocess.run([sys.executable, wrapper, SCRIPT, "-i", self.inp, "-o", out["bam"],
+                              "-m", out["metrics"], "-s", out["summary"], "-t", "2", "--tmpdir", d],
+                             capture_output=True, text=True, timeout=120)
+        self.assertEqual(res.returncode, 137, res.stderr)
+        self.assertIn("worker process died", res.stderr)
+        self.assertFalse(os.path.exists(out["summary"]))
+
     def test_metrics(self):
         with open(self.default["metrics"]) as fh:
             lines = fh.read().splitlines()
@@ -216,7 +272,7 @@ class MarkDnaDuplicatesTest(unittest.TestCase):
         bam = self.default["bam"]
         self.assertFalse(os.path.exists(bam + ".bai"))
         recs = self.records(bam)
-        self.assertEqual(len(recs), len(PRIMARIES) + len(OTHERS) + 1)
+        self.assertEqual(len(recs), len(PRIMARIES) + len(OTHERS) + len(NO_BARCODE) + 1)
         keys = [(r.reference_id if r.reference_id >= 0 else 1 << 30, r.reference_start) for r in recs]
         self.assertEqual(keys, sorted(keys))
         pysam.index(bam)

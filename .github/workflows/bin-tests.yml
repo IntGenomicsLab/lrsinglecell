@@ -8,6 +8,8 @@ on:
       - "bin/group_transcripts.sh"
       - "bin/split_bam.py"
       - "bin/tag_genes.py"
+      - "bin/correct_barcodes.py"
+      - "bin/pre_extract_barcodes.py"
       - "tests/bin/**"
       - ".github/workflows/bin-tests.yml"
   workflow_dispatch: null
@@ -17,7 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # same image as modules/local/mark_duplicates_dna and modules/local/split_bam
+  # same image as modules/local/mark_duplicates_dna, modules/local/split_bam and
+  # modules/local/correct_barcodes
   IMAGE: quay.io/biocontainers/mulled-v2-bb96c7354781ab52d8e69ccff89587598dc87fea:ad24cd6a9acfe3ff51beb4c454076e18e778f7c0-0
   # same image as modules/local/group_transcripts
   UBUNTU_IMAGE: nf-core/ubuntu:20.04
@@ -82,3 +85,30 @@ jobs:
         run: |
           docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
             python -m unittest -v tests/bin/test_tag_genes.py
+
+  correct-barcodes:
+    name: correct_barcodes.py
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pipeline code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Run unit tests
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
+            python -m unittest -v tests/bin/test_correct_barcodes.py
+
+  pre-extract-barcodes:
+    name: pre_extract_barcodes.py
+    runs-on: ubuntu-latest
+    env:
+      # same image as modules/local/preextract_fastq
+      IMAGE: quay.io/biocontainers/mulled-v2-497e12343495a3e0f3b3459542cc8ad37575d9fa:483e027ac6835fcb80b9cfef4de8c89b67343941-0
+    steps:
+      - name: Check out pipeline code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Run unit tests
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work "$IMAGE" \
+            python -m unittest -v tests/bin/test_pre_extract_barcodes.py
