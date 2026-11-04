@@ -261,7 +261,7 @@ Assignment is by gene-body overlap and is strand-agnostic. `GX` always holds the
 
 Deduplication is run in parallel on one chunk per chromosome (genome alignment) or per transcript group (transcriptome alignment), and with `--dedup_per_gene` each genome chunk is additionally split into a gene-grouped and a positional run. The per-chunk `umi_tools dedup` logs therefore only hold chunk-level counts and are not published. Instead their `Input Reads` and `Number of reads out` figures are summed into the `*.umi_dedup_summary.tsv` file, which is also shown as the "UMI-tools Deduplication" table in the MultiQC report. The `duplication_rate` column is `duplicate_reads / input_reads`.
 
-Users should note that `oarfish` requires input reads to be deduplicated. As a result, the `skip_dedup` option is only applicable to `IsoQuant`. By default, `lrsinglecell` will perform deduplication for IsoQuant unless the `skip_dedup` option is explicitly enabled, while deduplication will always be executed for `oarfish` quantification.
+Users should note that `oarfish` requires input reads to be deduplicated, so the transcriptome alignment is always deduplicated. Deduplication of the genome alignment (used by `IsoQuant`) is performed by default and can be turned off with `--skip_cdna_dedup`, in which case no `bam/dedup/` output is published for the genome alignment and the mapped-only BAM (always published under `bam/mapped_only/`) is the final genome BAM. `--skip_dedup` only governs duplicate marking on the DNA arm and has no effect on cDNA deduplication.
 
 ### Picard MarkDuplicates
 
@@ -284,7 +284,7 @@ Users should note that `oarfish` requires input reads to be deduplicated. As a r
 
 [Picard MarkDuplicates](https://gatk.broadinstitute.org/hc/en-us/articles/360037052812-MarkDuplicates-Picard) locates and tags duplicate reads in a BAM or SAM file.
 
-Users should note that `oarfish` requires input reads to be deduplicated. As a result, the `skip_dedup` option is only applicable to `IsoQuant`. By default, `lrsinglecell` will perform deduplication for IsoQuant unless the `skip_dedup` option is explicitly enabled, while deduplication will always be executed for `oarfish` quantification.
+Users should note that `oarfish` requires input reads to be deduplicated, so the transcriptome alignment is always deduplicated. Deduplication of the genome alignment (used by `IsoQuant`) is performed by default and can be turned off with `--skip_cdna_dedup`, in which case no `bam/dedup/` output is published for the genome alignment and the mapped-only BAM (always published under `bam/mapped_only/`) is the final genome BAM. `--skip_dedup` only governs duplicate marking on the DNA arm and has no effect on cDNA deduplication.
 
 ### DNA duplicate marking
 

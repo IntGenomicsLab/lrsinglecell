@@ -44,10 +44,11 @@ workflow QUANTIFY_SCRNA_ISOQUANT {
                 ISOQUANT.out.grouped_gene_mtx_features
                     .join(ISOQUANT.out.grouped_gene_mtx_barcodes, by: [0])
                     .join(ISOQUANT.out.grouped_gene_mtx, by: [0])
+                    // Keep meta unchanged: QC_SCRNA joins on it with ch_flagstat,
+                    // whose meta still carries type/cell_count/single_end.
                     .map{
                         meta,features,barcodes,mtx ->
-                            def new_meta = [ 'id' : meta.id ]
-                            [ new_meta, [ features, barcodes, mtx ]]
+                            [ meta, [ features, barcodes, mtx ]]
                     },
                 ch_flagstat,
                 "MEX"
@@ -59,10 +60,11 @@ workflow QUANTIFY_SCRNA_ISOQUANT {
                 ISOQUANT.out.grouped_transcript_mtx_features
                     .join(ISOQUANT.out.grouped_transcript_mtx_barcodes, by: [0])
                     .join(ISOQUANT.out.grouped_transcript_mtx, by: [0])
+                    // Keep meta unchanged: QC_SCRNA joins on it with ch_flagstat,
+                    // whose meta still carries type/cell_count/single_end.
                     .map{
                         meta,features,barcodes,mtx ->
-                            def new_meta = [ 'id' : meta.id ]
-                            [ new_meta, [ features, barcodes, mtx ]]
+                            [ meta, [ features, barcodes, mtx ]]
                     },
                 ch_flagstat,
                 "MEX"

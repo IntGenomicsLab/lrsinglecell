@@ -1,0 +1,67 @@
+nextflow_pipeline {
+
+    name "Test pipeline skip options (stub)"
+    script "../main.nf"
+    tag "pipeline"
+    tag "stub"
+    options "-stub"
+
+    test("-profile test --skip_trimming -stub") {
+
+        when {
+            params {
+                outdir        = "$outputDir"
+                skip_trimming = true
+            }
+        }
+
+        then {
+            // stable_name: All files + folders in ${params.outdir}/ with a stable name
+            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
+            assertAll(
+                { assert workflow.success },
+                // Read counts are still produced without the post-trim QC (#10)
+                { assert file("$outputDir/batch_qcs/read_counts").exists() },
+                { assert snapshot(
+                    // All stable path name, with a relative path
+                    stable_name
+                ).match() }
+            )
+        }
+    }
+
+    test("-profile test --skip_dedup --quantifier isoquant,oarfish -stub") {
+
+        when {
+            params {
+                outdir           = "$outputDir"
+                skip_dedup       = true
+                quantifier       = "isoquant,oarfish"
+                // Stub run: the transcript fasta's contents are never read, so the
+                // chr21 genome fasta stands in for a transcriptome here.
+                transcript_fasta = "https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/reference/chr21.fa"
+            }
+        }
+
+        then {
+            // stable_name: All files + folders in ${params.outdir}/ with a stable name
+            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
+            assertAll(
+                { assert workflow.success },
+                // --skip_dedup only governs DNA duplicate marking: the cDNA dedup
+                // outputs of both arms are still published (#5)
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    assert file("$outputDir/${sample}/cdna/genome/bam/dedup").exists()
+                    assert file("$outputDir/${sample}/cdna/genome/qc/samtools/dedup").exists()
+                    assert file("$outputDir/${sample}/cdna/transcriptome/bam/dedup").exists()
+                    assert file("$outputDir/${sample}/cdna/transcriptome/qc/samtools/dedup").exists()
+                    assert file("$outputDir/${sample}/cdna/transcriptome/qc/umitools/dedup").exists()
+                } },
+                { assert snapshot(
+                    // All stable path name, with a relative path
+                    stable_name
+                ).match() }
+            )
+        }
+    }
+}

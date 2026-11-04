@@ -5,6 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.1.0dev - [unreleased]
 
+## v1.0.1 - [unreleased]
+
+### Fixes
+
+- ([#4](https://github.com/IntGenomicsLab/lrsinglecell/issues/4)) Fixed the IsoQuant Seurat QC never running. `QUANTIFY_SCRNA_ISOQUANT` rebuilt the matrix meta as `[id: meta.id]`, so the join with the flagstat in `QC_SCRNA`, whose meta still carried `type`, `cell_count` and `single_end`, matched nothing and `SEURAT` was never called. The meta is now passed through unchanged, as in `QUANTIFY_SCRNA_OARFISH`, and `<sample>/cdna/genome/qc/seurat_isoquant/{gene,transcript}/` is published again. `tests/default.nf.test` now asserts that these directories exist
+- ([#10](https://github.com/IntGenomicsLab/lrsinglecell/issues/10)) Fixed `--skip_trimming` failing with `No such variable: ch_nanostat_posttrim` in the read-counts step. Added a `--skip_trimming` stub test (`tests/skip_options.nf.test`)
+- ([#5](https://github.com/IntGenomicsLab/lrsinglecell/issues/5)) Fixed `--skip_dedup`, which only turns off DNA duplicate marking, also hiding the cDNA deduplication outputs. The cDNA dedup BAMs, samtools stats and their MultiQC entries were gated on `params.skip_dedup` instead of `params.skip_cdna_dedup`, so they were still computed (and consumed by oarfish) but neither published nor reported. Genome-arm publishing and MultiQC now follow `--skip_cdna_dedup`; the transcriptome arm, which always deduplicates, always publishes. With `--skip_cdna_dedup` the barcode-tagged flagstat no longer reaches MultiQC twice. Corrected the `skip_dedup` description in the schema and `docs/output.md`. Added a `--skip_dedup` stub test that also runs oarfish
+- ([#7](https://github.com/IntGenomicsLab/lrsinglecell/issues/7)) The DNA `MINIMAP2_INDEX`/`MINIMAP2_ALIGN` arguments read `--save_transcript_secondary_alignment` (default `true`) instead of `--save_genome_secondary_alignment` (default `false`), so DNA BAMs carried secondary alignments by default. They now follow `--save_genome_secondary_alignment`. DNA BAMs are smaller and `mark_dna_duplicates.py` has fewer records to flag. Duplicate calls are made on primary alignments and are unchanged: on `-profile test_dna` every duplicate metric is identical, and only the secondary record counts drop (`secondary_or_supplementary` 387 to 61, `flagged_secondary` 14 to 0)
+- ([#14](https://github.com/IntGenomicsLab/lrsinglecell/issues/14)) `OARFISH` now gets its own resources (`48.GB` and 8 CPUs per attempt) instead of `process_low` (12 GB, 2 CPUs). It peaked at 36.3 GB on the v1.0.0 release test, so with the pipeline's `maxRetries = 1` it failed at 24 GB
+
 ## v1.0.0 - [2026-10-31]
 
 First release of LRSinglecell. The pipeline is a continuation of the `scdnalong` branch of
@@ -75,7 +85,6 @@ standalone IntGenomicsLab pipeline. The changes below are relative to nf-core/sc
 - The called-cell IsoQuant (`isoquant/`) and oarfish matrices contain a `-` barcode column. Running flexiplex with `-a true` leaves `CB` as `-` on reads that matched no known barcode, and these passes group on `CB`, so all such reads pool into one pseudo-cell. On the release test (one 10X Multiome cDNA library, 4,379 called cells) it held 51-55% of all counts. Drop the `-` column before downstream analysis. The `lrkallisto/` matrices and the all-droplet passes (`isoquant_all_droplets/`, `lrkallisto_all_droplets/`, keyed on `XB`) are not affected
 - `group_transcripts.sh` takes the transcript id from GTF field 12. In a versioned Ensembl/Cell Ranger GTF that field is the `gene_version` value, so every transcript is assigned to `chr_Unknown` and transcriptome deduplication runs as a single task instead of one per chromosome. Results are unaffected; only parallelism is lost. GENCODE GTFs, where `transcript_id` is the second attribute, are grouped correctly. This behaviour is inherited from nf-core/scnanoseq
 - No nf-test profile runs `oarfish`, so the transcriptome deduplication and oarfish path is covered only by `-profile test_full`
-- `OARFISH` carries the `process_low` label (12 GB per attempt) but peaked at 36.3 GB on the release test. It finished only because the institutional profile allowed further retries; with the pipeline's own `maxRetries = 1` it stops at 24 GB and fails. Until the label is raised, give it more memory with `-c`, e.g. `process { withName: '.*:OARFISH' { memory = 48.GB } }`
 
 ## nf-core/scnanoseq history
 
