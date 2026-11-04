@@ -95,21 +95,25 @@ workflow PREPARE_REFERENCE_FILES {
         //
         // MODULE: Unzip GTF
         //
-        ch_meta_gtf = [ ['id': 'gtf'], val_gtf]
         ch_prepared_gtf = channel.empty()
 
-        if (val_gtf.endsWith('.gz')){
-            GUNZIP_GTF( ch_meta_gtf )
+        // --gtf is optional for DNA-only runs
+        if (val_gtf) {
+            def ch_meta_gtf = [ ['id': 'gtf'], val_gtf]
 
-            ch_prepared_gtf = GUNZIP_GTF.out.file
+            if (val_gtf.endsWith('.gz')){
+                GUNZIP_GTF( ch_meta_gtf )
 
-        } else if (val_gtf.endsWith('.zip')) {
-            UNZIP_GTF( ch_meta_gtf )
+                ch_prepared_gtf = GUNZIP_GTF.out.file
 
-            ch_prepared_gtf = UNZIP_GTF.out.files
+            } else if (val_gtf.endsWith('.zip')) {
+                UNZIP_GTF( ch_meta_gtf )
 
-        } else {
-            ch_prepared_gtf = ch_meta_gtf
+                ch_prepared_gtf = UNZIP_GTF.out.files
+
+            } else {
+                ch_prepared_gtf = ch_meta_gtf
+            }
         }
 
     emit:

@@ -233,7 +233,9 @@ workflow LRSINGLECELL {
     ch_pred = channel.empty()
     ch_rseqc_bed = channel.empty()
 
-    if (!params.skip_qc && !params.skip_rseqc) {
+    // The bed is only consumed by RSeQC on the cDNA genome arm, which runs for
+    // genome and fastq quantifiers. DNA-only runs skip it, and may have no gtf.
+    if (!params.skip_qc && !params.skip_rseqc && params.gtf && (genome_quants || fastq_quants)) {
         UCSC_GTFTOGENEPRED( gtf )
         ch_pred = UCSC_GTFTOGENEPRED.out.genepred
 
@@ -322,9 +324,8 @@ workflow LRSINGLECELL {
         ch_versions = ch_versions.mix(DEMULTIPLEX_FLEXIPLEX_DNA.out.versions)
         ch_extracted_fastq_dna = DEMULTIPLEX_FLEXIPLEX_DNA.out.flexiplex_fastq
         ch_corrected_bc_info_dna = DEMULTIPLEX_FLEXIPLEX_DNA.out.flexiplex_barcodes
-    } else if (params.demux_tool_dna == "blaze") {
-        error "Blaze demultiplexing is not currently supported for DNA reads. Please use flexiplex."
     }
+    // Any other --demux_tool_dna is rejected by the schema and validateInputParameters.
 
     ch_extracted_fastq_cdna = channel.empty()
     ch_corrected_bc_info_cdna = channel.empty()

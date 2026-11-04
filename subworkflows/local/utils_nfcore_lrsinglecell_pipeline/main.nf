@@ -168,10 +168,52 @@ workflow PIPELINE_COMPLETION {
 def validateInputParameters() {
     genomeExistsError()
 
-    // Only require a quantifier when cDNA input is present.
-    def has_cdna_input = samplesheetToList(params.input, "${projectDir}/assets/schema_input.json")
-        .any { row -> row[3].toString().equalsIgnoreCase('cdna') }
+    def samplesheet_rows = samplesheetToList(params.input, "${projectDir}/assets/schema_input.json")
+    def has_cdna_input = samplesheet_rows.any { row -> row[3].toString().equalsIgnoreCase('cdna') }
+    def has_dna_input  = samplesheet_rows.any { row -> row[3].toString().equalsIgnoreCase('dna') }
 
+    //
+    // Demultiplexing tools. The schema enums already reject unknown values;
+    // these checks also cover runs with --validate_params false.
+    //
+    if (!(params.demux_tool_cdna in ['flexiplex', 'blaze'])) {
+        error("Unknown --demux_tool_cdna '${params.demux_tool_cdna}'. Please use one of: flexiplex, blaze")
+    }
+    if (params.demux_tool_dna != 'flexiplex') {
+        error("Unknown or unsupported --demux_tool_dna '${params.demux_tool_dna}'. DNA reads can only be demultiplexed with flexiplex")
+    }
+
+    //
+    // Deduplication
+    //
+    if (params.dedup_tool == 'picard') {
+        log.warn("--dedup_tool picard is deprecated and will be removed in v1.1.0. It applies to cDNA only (DNA is always deduplicated by mark_dna_duplicates.py), groups on the cell barcode and ignores the UMI. Please use --dedup_tool umitools instead")
+    }
+
+    //
+    // DNA input
+    //
+    if (has_dna_input) {
+        if (!params.genome_fasta) {
+            error("Input contains DNA reads but --genome_fasta was not provided. DNA reads are aligned to the genome, so a genome fasta is required")
+        }
+
+        // Without a preset or a custom pattern flexiplex would search the DNA
+        // reads with its RNA default pattern and no whitelist.
+        if (params.barcode_format != '10X_multiome' && !params.custom_flexiplex_barcode_dna) {
+            error("Input contains DNA reads but no DNA barcode layout is known. Please set --barcode_format 10X_multiome, or give the flexiplex pattern with --custom_flexiplex_barcode_dna (together with --dna_whitelist)")
+        }
+
+        if (params.custom_flexiplex_barcode_dna && !params.dna_whitelist) {
+            error("--custom_flexiplex_barcode_dna was given without --dna_whitelist. A custom DNA barcode pattern needs a matching barcode whitelist")
+        }
+    }
+
+    //
+    // cDNA input
+    //
+
+    // Only require a quantifier when cDNA input is present.
     if (has_cdna_input && !params.quantifier) {
         error("Input contains cDNA reads but --quantifier was not provided. Please set --quantifier to one or more of: isoquant,oarfish,lrkallisto")
     }
@@ -182,8 +224,15 @@ def validateInputParameters() {
         error("In order to quantify with isoquant, a genome fasta must be provided")
     }
 
-    if (quantifiers.contains('oarfish') && !params.transcript_fasta) {
-        error("In order to quantify with oarfish, a transcript fasta must be provided")
+    if (quantifiers.contains('oarfish')) {
+        if (!params.transcript_fasta) {
+            error("In order to quantify with oarfish, a transcript fasta must be provided")
+        }
+
+        // GROUP_TRANSCRIPTS reads the GTF to split the transcriptome by chromosome
+        if (!params.gtf) {
+            error("In order to quantify with oarfish, a gtf must be provided (--gtf)")
+        }
     }
 
     if (quantifiers.contains('lrkallisto')) {
@@ -203,6 +252,12 @@ def validateInputParameters() {
             error("lr-kallisto quantification cannot infer the barcode and umi widths from --custom_flexiplex_barcode_cdna. Please use one of the --barcode_format presets instead")
         }
     }
+
+    // Every cDNA arm needs the annotation (gene tagging, isoquant, transcript grouping).
+    // DNA-only runs do not, which is why --gtf is not required by the schema.
+    if (has_cdna_input && !params.gtf) {
+        error("Input contains cDNA reads but --gtf was not provided. A gtf is required to process cDNA reads; only DNA-only runs can omit it")
+    }
 }
 
 //
@@ -215,6 +270,16 @@ def validateInputSamplesheet(input) {
     def endedness_ok = metas.collect{ meta -> meta.single_end }.unique().size == 1
     if (!endedness_ok) {
         error("Please check input samplesheet -> Multiple runs of a sample must be of the same datatype i.e. single-end or paired-end: ${metas[0].id}")
+    }
+
+    // Rows of one sample and type are merged and only the first cell_count would be
+    // kept, so they must agree. DNA rows do not use it, but must still be consistent.
+    def cell_counts = metas.collect { meta -> meta.cell_count }.unique()
+    if (cell_counts.size() != 1) {
+        error("Please check input samplesheet -> Rows of sample '${metas[0].id}' (type ${metas[0].type}) have different cell_count values (${cell_counts.join(', ')}). Rows of the same sample and type must use the same cell_count")
+    }
+    if (cell_counts[0] == null || (cell_counts[0] as Integer) <= 0) {
+        error("Please check input samplesheet -> cell_count of sample '${metas[0].id}' (type ${metas[0].type}) must be greater than 0, but is ${cell_counts[0]}")
     }
 
     return [ metas[0], fastqs ]

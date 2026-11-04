@@ -72,6 +72,7 @@
                     "type": "string",
                     "fa_icon": "fas fa-book-open",
                     "description": "Path to GTF file.",
+                    "help_text": "Required whenever the samplesheet contains `cdna` rows (all quantifiers need it). DNA-only runs can omit it.",
                     "format": "file-path",
                     "pattern": "^\\S+\\.gtf(\\.gz|\\.zip)?$"
                 },
@@ -100,8 +101,7 @@
                     "type": "string",
                     "description": "This is the delimiter the FASTA uses in the sequence identifier to separate the string."
                 }
-            },
-            "required": ["gtf"]
+            }
         },
         "fastq_options": {
             "title": "Fastq options",
@@ -179,22 +179,20 @@
                 "demux_tool_dna": {
                     "type": "string",
                     "default": "flexiplex",
-                    "description": "Demultiplexing tool to use for DNA (options: flexiplex)"
+                    "description": "Demultiplexing tool to use for DNA (options: flexiplex)",
+                    "enum": ["flexiplex"],
+                    "errorMessage": "DNA reads can only be demultiplexed with flexiplex"
                 },
                 "demux_tool_cdna": {
                     "type": "string",
                     "default": "flexiplex",
-                    "description": "Demultiplexing tool to use for cDNA (options: flexiplex or blaze)"
-                },
-                "skip_blaze_demux": {
-                    "type": "boolean",
-                    "fa_icon": "fas fa-barcode",
-                    "description": "Do not perform the demultiplexing step in BLAZE (conserves time and disk space).",
-                    "default": true
+                    "description": "Demultiplexing tool to use for cDNA (options: flexiplex or blaze)",
+                    "enum": ["flexiplex", "blaze"]
                 },
                 "dedup_tool": {
                     "type": "string",
-                    "description": "Specify which tool to be used for deduplication (Options: picard, umitools)",
+                    "description": "Specify which tool to be used for cDNA deduplication (Options: umitools, picard). `picard` is deprecated and will be removed in v1.1.0.",
+                    "help_text": "Only applies to cDNA reads; DNA reads are always deduplicated by `mark_dna_duplicates.py`. `picard` is deprecated: it groups on the cell barcode, ignores the UMI and only marks duplicates. Use `umitools`.",
                     "enum": ["umitools", "picard"],
                     "default": "umitools",
                     "fa_icon": "fas fa-align-justify"

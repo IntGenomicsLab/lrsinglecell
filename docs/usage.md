@@ -26,14 +26,16 @@ TREATMENT_REP1,AEG588A4_S1.fastq.gz,5500,dna
 TREATMENT_REP2,AEG588A5_S1.fastq.gz,6000,dna
 ```
 
-| Column       | Description                                                                                                                                                                            |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sample`     | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. Spaces in sample names are automatically converted to underscores (`_`). |
-| `fastq`      | Full path to FastQ file for Oxford Nanopore. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                                    |
-| `cell_count` | Expected number of cells/nuclei. This value is used by the barcode calling tool (BLAZE and/or Flexiplex) as a baseline when determining an acceptable number of detected barcodes.     |
-| `type`       | An optional column specifiying whether the sample is DNA or cDNA. If omitted, the default `cdna` is used.                                                                              |
+| Column       | Description                                                                                                                                                                                  |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sample`     | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. Spaces in sample names are automatically converted to underscores (`_`).       |
+| `fastq`      | Full path to FastQ file for Oxford Nanopore. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                                          |
+| `cell_count` | Expected number of cells/nuclei, an integer greater than 0. Only BLAZE (`--demux_tool_cdna blaze`) uses it, as `--expect-cells`. It is required on DNA rows too, but DNA rows do not use it. |
+| `type`       | An optional column specifiying whether the sample is DNA or cDNA. If omitted, the default `cdna` is used.                                                                                    |
 
-Note: DNA samples are only compatible with `flexiplex` demultiplexing.
+Rows with the same `sample` and `type` must use the same `cell_count`; the run stops with an error otherwise.
+
+Note: DNA samples are only compatible with `flexiplex` demultiplexing. They also need `--genome_fasta` and a known barcode layout: either `--barcode_format 10X_multiome`, or a custom pattern with `--custom_flexiplex_barcode_dna` together with `--dna_whitelist`.
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
 
@@ -70,18 +72,18 @@ nextflow run IntGenomicsLab/lrsinglecell \
   -profile <docker/singularity/institute>
 ```
 
-Please note that while the above command specifies both transcriptome and genome fasta files, only one is needed for the pipeline and is dependent on which quantifier you wish to use. Isoquant requires a genome fasta, while oarfish requires a transcript fasta. Furthermore, if you have any DNA samples, the `genome_fasta` is required.
+Please note that while the above command specifies both transcriptome and genome fasta files, only one is needed for the pipeline and is dependent on which quantifier you wish to use. Isoquant requires a genome fasta, while oarfish requires a transcript fasta. Furthermore, if you have any DNA samples, the `genome_fasta` is required. `--gtf` is required whenever the samplesheet contains `cdna` rows, and can be omitted for a DNA-only run.
 Additionally, for the `quantifier` parameter in the above command, we've listed the quantifiers as a comma-delimited string. It is possible to only use one quantifier, and can be accomplished by just providing the name of the quantifying tool you wish to run as a single value, i.e. providing `oarfish` if you only wish to run `oarfish`.
 
 ### Quantifiers
 
 Three quantifiers are available through `--quantifier`, and any combination of them can be requested as a comma-delimited string:
 
-| Quantifier   | Reference required     | Levels            | Notes                                                                  |
-| ------------ | ---------------------- | ----------------- | ---------------------------------------------------------------------- |
-| `isoquant`   | `genome_fasta` + `gtf` | gene + transcript | Quantifies from a genome alignment                                     |
-| `oarfish`    | `transcript_fasta`     | transcript        | Quantifies from a transcriptome alignment; always deduplicates         |
-| `lrkallisto` | `genome_fasta` + `gtf` | gene + transcript | Pseudoaligns straight from the FASTQ; quantification uses no alignment |
+| Quantifier   | Reference required         | Levels            | Notes                                                                  |
+| ------------ | -------------------------- | ----------------- | ---------------------------------------------------------------------- |
+| `isoquant`   | `genome_fasta` + `gtf`     | gene + transcript | Quantifies from a genome alignment                                     |
+| `oarfish`    | `transcript_fasta` + `gtf` | transcript        | Quantifies from a transcriptome alignment; always deduplicates         |
+| `lrkallisto` | `genome_fasta` + `gtf`     | gene + transcript | Pseudoaligns straight from the FASTQ; quantification uses no alignment |
 
 `--quantifier` only applies to `cdna` samples. It is required whenever the samplesheet contains at least one `cdna` row, and can be omitted entirely for a DNA-only run: DNA samples are aligned and deduplicated but never quantified. If a DNA-only samplesheet is given without `--quantifier`, the pipeline runs the DNA path only; if a `cdna` row is present without `--quantifier`, the run stops with an error.
 
