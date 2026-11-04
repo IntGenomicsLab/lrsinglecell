@@ -5,6 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.1.0dev - [unreleased]
 
+## v1.0.1 - [unreleased]
+
+### Fixes
+
+- ([#7](https://github.com/IntGenomicsLab/lrsinglecell/issues/7)) The DNA `MINIMAP2_INDEX`/`MINIMAP2_ALIGN` arguments read `--save_transcript_secondary_alignment` (default `true`) instead of `--save_genome_secondary_alignment` (default `false`), so DNA BAMs carried secondary alignments by default. They now follow `--save_genome_secondary_alignment`. DNA BAMs are smaller and `mark_dna_duplicates.py` has fewer records to flag. Duplicate calls are made on primary alignments and are unchanged: on `-profile test_dna` every duplicate metric is identical, and only the secondary record counts drop (`secondary_or_supplementary` 387 to 61, `flagged_secondary` 14 to 0)
+
 ## v1.0.0 - [2026-10-31]
 
 First release of LRSinglecell. The pipeline is a continuation of the `scdnalong` branch of
