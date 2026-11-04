@@ -24,6 +24,26 @@ include { PICARD_MARKDUPLICATES                   } from '../../../modules/nf-co
 include { BAM_STATS_SAMTOOLS      } from '../../../subworkflows/nf-core/bam_stats_samtools/main'
 include { BAM_SORT_STATS_SAMTOOLS } from '../../../subworkflows/nf-core/bam_sort_stats_samtools/main'
 
+//
+// FUNCTIONS
+//
+
+// A chunk meta is the sample meta with id set to the chunk and the sample's own
+// id kept in sample_id. Folding it back from meta, rather than parsing the file
+// name, keeps sample ids that contain a '.' intact: 'S1.a' and 'S1.b' would both
+// become 'S1' otherwise, and be merged into one sample. The result equals the
+// sample meta the chunk was made from, so groupTuple keys match across chunks.
+def chunkMeta(meta, chunk_id) {
+    return meta + [ sample_id: meta.id, id: chunk_id ]
+}
+
+def sampleMeta(meta) {
+    if (meta.sample_id == null) {
+        return meta
+    }
+    return meta.findAll { key, value -> key != 'sample_id' } + [ id: meta.sample_id ]
+}
+
 workflow DEDUP_UMIS {
     take:
         ch_fasta // channel: [ val(meta), path(fasta) ]
@@ -91,9 +111,8 @@ workflow DEDUP_UMIS {
                         meta, bam ->
                             def bamList = bam instanceof List ? bam : [bam]
                             bamList.collect { b ->
-                                def bam_basename = b.toString().split('/')[-1]
-                                def split_bam_basename = bam_basename.split(/\./)
-                                [ meta + [ 'id': split_bam_basename.take(split_bam_basename.size()-1).join(".") ], b ]
+                                // <sample id>.REF_<contig>.bam -> <sample id>.REF_<contig>
+                                [ chunkMeta(meta, b.name.replaceFirst(/\.bam$/, '')), b ]
                             }
                     }
 
@@ -117,11 +136,12 @@ workflow DEDUP_UMIS {
                         .combine(GROUP_TRANSCRIPTS.out.grouped_transcripts.flatten())
                         .map{
                             meta, bam, bai, region ->
-                                def region_basename = region.toString().split('/')[-1]
-                                def split_region_basename = region_basename.split(/\./)
+                                // <contig>.transcripts.txt -> <contig>. Strip only the known
+                                // suffix: contig names such as KI270728.1 contain a '.'.
+                                def contig = region.name.replaceFirst(/\.transcripts\.txt$/, '')
                                 // Keep the rest of meta (type in particular): the publish
                                 // paths downstream are built from it.
-                                [meta + ['id': meta.id + "." + split_region_basename[0]], bam, bai, region]
+                                [ chunkMeta(meta, meta.id + "." + contig), bam, bai, region ]
                         }
                 )
                 ch_split_bam = SPLIT_BAM.out.split_bam
@@ -196,18 +216,12 @@ workflow DEDUP_UMIS {
             //
             // MODULE: Sum the per-chunk dedup logs into one sample-level summary
             //
-            // Every log is from a chunk of the same sample, so the chunk id is
-            // folded back to the sample id the same way SAMTOOLS_MERGE does below.
+            // Every log is from a chunk of the same sample, so the chunk meta is
+            // folded back to the sample meta the same way SAMTOOLS_MERGE does below.
             //
             UMITOOLS_DEDUP_SUMMARY (
                 ch_dedup_log
-                    .map{
-                        meta, logfile ->
-                            def log_basename = logfile.toString().split('/')[-1]
-                            def split_log_basename = log_basename.split(/\./)
-                            def new_meta = meta + [ 'id': split_log_basename[0] ]
-                        [ new_meta, logfile ]
-                    }
+                    .map{ meta, logfile -> [ sampleMeta(meta), logfile ] }
                     .groupTuple()
             )
             ch_dedup_summary = UMITOOLS_DEDUP_SUMMARY.out.summary
@@ -236,23 +250,11 @@ workflow DEDUP_UMIS {
             //
             SAMTOOLS_MERGE (
                     ch_dedup_bam
-                        .map{
-                            meta, bam ->
-                                def bam_basename = bam.toString().split('/')[-1]
-                                def split_bam_basename = bam_basename.split(/\./)
-                                def new_meta = meta + [ 'id': split_bam_basename[0] ]
-                            [ new_meta, bam ]
-                        }
+                        .map{ meta, bam -> [ sampleMeta(meta), bam ] }
                         .groupTuple()
                         .join(
                             ch_dedup_bai
-                                .map{
-                                    meta, bai ->
-                                        def bai_basename = bai.toString().split('/')[-1]
-                                        def split_bai_basename = bai_basename.split(/\./)
-                                        def new_meta = meta + [ 'id': split_bai_basename[0] ]
-                                    [ new_meta, bai ]
-                                }
+                                .map{ meta, bai -> [ sampleMeta(meta), bai ] }
                                 .groupTuple()
                         ),
                 ch_fasta
