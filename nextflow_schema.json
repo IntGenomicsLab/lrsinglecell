@@ -363,7 +363,8 @@
                 },
                 "skip_save_minimap2_index": {
                     "type": "boolean",
-                    "description": "Skip saving minimap2 index.",
+                    "description": "Do not publish the minimap2 indexes to `references/*/minimap_index/`.",
+                    "help_text": "The index is always built once per reference and used for alignment; this only controls whether the `.mmi` files are saved to the output directory.",
                     "fa_icon": "fas fa-forward"
                 },
                 "skip_dedup": {

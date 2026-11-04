@@ -16,7 +16,7 @@ workflow ALIGN_DEDUPLICATE_DNA {
         fai             // channel: [ val(meta), path(fai) ]
         fastq           // channel: [ val(meta), path(fastq) ]
 
-        skip_save_minimap2_index // bool: Skip saving the minimap2 index
+        skip_save_minimap2_index // bool: Skip publishing the minimap2 index (unused here; used in conf/modules.config)
         skip_qc                  // bool: Skip qc steps
         skip_bam_nanocomp        // bool: Skip Nanocomp
         skip_dedup               // bool: Skip deduplication
@@ -49,12 +49,10 @@ workflow ALIGN_DEDUPLICATE_DNA {
         //
         // MINIMAP2_INDEX
         //
-        if (skip_save_minimap2_index) {
-            MINIMAP2_INDEX ( fasta )
-            ch_minimap_ref = MINIMAP2_INDEX.out.index
-        } else {
-            ch_minimap_ref = fasta
-        }
+        // Always built once; skip_save_minimap2_index only controls publishing. Its
+        // ext.args must match the MINIMAP2_ALIGN preset (see align_longreads).
+        MINIMAP2_INDEX ( fasta )
+        ch_minimap_ref = MINIMAP2_INDEX.out.index
 
         //
         // MINIMAP2_ALIGN

@@ -99,10 +99,19 @@ The knee plot (an example is listed above) that is provided by BLAZE shows all b
       - `original/`
       - `*.sorted.bam` : The transcriptome mapped and sorted bam.
       - `*.sorted.bam.bai` : The bam index for the transcriptome mapped and sorted bam.
+- `references/`
+  - `genome/minimap_index/`
+    - `*.mmi` : The minimap2 index of the genome FASTA used for cDNA genome alignment (`-x splice -k<kmer_size>`).
+  - `transcriptome/minimap_index/`
+    - `*.mmi` : The minimap2 index of the transcriptome FASTA used for cDNA transcriptome alignment (`-x map-ont -k<kmer_size>`).
+  - `dna/minimap_index/`
+    - `*.mmi` : The minimap2 index of the genome FASTA used for DNA alignment (`-x map-ont`).
 
 </details>
 
 [Minimap2](https://github.com/lh3/minimap2) is a versatile sequence alignment program that aligns DNA or mRNA sequences against a large reference database. Minimap2 is optimized for large, noisy reads making it a staple for alignment of nanopore reads.
+
+The pipeline builds a minimap2 index once per reference and aligns every sample against it. Only the arms that run produce an index. The indexes are published under `references/` unless `--skip_save_minimap2_index` is set. The k-mer and window sizes are stored in the `.mmi` and override those of whichever alignment preset later loads it, so a saved index is only equivalent to the pipeline's alignment when it is used with the same preset and `--kmer_size`.
 
 ## Alignment Post-processing
 

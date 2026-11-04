@@ -25,6 +25,9 @@
                 "MINIMAP2_ALIGN": {
                     "minimap2": "2.29-r1283"
                 },
+                "MINIMAP2_INDEX": {
+                    "minimap2": "2.29-r1283"
+                },
                 "PIGZ_UNCOMPRESS": {
                     "pigz": 2.8
                 },
@@ -144,7 +147,11 @@
                 "batch_qcs/read_counts",
                 "batch_qcs/read_counts/read_counts.csv",
                 "pipeline_info",
-                "pipeline_info/lrsinglecell_software_mqc_versions.yml"
+                "pipeline_info/lrsinglecell_software_mqc_versions.yml",
+                "references",
+                "references/dna",
+                "references/dna/minimap_index",
+                "references/dna/minimap_index/chr21.mmi"
             ],
             [
                 "RPMI8402.dna_known_barcodes.txt:md5,a384c05cc091ce3774d09e0a89db3915",
@@ -167,10 +174,11 @@
                 "picard_deduplication.txt:md5,190e3d847b2d8bb17f0b03b325963dfa",
                 "samtools-flagstat-pct-table.txt:md5,a21fd9c7bb7fd03d890d272943c5005e",
                 "samtools-flagstat-table.txt:md5,53b603a494cf23476566fc96a691bb7c",
-                "read_counts.csv:md5,b0e4e0e53204b01bd64c8a4b16b057d3"
+                "read_counts.csv:md5,b0e4e0e53204b01bd64c8a4b16b057d3",
+                "chr21.mmi:md5,9d115776318cdce475458676f2782fda"
             ]
         ],
-        "timestamp": "2026-11-04T15:36:17.12647879",
+        "timestamp": "2026-11-04T16:40:22.562769127",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"
