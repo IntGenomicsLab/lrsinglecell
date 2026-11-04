@@ -1,0 +1,32 @@
+nextflow_pipeline {
+
+    name "Test pipeline skip options (stub)"
+    script "../main.nf"
+    tag "pipeline"
+    tag "stub"
+    options "-stub"
+
+    test("-profile test --skip_trimming -stub") {
+
+        when {
+            params {
+                outdir        = "$outputDir"
+                skip_trimming = true
+            }
+        }
+
+        then {
+            // stable_name: All files + folders in ${params.outdir}/ with a stable name
+            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
+            assertAll(
+                { assert workflow.success },
+                // Read counts are still produced without the post-trim QC (#10)
+                { assert file("$outputDir/batch_qcs/read_counts").exists() },
+                { assert snapshot(
+                    // All stable path name, with a relative path
+                    stable_name
+                ).match() }
+            )
+        }
+    }
+}

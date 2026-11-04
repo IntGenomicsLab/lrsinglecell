@@ -246,6 +246,7 @@ workflow LRSINGLECELL {
     // MODULE: Trim and filter reads
     //
     ch_fastqc_multiqc_postrim = channel.empty()
+    ch_nanostat_posttrim = channel.empty()
     ch_trimmed_reads_combined = channel.empty()
 
     if (!params.skip_trimming){
