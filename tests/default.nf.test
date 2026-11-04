@@ -19,6 +19,13 @@ nextflow_pipeline {
             def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
             assert workflow.success
             assertAll(
+                // IsoQuant Seurat QC must run for every sample (#4): its join with the
+                // flagstat silently matched nothing when the matrix meta was rebuilt.
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    ['gene', 'transcript'].each { feature ->
+                        assert file("$outputDir/${sample}/cdna/genome/qc/seurat_isoquant/${feature}").exists()
+                    }
+                } },
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml"),
