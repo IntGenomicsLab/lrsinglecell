@@ -51,7 +51,14 @@ workflow ALIGN_DEDUPLICATE_DNA {
         //
         // Always built once; skip_save_minimap2_index only controls publishing. Its
         // ext.args must match the MINIMAP2_ALIGN preset (see align_longreads).
-        MINIMAP2_INDEX ( fasta )
+        // This subworkflow is called on every run, so build the index only when there
+        // are DNA reads: otherwise a cDNA-only run would build (and publish) an unused
+        // map-ont genome index.
+        MINIMAP2_INDEX (
+            fasta
+                .combine( fastq.first() )
+                .map { meta, ref, _meta_reads, _reads -> [ meta, ref ] }
+        )
         ch_minimap_ref = MINIMAP2_INDEX.out.index
 
         //

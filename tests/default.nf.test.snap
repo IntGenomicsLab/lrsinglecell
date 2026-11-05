@@ -376,9 +376,6 @@
                 "pipeline_info",
                 "pipeline_info/lrsinglecell_software_mqc_versions.yml",
                 "references",
-                "references/dna",
-                "references/dna/minimap_index",
-                "references/dna/minimap_index/chr21.mmi",
                 "references/genome",
                 "references/genome/minimap_index",
                 "references/genome/minimap_index/chr21.mmi"
@@ -454,11 +451,10 @@
                 "samtools-idxstats-mapped-reads-plot_Observed_over_Expected_Counts.txt:md5,872d0a25e6a6910f8872931d19c38883",
                 "samtools-idxstats-mapped-reads-plot_Raw_Counts.txt:md5,709feb01f857918996d2f8294d549b84",
                 "read_counts.csv:md5,582d4afccfa579c7c50712a185b65674",
-                "chr21.mmi:md5,9d115776318cdce475458676f2782fda",
                 "chr21.mmi:md5,945aa85197434e02c251e8a760350b6c"
             ]
         ],
-        "timestamp": "2026-11-04T17:11:31.369633539",
+        "timestamp": "2026-11-05T11:53:42.838961124",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"

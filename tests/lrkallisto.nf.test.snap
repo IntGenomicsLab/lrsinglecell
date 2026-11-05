@@ -451,9 +451,6 @@
                 "reference/lrkallisto/kallisto.idx",
                 "reference/lrkallisto/transcripts.fasta",
                 "references",
-                "references/dna",
-                "references/dna/minimap_index",
-                "references/dna/minimap_index/chr21.mmi",
                 "references/genome",
                 "references/genome/minimap_index",
                 "references/genome/minimap_index/chr21.mmi"
@@ -569,11 +566,10 @@
                 "read_counts.csv:md5,582d4afccfa579c7c50712a185b65674",
                 "chr21.t2g.tsv:md5,f9d4281c25dde9fcf33af7d897c582a4",
                 "transcripts.fasta:md5,2941f5afe9b231409500b03f24693e86",
-                "chr21.mmi:md5,9d115776318cdce475458676f2782fda",
                 "chr21.mmi:md5,945aa85197434e02c251e8a760350b6c"
             ]
         ],
-        "timestamp": "2026-11-04T16:42:21.838814915",
+        "timestamp": "2026-11-05T11:55:35.794011564",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"
