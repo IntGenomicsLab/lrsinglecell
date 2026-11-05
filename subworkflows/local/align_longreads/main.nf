@@ -21,7 +21,7 @@ workflow ALIGN_LONGREADS {
         ch_fastq     // channel: [ val(meta), path(fastq) ]
         ch_rseqc_bed // channel: [ val(meta), path(rseqc_bed) ]
 
-        val_skip_save_minimap2_index // bool: Skip saving the minimap2 index
+        val_skip_save_minimap2_index // bool: Skip publishing the minimap2 index (unused here; used in conf/modules.config)
         val_skip_qc                  // bool: Skip qc steps
         val_skip_rseqc               // bool: Skip RSeQC
         val_skip_bam_nanocomp        // bool: Skip Nanocomp
@@ -29,13 +29,14 @@ workflow ALIGN_LONGREADS {
     main:
         //
         // MINIMAP2_INDEX
+        // Always build the index once and align every sample against it, rather than
+        // letting each MINIMAP2_ALIGN task re-index the fasta. val_skip_save_minimap2_index
+        // only controls publishing (see conf/modules.config). Indexing options (-k, -w) are
+        // baked into the .mmi and override the alignment's, so the MINIMAP2_INDEX ext.args
+        // must use the same preset and -k as the matching MINIMAP2_ALIGN.
         //
-        if (val_skip_save_minimap2_index) {
-            MINIMAP2_INDEX ( ch_fasta )
-            ch_minimap_ref = MINIMAP2_INDEX.out.index
-        } else {
-            ch_minimap_ref = ch_fasta
-        }
+        MINIMAP2_INDEX ( ch_fasta )
+        ch_minimap_ref = MINIMAP2_INDEX.out.index
 
         //
         // MINIMAP2_ALIGN

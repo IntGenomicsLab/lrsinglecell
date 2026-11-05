@@ -8,13 +8,15 @@
 """
 
 import argparse
+import collections
 import itertools
 import math
-import pysam as ps
 import pygtrie
-from Bio import SeqIO
 
 QUAL_OFFSET = 33
+
+# header of the putative_bc_umi.tsv written by pre_extract_barcodes.py
+INPUT_HEADER = "read_id\tbc\tbc_qual\tumi\tumi_qual"
 
 
 def parse_args():
@@ -68,20 +70,20 @@ def parse_args():
     parser.add_argument(
         "--min_post_prob",
         default=0.975,
-        type=int,
+        type=float,
         required=False,
         help="The minimum posterior probability a barcode on the whitelist must have to replace "
         "the barcode detected by the pipeline"
     )
 
-    #parser.add_argument(print_header, default=True)
     parser.set_defaults(print_header=True)
 
     parser.add_argument(
         "--skip_header",
         action='store_false',
         dest='print_header',
-        help="Indicates whether to skip printing the header"
+        help="Do not write a header line to the output. Only affects the output: a header "
+        "line in the input (starting with 'read_id<TAB>') is recognised and skipped either way"
     )
 
     args = parser.parse_args()
@@ -125,9 +127,12 @@ def correct_barcode(infile, outfile, whitelist, barcode_count_file, min_post_pro
         print_header (bool): Indicates whether to print the header to the output
             file or not
 
-    Output: None
+    Returns:
+        counts (Counter): reads by outcome (exact, corrected, uncorrected, no_bc)
 
     """
+
+    counts = collections.Counter()
 
     with open(infile, 'r') as infile_h, open(outfile, 'w') as outfile_h:
 
@@ -137,26 +142,31 @@ def correct_barcode(infile, outfile, whitelist, barcode_count_file, min_post_pro
         # Turn the barcode abundances into percentages
         bc_probabilities = calculate_bc_ratios(barcode_count_file)
 
-        header = ""
+        if print_header:
+            outfile_h.write(INPUT_HEADER + "\tcorrected_bc\n")
 
-        for inline in infile_h.readlines():
+        for line_no, inline in enumerate(infile_h, start=1):
             inline = inline.strip('\n')
-            if not header:
-                header = inline
-                if print_header:
-                    outfile_h.write(header + "\tcorrected_bc\n")
+            # the header pre_extract_barcodes.py writes; any other first line is a read
+            if line_no == 1 and inline.startswith(INPUT_HEADER.split('\t')[0] + '\t'):
                 continue
 
             read_id, bc, bc_qual, _, _ = inline.split('\t')
 
             if not bc:
+                counts["no_bc"] += 1
                 continue
             else:
                 corrected_bc = get_read_bc(
                     bc, bc_qual, whitelist_trie, bc_probabilities, max_edit_dist, min_post_prob
                 )
                 if corrected_bc:
+                    counts["exact" if corrected_bc == bc else "corrected"] += 1
                     outfile_h.write(inline + '\t' + corrected_bc + '\n')
+                else:
+                    counts["uncorrected"] += 1
+
+    return counts
 
 def read_whitelist(in_whitelist):
     """Read the barcode whitelist into a trie. While this does have a hit on
@@ -271,7 +281,6 @@ def get_similar_bcs(query_bc, query_bc_qual, bc_trie, bc_probabilities, max_edit
     for cell_bc in list(get_mutated_bcs(query_bc, max_edit_dist)):
         if bc_trie.has_key(cell_bc):
             bc_probability = get_bc_probability(query_bc, query_bc_qual, cell_bc, bc_probabilities)
-            print("INFO: BARCODE_CHECK - ({} - {}) Probability {}".format(query_bc, cell_bc, bc_probability))
 
             if bc_probability > 0:
                 similar_bcs.append((cell_bc, bc_probability))
@@ -330,8 +339,6 @@ def get_bc_probability(query_bc, query_bc_qual, potential_bc, bc_probabilities):
     if potential_bc in bc_probabilities:
         potential_bc_prob = bc_probabilities[potential_bc]
 
-    print("TOTAL_EDIT_PROBABILITY: {}".format(tot_edit_probability))
-    print("POTENTIAL_BC_PROB: {}".format(potential_bc_prob))
     return tot_edit_probability * potential_bc_prob
 
 
@@ -395,7 +402,6 @@ def find_correct_barcode(potential_bcs, min_prob):
     for potential_bc_info in potential_bcs:
         potential_bc, potential_bc_qual = potential_bc_info
         likelihood = potential_bc_qual / total_probability
-        print("INFO: BARCODE_CHECK - ({}) Likelihood {}".format(potential_bc, likelihood))
 
         if likelihood > max_likelihood and likelihood > min_prob:
             max_likelihood = likelihood
@@ -407,7 +413,7 @@ def find_correct_barcode(potential_bcs, min_prob):
 def main():
     """Main Subroutine"""
     args = parse_args()
-    correct_barcode(
+    counts = correct_barcode(
         args.infile,
         args.outfile,
         args.whitelist,
@@ -416,6 +422,11 @@ def main():
         args.max_edit_dist,
         args.print_header
     )
+    # one summary line instead of a line per candidate barcode
+    total = sum(counts.values())
+    print("INFO: {} reads: {} on the whitelist, {} corrected, {} not corrected (dropped), "
+          "{} without a barcode (dropped)".format(
+              total, counts["exact"], counts["corrected"], counts["uncorrected"], counts["no_bc"]))
 
 
 if __name__ == "__main__":

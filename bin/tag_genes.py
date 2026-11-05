@@ -51,6 +51,10 @@ AMBIG_FRAC = 0.10
 # candidates without scanning every gene on the contig.
 BIN_SIZE = 100_000
 
+# Below this fraction of the gtf's gene-bearing seqnames being present in the bam
+# header, the two most likely come from different assemblies or naming schemes.
+MIN_CONTIG_OVERLAP = 0.5
+
 
 def parse_args():
     """Parse the commandline arguments"""
@@ -172,12 +176,75 @@ def assign(read, genes, bins):
     return ids[best_idx], names[best_idx], status
 
 
+def naming_hint(bam_contigs, gtf_contigs):
+    """Return a hint when the two contig sets only match once a 'chr' prefix is ignored"""
+
+    def strip_chr(contigs):
+        return {contig[3:] if contig.startswith("chr") else contig for contig in contigs}
+
+    bam_has_chr = any(contig.startswith("chr") for contig in bam_contigs)
+    gtf_has_chr = any(contig.startswith("chr") for contig in gtf_contigs)
+
+    if bam_has_chr != gtf_has_chr and strip_chr(bam_contigs) & strip_chr(gtf_contigs):
+        return (
+            " The names differ by a 'chr' prefix (UCSC 'chr1' vs Ensembl '1'):"
+            " use a fasta and gtf from the same source."
+        )
+    return ""
+
+
+def check_contig_overlap(bam_contigs, gtf_contigs):
+    """Compare the bam header contigs with the gtf seqnames that carry genes.
+
+    Exits when they share no contig: every read would then be tagged GS=none and
+    per-gene dedup would silently fall back to positional for the whole sample.
+    Warns on stderr when fewer than MIN_CONTIG_OVERLAP of the gtf seqnames are in
+    the bam header. Returns the overlap fraction.
+    """
+
+    bam_contigs = set(bam_contigs)
+    gtf_contigs = set(gtf_contigs)
+    shared = bam_contigs & gtf_contigs
+    fraction = len(shared) / len(gtf_contigs) if gtf_contigs else 0.0
+
+    def examples(contigs):
+        return ", ".join(sorted(contigs)[:5]) or "none"
+
+    if not shared:
+        sys.exit(
+            f"ERROR: none of the {len(gtf_contigs)} gtf seqnames with genes ({examples(gtf_contigs)}) "
+            f"is a contig in the bam header ({len(bam_contigs)} contigs: {examples(bam_contigs)}). "
+            "Every read would be tagged GS=none and per-gene dedup would fall back to positional "
+            "for the whole sample." + naming_hint(bam_contigs, gtf_contigs)
+        )
+
+    print(
+        f"contig overlap: {len(shared)} of {len(gtf_contigs)} gtf seqnames with genes are in the "
+        f"bam header ({100 * fraction:.1f}%); the bam header has {len(bam_contigs)} contigs",
+        file=sys.stderr,
+    )
+
+    if fraction < MIN_CONTIG_OVERLAP:
+        print(
+            f"WARNING: only {100 * fraction:.1f}% of the gtf seqnames with genes are in the bam header. "
+            "Reads on contigs the gtf and the bam do not share are tagged GS=none and deduplicated "
+            f"positionally. Gtf seqnames missing from the bam include: {examples(gtf_contigs - shared)}."
+            + naming_hint(bam_contigs, gtf_contigs),
+            file=sys.stderr,
+        )
+
+    return fraction
+
+
 def tag_genes(in_bam, gtf, out_bam, summary, threads):
     """Write a copy of the bam with every alignment carrying GX, GN and GS"""
 
     gene_tables = load_genes(gtf)
     if not gene_tables:
         sys.exit("No genes found in the gtf. Does it contain 'gene' feature rows?")
+
+    with pysam.AlignmentFile(in_bam, "rb") as bam_header:
+        check_contig_overlap(bam_header.references, gene_tables.keys())
 
     indexes = {contig: build_index(table[0], table[1]) for contig, table in gene_tables.items()}
     print(f"loaded genes on {len(gene_tables)} contigs", file=sys.stderr)
@@ -219,6 +286,11 @@ def tag_genes(in_bam, gtf, out_bam, summary, threads):
     for status, count in by_status.most_common():
         pct = 100 * count / total if total else 0
         print(f"  {status:<10} {count:>12}  ({pct:5.2f}%)", file=sys.stderr)
+
+    # The share of alignments per-gene grouping cannot act on, and which is
+    # therefore deduplicated positionally instead.
+    none_fraction = by_status["none"] / total if total else 0.0
+    print(f"GS=none fraction: {none_fraction:.4f}", file=sys.stderr)
 
 
 def main():

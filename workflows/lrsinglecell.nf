@@ -233,7 +233,9 @@ workflow LRSINGLECELL {
     ch_pred = channel.empty()
     ch_rseqc_bed = channel.empty()
 
-    if (!params.skip_qc && !params.skip_rseqc) {
+    // The bed is only consumed by RSeQC on the cDNA genome arm, which runs for
+    // genome and fastq quantifiers. DNA-only runs skip it, and may have no gtf.
+    if (!params.skip_qc && !params.skip_rseqc && params.gtf && (genome_quants || fastq_quants)) {
         UCSC_GTFTOGENEPRED( gtf )
         ch_pred = UCSC_GTFTOGENEPRED.out.genepred
 
@@ -246,6 +248,7 @@ workflow LRSINGLECELL {
     // MODULE: Trim and filter reads
     //
     ch_fastqc_multiqc_postrim = channel.empty()
+    ch_nanostat_posttrim = channel.empty()
     ch_trimmed_reads_combined = channel.empty()
 
     if (!params.skip_trimming){
@@ -321,9 +324,8 @@ workflow LRSINGLECELL {
         ch_versions = ch_versions.mix(DEMULTIPLEX_FLEXIPLEX_DNA.out.versions)
         ch_extracted_fastq_dna = DEMULTIPLEX_FLEXIPLEX_DNA.out.flexiplex_fastq
         ch_corrected_bc_info_dna = DEMULTIPLEX_FLEXIPLEX_DNA.out.flexiplex_barcodes
-    } else if (params.demux_tool_dna == "blaze") {
-        error "Blaze demultiplexing is not currently supported for DNA reads. Please use flexiplex."
     }
+    // Any other --demux_tool_dna is rejected by the schema and validateInputParameters.
 
     ch_extracted_fastq_cdna = channel.empty()
     ch_corrected_bc_info_cdna = channel.empty()
@@ -464,7 +466,9 @@ workflow LRSINGLECELL {
             PROCESS_LONGREAD_SCRNA_GENOME.out.bc_tagged_flagstat.collect{it -> it[1]}.ifEmpty([])
         )
 
-        if (!params.skip_dedup) {
+        // With --skip_cdna_dedup, dedup_flagstat is the tagged flagstat above, so
+        // gate on the same flag that turns the cDNA dedup off to avoid adding it twice.
+        if (!params.skip_cdna_dedup) {
             ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
                 PROCESS_LONGREAD_SCRNA_GENOME.out.dedup_flagstat.collect{it -> it[1]}.ifEmpty([])
             )
@@ -530,14 +534,14 @@ workflow LRSINGLECELL {
             PROCESS_LONGREAD_SCRNA_TRANSCRIPT.out.bc_tagged_flagstat.collect{it -> it[1]}.ifEmpty([])
         )
 
-        if (!params.skip_dedup) {
-            ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
-                PROCESS_LONGREAD_SCRNA_TRANSCRIPT.out.dedup_flagstat.collect{it -> it[1]}.ifEmpty([])
-            )
-            ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
-                PROCESS_LONGREAD_SCRNA_TRANSCRIPT.out.dedup_summary.collect{it -> it[1]}.ifEmpty([])
-            )
-        }
+        // The transcriptome arm always deduplicates (see above), so its dedup QC is
+        // always reported.
+        ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
+            PROCESS_LONGREAD_SCRNA_TRANSCRIPT.out.dedup_flagstat.collect{it -> it[1]}.ifEmpty([])
+        )
+        ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
+            PROCESS_LONGREAD_SCRNA_TRANSCRIPT.out.dedup_summary.collect{it -> it[1]}.ifEmpty([])
+        )
 
         ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
             ch_read_counts.collect().ifEmpty([])

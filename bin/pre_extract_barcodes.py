@@ -11,11 +11,24 @@ import argparse
 from Bio import SeqIO
 from Bio.Seq import Seq
 import gzip
+import itertools
+import sys
 
 import threading
 import queue
 
 OUTPUT_LOCK = threading.Lock()
+
+# barcode length, UMI length, and the length of the sequence between the UMI and the
+# cDNA that is stripped with them: the start of the poly(T) for 3' kits, the 13 bp
+# template switch oligo (TTTCTTATATGGG) for 5' kits. Same geometry as the flexiplex
+# patterns in conf/modules.config.
+READ_LAYOUTS = {
+    "10X_3v3": (16, 12, 10),
+    "10X_3v4": (16, 12, 10),
+    "10X_5v2": (16, 10, 13),
+    "10X_5v3": (16, 10, 13),
+}
 
 def parse_args():
     """Parse the commandline arguments"""
@@ -28,10 +41,11 @@ def parse_args():
     )
     arg_parser.add_argument("-o", "--output_file", required=True, type=str, help="The output fastq")
     arg_parser.add_argument(
-        "-f", "--barcode_format", required=True, type=str, help="The barcode/umi format (Options: cellranger)"
+        "-f", "--barcode_format", required=True, type=str, choices=sorted(READ_LAYOUTS),
+        help="The barcode/umi format"
     )
     arg_parser.add_argument(
-        "-t", "--threads", type=int, help="The number of threads to use")
+        "-t", "--threads", type=int, default=1, help="The number of threads to use")
 
     args = arg_parser.parse_args()
     return args
@@ -45,17 +59,8 @@ def extract_bc_umi(bc_format, bc_queue, bc_out, r2_out):
 
         # If bc_index is < 0, the barcode was not found
         if bc_index >= 0:
-            read_info = {}
-
-            # Strip the primer, bc, umi, and poly-T
-            if bc_format in ("10X_3v3", "10X_3v4"):
-                read_info = strip_read_10X_3v3_3v4(bc_index, seq, quals)
-
-            elif bc_format in ("10X_5v2"):
-                read_info = strip_read_10X_5v2(bc_index, seq, quals)
-
-            elif bc_format in ("10X_5v3"):
-                read_info = strip_read_10X_5v3(bc_index, seq, quals)
+            # Strip the primer, bc, umi, and poly-T (3') or TSO (5')
+            read_info = strip_read_10X(bc_index, seq, quals, *READ_LAYOUTS[bc_format])
 
             if read_info:
                 bc_output = "\t".join(
@@ -99,10 +104,21 @@ def extract_barcode(input_file, barcode_file, output, bc_format, threads):
 
     with open(barcode_file, "r", encoding="utf-8") as bc_in:
 
-        for bc_umi_line,record in zip(bc_in,SeqIO.parse(fastq_in, "fastq")):
+        # The BLAZE csv has one line per fastq record, in the same order (both are split
+        # into chunks of the same number of reads). Check that, rather than silently
+        # assigning barcodes to the wrong reads.
+        missing = object()
+        lines = itertools.zip_longest(bc_in, SeqIO.parse(fastq_in, "fastq"), fillvalue=missing)
+        for n, (bc_umi_line, record) in enumerate(lines, start=1):
+            if bc_umi_line is missing or record is missing:
+                sys.exit(f"ERROR: {barcode_file} and {input_file} have a different number of reads: "
+                         f"the {'barcode file' if bc_umi_line is missing else 'fastq'} ends at read {n}")
             bc_umi_line = bc_umi_line.strip()
 
-            _, barcode, _, _, _, _, _ = bc_umi_line.split(",")
+            bc_read_id, barcode, _, _, _, _, _ = bc_umi_line.split(",")
+            if bc_read_id != record.id:
+                sys.exit(f"ERROR: read {n} is {record.id} in {input_file} but {bc_read_id} in "
+                         f"{barcode_file}; the two files are not in the same read order")
             orig_seq = str(record.seq)
             orig_quals = "".join([chr(score + 33) for score in record.letter_annotations["phred_quality"]])
             if barcode:
@@ -144,37 +160,19 @@ def find_seq_indices(barcode, sequence, qualities):
 
     return index, sequence, qualities
 
-def strip_read_10X_3v3_3v4(bc_index, seq, quals):
-    bc_length = 16
-    umi_length = 12
-    polyt_length = 10
-
-    return strip_read_10X(bc_index, seq, quals, bc_length, umi_length, polyt_length)
-
-def strip_read_10X_5v3(bc_index, seq, quals):
-    bc_length = 16
-    umi_length = 12
-    polyt_length = 10
-
-    return strip_read_10X(bc_index, seq, quals, bc_length, umi_length, polyt_length)
-
-def strip_read_10X_5v2(bc_index, seq, quals):
-    bc_length = 16
-    umi_length = 10
-    polyt_length = 10
-
-    return strip_read_10X(bc_index, seq, quals, bc_length, umi_length, polyt_length)
-
-def strip_read_10X(bc_index, seq, quals, bc_length, umi_length, polyt_length):
+def strip_read_10X(bc_index, seq, quals, bc_length, umi_length, linker_length):
     """Strip the bc and umi from a read, and convert it from a single read
         format to paired read. This function is used for when the barcode is in
         the 10X format, so we expect that the read would look this:
-        {bc}{umi}{polyT}{read}
+        {bc}{umi}{polyT or TSO}{read}
 
     Args:
         bc_index (int): The location of the barcode in the read
         seq (str): The full sequence
         quals (str): The full sequence qualities
+        bc_length (int): The barcode length
+        umi_length (int): The UMI length
+        linker_length (int): The length stripped after the UMI (poly(T) or TSO)
 
     Returns:
         read_info (dict): The dictionary containing the read in paired format.
@@ -192,8 +190,8 @@ def strip_read_10X(bc_index, seq, quals, bc_length, umi_length, polyt_length):
     read_info["umi"] = seq[bc_index + bc_length : bc_index + bc_length + umi_length ]
     read_info["umi_qual"] = quals[bc_index + bc_length : bc_index + bc_length + umi_length ]
 
-    read_info["r2_read"] = seq[bc_index + bc_length + umi_length + polyt_length :]
-    read_info["r2_qual"] = quals[bc_index + bc_length + umi_length + polyt_length :]
+    read_info["r2_read"] = seq[bc_index + bc_length + umi_length + linker_length :]
+    read_info["r2_qual"] = quals[bc_index + bc_length + umi_length + linker_length :]
 
     return read_info
 

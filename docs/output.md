@@ -99,10 +99,19 @@ The knee plot (an example is listed above) that is provided by BLAZE shows all b
       - `original/`
       - `*.sorted.bam` : The transcriptome mapped and sorted bam.
       - `*.sorted.bam.bai` : The bam index for the transcriptome mapped and sorted bam.
+- `references/`
+  - `genome/minimap_index/`
+    - `*.mmi` : The minimap2 index of the genome FASTA used for cDNA genome alignment (`-x splice -k<kmer_size>`).
+  - `transcriptome/minimap_index/`
+    - `*.mmi` : The minimap2 index of the transcriptome FASTA used for cDNA transcriptome alignment (`-x map-ont -k<kmer_size>`).
+  - `dna/minimap_index/`
+    - `*.mmi` : The minimap2 index of the genome FASTA used for DNA alignment (`-x map-ont`).
 
 </details>
 
 [Minimap2](https://github.com/lh3/minimap2) is a versatile sequence alignment program that aligns DNA or mRNA sequences against a large reference database. Minimap2 is optimized for large, noisy reads making it a staple for alignment of nanopore reads.
+
+The pipeline builds a minimap2 index once per reference and aligns every sample against it. Only the arms that run produce an index. The indexes are published under `references/` unless `--skip_save_minimap2_index` is set. The k-mer and window sizes are stored in the `.mmi` and override those of whichever alignment preset later loads it, so a saved index is only equivalent to the pipeline's alignment when it is used with the same preset and `--kmer_size`.
 
 ## Alignment Post-processing
 
@@ -261,7 +270,7 @@ Assignment is by gene-body overlap and is strand-agnostic. `GX` always holds the
 
 Deduplication is run in parallel on one chunk per chromosome (genome alignment) or per transcript group (transcriptome alignment), and with `--dedup_per_gene` each genome chunk is additionally split into a gene-grouped and a positional run. The per-chunk `umi_tools dedup` logs therefore only hold chunk-level counts and are not published. Instead their `Input Reads` and `Number of reads out` figures are summed into the `*.umi_dedup_summary.tsv` file, which is also shown as the "UMI-tools Deduplication" table in the MultiQC report. The `duplication_rate` column is `duplicate_reads / input_reads`.
 
-Users should note that `oarfish` requires input reads to be deduplicated. As a result, the `skip_dedup` option is only applicable to `IsoQuant`. By default, `lrsinglecell` will perform deduplication for IsoQuant unless the `skip_dedup` option is explicitly enabled, while deduplication will always be executed for `oarfish` quantification.
+Users should note that `oarfish` requires input reads to be deduplicated, so the transcriptome alignment is always deduplicated. Deduplication of the genome alignment (used by `IsoQuant`) is performed by default and can be turned off with `--skip_cdna_dedup`, in which case no `bam/dedup/` output is published for the genome alignment and the mapped-only BAM (always published under `bam/mapped_only/`) is the final genome BAM. `--skip_dedup` only governs duplicate marking on the DNA arm and has no effect on cDNA deduplication.
 
 ### Picard MarkDuplicates
 
@@ -284,7 +293,7 @@ Users should note that `oarfish` requires input reads to be deduplicated. As a r
 
 [Picard MarkDuplicates](https://gatk.broadinstitute.org/hc/en-us/articles/360037052812-MarkDuplicates-Picard) locates and tags duplicate reads in a BAM or SAM file.
 
-Users should note that `oarfish` requires input reads to be deduplicated. As a result, the `skip_dedup` option is only applicable to `IsoQuant`. By default, `lrsinglecell` will perform deduplication for IsoQuant unless the `skip_dedup` option is explicitly enabled, while deduplication will always be executed for `oarfish` quantification.
+Users should note that `oarfish` requires input reads to be deduplicated, so the transcriptome alignment is always deduplicated. Deduplication of the genome alignment (used by `IsoQuant`) is performed by default and can be turned off with `--skip_cdna_dedup`, in which case no `bam/dedup/` output is published for the genome alignment and the mapped-only BAM (always published under `bam/mapped_only/`) is the final genome BAM. `--skip_dedup` only governs duplicate marking on the DNA arm and has no effect on cDNA deduplication.
 
 ### DNA duplicate marking
 
@@ -302,7 +311,7 @@ Users should note that `oarfish` requires input reads to be deduplicated. As a r
     - `qc/`
       - `dedup/`
         - `*.dedup.metrics.txt` : Duplication metrics in Picard's `DuplicationMetrics` format, summarised in the MultiQC report.
-        - `*.dedup.dedup_summary.tsv` : Molecules, duplicates and duplicate sets, the duplicate rate without the mitochondrial genome (`nuclear_duplicate_rate`), the duplicates each rule added, secondary/supplementary records flagged, and the 3' adapter classes seen.
+        - `*.dedup.dedup_summary.tsv` : Molecules, duplicates and duplicate sets, the duplicate rate without the mitochondrial genome (`nuclear_duplicate_rate`), the duplicates each rule added, secondary/supplementary records flagged, and the 3' adapter classes seen. `no_barcode` counts primary reads without a cell barcode tag; they are left unflagged and are not counted in `primary_reads` (inside the pipeline every DNA read has one, so it is 0).
 
 </details>
 
@@ -340,16 +349,18 @@ When demultiplexing with flexiplex, IsoQuant is run twice off the same alignment
 
 - `isoquant/` groups on `CB`, so it covers the cells flexiplex matched to the known
   barcode list. This is the matrix to use for ordinary analysis, and the one Seurat QC
-  is run against. Reads that matched no known barcode collect in a single `-` column,
-  which should be dropped.
+  is run against. IsoQuant puts the reads that matched no known barcode in a single
+  `-` column; `drop_barcode.py` removes that column (and its entry in the barcode list)
+  before the matrices are published or reach Seurat QC, so the published matrices hold
+  the called cells only.
 - `isoquant_all_droplets/` groups on `XB`, which falls back to the uncorrected barcode.
   Droplets below the knee called by `flexiplex-filter` therefore appear here under their
   own barcode alongside the called cells, which is what makes ambient/empty-droplet
   estimation possible. It has no `-` column: reads with no barcode region at all were
   dropped during assignment.
 
-`oarfish` groups on `CB` too, so its transcript matrix gains the same droppable `-`
-column.
+`oarfish` groups on `CB` too, but reads whose `CB` is `-` are removed before it runs,
+so its transcript matrix holds the called cells only and has no `-` column.
 
 ### oarfish
 

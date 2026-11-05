@@ -44,6 +44,9 @@
                 "MINIMAP2_ALIGN": {
                     "minimap2": "2.29-r1283"
                 },
+                "MINIMAP2_INDEX": {
+                    "minimap2": "2.29-r1283"
+                },
                 "PIGZ_UNCOMPRESS": {
                     "pigz": 2.8
                 },
@@ -446,7 +449,11 @@
                 "reference/lrkallisto",
                 "reference/lrkallisto/chr21.t2g.tsv",
                 "reference/lrkallisto/kallisto.idx",
-                "reference/lrkallisto/transcripts.fasta"
+                "reference/lrkallisto/transcripts.fasta",
+                "references",
+                "references/genome",
+                "references/genome/minimap_index",
+                "references/genome/minimap_index/chr21.mmi"
             ],
             [
                 "ERR9958133.cdna_known_barcodes.txt:md5,5066d9483f2a949505c22da29f5d7c5c",
@@ -558,10 +565,11 @@
                 "samtools-idxstats-mapped-reads-plot_Raw_Counts.txt:md5,709feb01f857918996d2f8294d549b84",
                 "read_counts.csv:md5,582d4afccfa579c7c50712a185b65674",
                 "chr21.t2g.tsv:md5,f9d4281c25dde9fcf33af7d897c582a4",
-                "transcripts.fasta:md5,2941f5afe9b231409500b03f24693e86"
+                "transcripts.fasta:md5,2941f5afe9b231409500b03f24693e86",
+                "chr21.mmi:md5,945aa85197434e02c251e8a760350b6c"
             ]
         ],
-        "timestamp": "2026-10-28T12:29:42.724186145",
+        "timestamp": "2026-11-05T11:55:35.794011564",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"

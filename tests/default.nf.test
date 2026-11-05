@@ -19,6 +19,30 @@ nextflow_pipeline {
             def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
             assert workflow.success
             assertAll(
+                // IsoQuant Seurat QC must run for every sample (#4): its join with the
+                // flagstat silently matched nothing when the matrix meta was rebuilt.
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    ['gene', 'transcript'].each { feature ->
+                        assert file("$outputDir/${sample}/cdna/genome/qc/seurat_isoquant/${feature}").exists()
+                    }
+                } },
+                // No published IsoQuant matrix may carry flexiplex's '-' barcode (#12), and
+                // each matrix must still have one column per listed barcode.
+                { def barcode_lists = []
+                  new File("$outputDir").eachFileRecurse(groovy.io.FileType.FILES) { f ->
+                      if (f.path =~ '/genome/isoquant(_all_droplets)?/' && f.name.endsWith('counts.barcodes.tsv')) {
+                          barcode_lists << f
+                      }
+                  }
+                  assert barcode_lists.size() == 8
+                  barcode_lists.each { f ->
+                      def barcodes = f.readLines()
+                      assert !barcodes.contains('-') : "${f.name} has a '-' barcode"
+                      def mtx = new File(f.path.replace('.barcodes.tsv', '.matrix.mtx'))
+                      def size = mtx.readLines().find { line -> !line.startsWith('%') }.tokenize()
+                      assert size[1].toInteger() == barcodes.size() : "${mtx.name} does not have one column per barcode"
+                  }
+                },
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml"),

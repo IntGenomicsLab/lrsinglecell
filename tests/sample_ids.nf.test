@@ -1,0 +1,68 @@
+nextflow_pipeline {
+
+    name "Test sample ids that contain a '.'"
+    script "../main.nf"
+    tag "pipeline"
+    tag "sample_ids"
+
+    // Two samples, S1.a and S1.b, that differ only after the '.' and share all
+    // other meta. Deduplication splits each bam into chunks (per contig on the
+    // genome, per transcript group on the transcriptome) and folds the chunks
+    // back into one sample; recovering the sample from the chunk file name used
+    // to cut both ids to S1 and merge the two samples into one (issue #8).
+    // Stub mode is enough: the bug is in the channel logic, not in the tools.
+    test("-profile test -stub, sample ids with a '.'") {
+
+        options "-stub"
+
+        when {
+            params {
+                input      = "${projectDir}/tests/samplesheets/samplesheet_dotted_ids.csv"
+                outdir     = "$outputDir"
+                // one genome and one transcriptome quantifier, so both dedup
+                // chunking paths run
+                quantifier = "isoquant,oarfish"
+                // the test data has no transcript fasta; under -stub nothing reads
+                // it, so the genome fasta stands in
+                transcript_fasta = "https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/reference/chr21.fa"
+            }
+        }
+
+        then {
+            def published = getAllFilesFromDir(params.outdir, relative: true, includeDir: true)
+                .collect { it.toString() }
+
+            def samples = ['S1.a', 'S1.b']
+            def references = ['genome', 'transcriptome']
+
+            def expected = samples.collectMany { id ->
+                references.collectMany { ref ->
+                    [
+                        "${id}/cdna/${ref}/qc/umitools/dedup/${id}.cdna.${ref}.umi_dedup_summary.tsv",
+                        "${id}/cdna/${ref}/qc/samtools/dedup/${id}.cdna.${ref}.umitools_dedup.flagstat",
+                    ]
+                } + [ "${id}/cdna/genome/qc/gene_assignment/${id}.cdna.genome.gene_assignment.tsv" ]
+            }.collect { it.toString() }
+
+            // The nf-core samtools merge and index stubs ignore ext.prefix, so the
+            // merged bam is <id>.bam under -stub and <id>.cdna.<ref>.dedup.bam in
+            // a real run: match on the id prefix only.
+            def missing_dedup = { ext ->
+                samples.collectMany { id -> references.collect { ref -> [id, ref] } }.findAll { id, ref ->
+                    published.count { it.startsWith("${id}/cdna/${ref}/bam/dedup/${id}.") && it.endsWith(ext) } != 1
+                }
+            }
+
+            assertAll(
+                { assert workflow.success },
+                // every sample keeps its own merged dedup bam and index ...
+                { assert missing_dedup('.bam') == [] },
+                { assert missing_dedup('.bam.bai') == [] },
+                // ... and its own sample-level summaries
+                { assert expected.findAll { !published.contains(it) } == [] },
+                // and nothing is published under the truncated id
+                { assert published.findAll { it == 'S1' || it.startsWith('S1/') || it.contains('/S1.cdna.') } == [] }
+            )
+        }
+    }
+}
