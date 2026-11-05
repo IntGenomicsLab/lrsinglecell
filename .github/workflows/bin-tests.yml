@@ -24,7 +24,7 @@ env:
   # modules/local/correct_barcodes
   IMAGE: quay.io/biocontainers/mulled-v2-bb96c7354781ab52d8e69ccff89587598dc87fea:ad24cd6a9acfe3ff51beb4c454076e18e778f7c0-0
   # same image as modules/local/group_transcripts
-  UBUNTU_IMAGE: nf-core/ubuntu:20.04
+  UBUNTU_IMAGE: quay.io/nf-core/ubuntu:20.04
 
 jobs:
   mark-dna-duplicates:

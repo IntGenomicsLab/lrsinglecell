@@ -115,7 +115,7 @@
                     "gawk": "5.3.0"
                 },
                 "Workflow": {
-                    "IntGenomicsLab/lrsinglecell": "v1.1.0dev"
+                    "IntGenomicsLab/lrsinglecell": "v1.0.1"
                 }
             },
             [

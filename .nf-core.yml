@@ -19,6 +19,12 @@ lint:
     - .github/PULL_REQUEST_TEMPLATE.md
     - assets/email_template.txt
     - docs/README.md
+  # stub and failure-path tests: they check published paths or error messages, not
+  # tool versions (the validation tests fail before any versions.yml is written)
+  nf_test_content:
+    - tests/skip_options.nf.test
+    - tests/sample_ids.nf.test
+    - tests/validation.nf.test
   template_strings:
     - bin/seurat_qc.R
   multiqc_config:
@@ -37,4 +43,4 @@ template:
   org: IntGenomicsLab
   outdir: .
   skip_features: []
-  version: 1.1.0dev
+  version: 1.0.1
