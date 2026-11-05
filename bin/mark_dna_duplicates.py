@@ -50,13 +50,21 @@
     library of ~10^9 primaries there is a ~2% chance that two names collide at all, and a
     collision can only mis-flag the records of one read, so the hash is not checked.
     --exact-only-contig names are matched exactly, as they appear in the bam header.
+
+    Primary reads without the barcode tag are counted as `no_barcode` in the summary and
+    left unflagged, rather than deduplicated together as one cell. They are not counted
+    in `primary_reads` or in the metrics' UNPAIRED_READS_EXAMINED.
+
+    Each reference sequence is processed in a worker process. If a worker dies (e.g. it
+    is killed by the out-of-memory killer), the run stops with exit status 137 instead of
+    waiting for the lost task, so Nextflow can retry it with more memory.
 """
 
 import argparse
 import array
 import collections
+import concurrent.futures as cf
 import hashlib
-import multiprocessing as mp
 import os
 import re
 import shutil
@@ -234,6 +242,9 @@ def decide_contig(job):
         for r in bam.fetch(contig):
             if r.is_unmapped or r.is_secondary or r.is_supplementary:
                 continue
+            if not r.has_tag(bc_tag):
+                stats["no_barcode"] += 1
+                continue
             cig = r.cigartuples
             lead = cig[0][1] if cig[0][0] == 4 else 0
             trail = cig[-1][1] if cig[-1][0] == 4 else 0
@@ -254,7 +265,7 @@ def decide_contig(job):
                 f = p3 - off if r.is_reverse else p3 + off
             else:
                 f = p3
-            b = r.get_tag(bc_tag) if r.has_tag(bc_tag) else ""
+            b = r.get_tag(bc_tag)
             if b not in bc_ids:
                 bc_ids[b] = len(bc_ids)
             q = r.query_qualities
@@ -476,6 +487,8 @@ def write_summary(path, st, args):
     nuc_dups = st["duplicates"] - st["duplicates_exact_only"]
     rows = [
         ("primary_reads", st["primary"]),
+        # primaries without the barcode tag: left unflagged and not in primary_reads
+        ("no_barcode", st["no_barcode"]),
         ("molecules", st["molecules"]),
         ("duplicate_sets", st["duplicate_sets"]),
         ("duplicates", st["duplicates"]),
@@ -500,6 +513,28 @@ def write_summary(path, st, args):
         fh.write("metric\tvalue\n")
         for k, v in rows:
             fh.write(f"{k}\t{v}\n")
+
+
+# exit status of a task killed by SIGKILL, which the pipeline's errorStrategy retries
+EXIT_WORKER_DIED = 137
+
+
+def run_parallel(fn, jobs, threads):
+    """Yield fn(job) for each job, in completion order, from a pool of worker processes.
+
+    Unlike multiprocessing.Pool, whose imap_unordered waits forever for a task whose
+    worker was killed, ProcessPoolExecutor raises BrokenProcessPool; the run then exits
+    with EXIT_WORKER_DIED.
+    """
+    try:
+        with cf.ProcessPoolExecutor(max_workers=max(1, threads)) as ex:
+            for fut in cf.as_completed([ex.submit(fn, j) for j in jobs]):
+                yield fut.result()
+    except cf.process.BrokenProcessPool as e:
+        print(f"ERROR: a {fn.__name__} worker process died ({e}); it was probably killed by the "
+              "out-of-memory killer. Peak memory grows with --threads: give the task more memory "
+              "or use fewer threads.", file=sys.stderr, flush=True)
+        sys.exit(EXIT_WORKER_DIED)
 
 
 def main():
@@ -539,12 +574,11 @@ def main():
     total = collections.Counter()
     npz = {}
     n_sets = {}
-    with mp.Pool(max(1, args.threads)) as pool:
-        for contig, path, st in pool.imap_unordered(decide_contig, [(args.input, c, args_d, tmp) for c in work]):
-            npz[contig] = path
-            n_sets[contig] = st["duplicate_sets"]
-            total.update(st)
-            print(f"[decide] {contig}: {st['primary']:,} primary, {st['duplicates']:,} duplicates", file=sys.stderr, flush=True)
+    for contig, path, st in run_parallel(decide_contig, [(args.input, c, args_d, tmp) for c in work], args.threads):
+        npz[contig] = path
+        n_sets[contig] = st["duplicate_sets"]
+        total.update(st)
+        print(f"[decide] {contig}: {st['primary']:,} primary, {st['duplicates']:,} duplicates", file=sys.stderr, flush=True)
 
     dup_all = np.sort(np.concatenate([np.load(p)["dup"] for p in npz.values()] or [np.zeros(0, np.uint64)]))
     dup_path = os.path.join(tmp, "dup_hashes.npy")
@@ -566,9 +600,8 @@ def main():
             jobs.append((args.input, c, dup_path, npz.get(c), di_offset, os.path.join(tmp, f"out.{i:05d}.bam"), hdr))
             di_offset += n_sets[c]
     jobs.append((args.input, "*", dup_path, None, 0, os.path.join(tmp, "out.99999.unmapped.bam"), hdr))
-    with mp.Pool(max(1, args.threads)) as pool:
-        for contig, path, st in pool.imap_unordered(write_contig, sorted(jobs, key=lambda j: -n_records.get(j[1], 0))):
-            total.update(st)
+    for contig, path, st in run_parallel(write_contig, sorted(jobs, key=lambda j: -n_records.get(j[1], 0)), args.threads):
+        total.update(st)
     ordered = [j[5] for j in jobs]
     # Parts are concatenated in header order with the unmapped reads last, so the result
     # is coordinate-sorted. It is not indexed here: a single-threaded index took over a
@@ -582,6 +615,9 @@ def main():
           f"({total['duplicates'] / max(total['primary'], 1):.2%}); "
           f"propagated to {total['flag_secondary']:,} secondary and {total['flag_supplementary']:,} supplementary",
           file=sys.stderr)
+    if total["no_barcode"]:
+        print(f"WARNING: {total['no_barcode']:,} primary reads have no {args.barcode_tag} tag; "
+              "they were left unflagged", file=sys.stderr)
 
 
 if __name__ == "__main__":

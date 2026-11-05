@@ -11,8 +11,9 @@ process SPLIT_BAM {
     tuple val(meta), path(bam), path(bai), path(contig_file)
 
     output:
-    tuple val(meta), path("*.split.bam"), emit: split_bam
-    path "versions.yml"                 , emit: versions_split_bam, topic: versions
+    tuple val(meta), path("*.split.bam")       , emit: split_bam
+    tuple val(meta), path("*.read_counts.tsv") , emit: read_counts
+    path "versions.yml"                        , emit: versions_split_bam, topic: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -26,7 +27,8 @@ process SPLIT_BAM {
         ${args} \\
         --input ${bam} \\
         --output ${prefix}.split.bam \\
-        --contig_file ${contig_file}
+        --contig_file ${contig_file} \\
+        --counts ${prefix}.read_counts.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -38,6 +40,7 @@ process SPLIT_BAM {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     touch ${prefix}.split.bam
+    printf '0\\t0\\n' > ${prefix}.read_counts.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

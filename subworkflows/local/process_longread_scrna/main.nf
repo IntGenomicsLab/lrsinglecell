@@ -123,7 +123,7 @@ workflow PROCESS_LONGREAD_SCRNA {
             ch_bai = DEDUP_UMIS.out.dedup_bai
             ch_flagstat = DEDUP_UMIS.out.dedup_flagstat
             ch_dedup_summary = DEDUP_UMIS.out.dedup_summary
-            ch_versions = DEDUP_UMIS.out.versions
+            ch_versions = ch_versions.mix(DEDUP_UMIS.out.versions)
         } else {
 
             ch_bam = ch_tagged_bam
@@ -148,7 +148,6 @@ workflow PROCESS_LONGREAD_SCRNA {
             QUANTIFY_SCRNA_OARFISH (
                 ch_bam,
                 ch_flagstat,
-                ch_fasta,
                 val_skip_qc,
                 val_skip_seurat
             )
@@ -158,8 +157,9 @@ workflow PROCESS_LONGREAD_SCRNA {
 
         if (val_quant_list.contains("isoquant")) {
             //
-            // Called cells only. Grouping on CB means the reads flexiplex could not
-            // match to the known list collect in a single "-" column to be dropped.
+            // Called cells only. Grouping on CB puts the reads flexiplex could not match
+            // to the known list in a single "-" column, which is dropped from the
+            // matrices before they are published or reach Seurat QC.
             //
             QUANTIFY_SCRNA_ISOQUANT (
                 ch_bam,
@@ -169,6 +169,7 @@ workflow PROCESS_LONGREAD_SCRNA {
                 ch_fai,
                 ch_gtf,
                 'tag:CB',
+                '-',
                 val_skip_qc,
                 val_skip_seurat
             )
@@ -180,9 +181,9 @@ workflow PROCESS_LONGREAD_SCRNA {
             //
             // Every droplet, off the same alignments. XB holds the corrected barcode
             // for a called cell and the uncorrected one for a droplet that fell below
-            // the knee, so both land in a single barcode space. Seurat QC is skipped
-            // here: it is a per-cell report, and the called cells already have one
-            // from the run above.
+            // the knee, so both land in a single barcode space, with no "-" to drop.
+            // Seurat QC is skipped here: it is a per-cell report, and the called
+            // cells already have one from the run above.
             //
             if (params.demux_tool_cdna == "flexiplex") {
                 QUANTIFY_SCRNA_ISOQUANT_ALL (
@@ -193,6 +194,7 @@ workflow PROCESS_LONGREAD_SCRNA {
                     ch_fai,
                     ch_gtf,
                     'tag:XB',
+                    '',
                     val_skip_qc,
                     true
                 )

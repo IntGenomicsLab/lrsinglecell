@@ -1,0 +1,215 @@
+nextflow_pipeline {
+
+    name "Test input validation"
+    script "../main.nf"
+    tag "pipeline"
+    tag "validation"
+
+    // Failure paths of validateInputParameters / validateInputSamplesheet and the
+    // schema (issue #9). All of them stop before any process runs; -stub keeps
+    // the run cheap if a check ever stops firing.
+
+    test("demux_tool_cdna typo is rejected") {
+        options "-stub"
+        when {
+            params {
+                outdir          = "$outputDir"
+                demux_tool_cdna = "flexplex"
+            }
+        }
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("--demux_tool_cdna (flexplex)") }
+            )
+        }
+    }
+
+    test("demux_tool_dna blaze is rejected") {
+        options "-stub"
+        when {
+            params {
+                outdir         = "$outputDir"
+                demux_tool_dna = "blaze"
+            }
+        }
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("DNA reads can only be demultiplexed with flexiplex") }
+            )
+        }
+    }
+
+    test("DNA rows without a DNA barcode layout are rejected") {
+        options "-stub"
+        when {
+            params {
+                outdir         = "$outputDir"
+                input          = "https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/samplesheet/samplesheet_test_dna.csv"
+                barcode_format = "10X_3v3"
+            }
+        }
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("Input contains DNA reads but no DNA barcode layout is known") }
+            )
+        }
+    }
+
+    test("custom DNA barcode pattern without dna_whitelist is rejected") {
+        options "-stub"
+        when {
+            params {
+                outdir                       = "$outputDir"
+                input                        = "https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/samplesheet/samplesheet_test_dna.csv"
+                barcode_format               = "10X_3v3"
+                custom_flexiplex_barcode_dna = "-x ACCGAGATCTACAC -b ???????????????? -f 8"
+            }
+        }
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("--custom_flexiplex_barcode_dna was given without --dna_whitelist") }
+            )
+        }
+    }
+
+    test("DNA rows without genome_fasta are rejected") {
+        options "-stub"
+        when {
+            params {
+                outdir         = "$outputDir"
+                input          = "https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/samplesheet/samplesheet_test_dna.csv"
+                barcode_format = "10X_multiome"
+                quantifier     = null
+                genome_fasta   = null
+            }
+        }
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("Input contains DNA reads but --genome_fasta was not provided") }
+            )
+        }
+    }
+
+    test("cDNA rows without gtf are rejected") {
+        options "-stub"
+        when {
+            params {
+                outdir = "$outputDir"
+                gtf    = null
+            }
+        }
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("Input contains cDNA reads but --gtf was not provided") }
+            )
+        }
+    }
+
+    test("oarfish without gtf is rejected") {
+        options "-stub"
+        when {
+            params {
+                outdir           = "$outputDir"
+                quantifier       = "oarfish"
+                transcript_fasta = "https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/reference/chr21.fa"
+                gtf              = null
+            }
+        }
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("In order to quantify with oarfish, a gtf must be provided") }
+            )
+        }
+    }
+
+    test("rows of one sample with different cell_count are rejected") {
+        options "-stub"
+        when {
+            params {
+                outdir = "$outputDir"
+                input  = "${projectDir}/tests/samplesheets/samplesheet_cell_count_mismatch.csv"
+            }
+        }
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("Rows of sample 'S1' (type cdna) have different cell_count values (1000, 2000)") }
+            )
+        }
+    }
+
+    test("cell_count of 0 is rejected") {
+        options "-stub"
+        when {
+            params {
+                outdir = "$outputDir"
+                input  = "${projectDir}/tests/samplesheets/samplesheet_cell_count_zero.csv"
+            }
+        }
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("cell_count of sample 'S1' (type cdna) must be greater than 0") }
+            )
+        }
+    }
+
+    // The warning is logged before the remaining checks run, so a cheap
+    // validation failure is enough to see it (no full stub run needed).
+    test("dedup_tool picard logs a deprecation warning") {
+        options "-stub"
+        when {
+            params {
+                outdir     = "$outputDir"
+                dedup_tool = "picard"
+                gtf        = null
+            }
+        }
+        then {
+            // Warnings reach only the nextflow log, not the captured stdout
+            def nf_log = file("$outputDir/../meta/nextflow.log").text
+            assertAll(
+                { assert workflow.failed },
+                { assert nf_log.contains("--dedup_tool picard is deprecated and will be removed in v1.1.0") }
+            )
+        }
+    }
+
+    // Positive counterpart of the gtf checks: a DNA-only run needs no gtf.
+    test("DNA-only run without gtf succeeds") {
+        options "-stub"
+        when {
+            params {
+                outdir         = "$outputDir"
+                input          = "https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/samplesheet/samplesheet_test_dna.csv"
+                barcode_format = "10X_multiome"
+                quantifier     = null
+                gtf            = null
+            }
+        }
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert file("$outputDir/RPMI8402/dna/bam/dedup").exists() },
+                // no cDNA genome arm, so no RSeQC bed was built
+                { assert !workflow.trace.tasks().any { it.name.contains('UCSC_') } }
+            )
+        }
+    }
+}
