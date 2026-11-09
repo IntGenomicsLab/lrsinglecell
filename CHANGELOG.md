@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.1.0dev - [unreleased]
 
+### Changes
+
+- The lr-kallisto reference files (`kallisto.idx`, `*.t2g.tsv`, `transcripts.fasta`) are now published to `references/lrkallisto/` instead of `reference/lrkallisto/`, alongside the minimap2 indexes in `references/`. Update any scripts that read the old path
+
 ### Documentation
 
 - Added `docs/tutorial.md`, a step-by-step walkthrough from installation to loading the results in Seurat and splitting the DNA BAM per cell, built from a real `test_mixed` run

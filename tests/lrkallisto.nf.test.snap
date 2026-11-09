@@ -445,15 +445,14 @@
                 "batch_qcs/read_counts/read_counts.csv",
                 "pipeline_info",
                 "pipeline_info/lrsinglecell_software_mqc_versions.yml",
-                "reference",
-                "reference/lrkallisto",
-                "reference/lrkallisto/chr21.t2g.tsv",
-                "reference/lrkallisto/kallisto.idx",
-                "reference/lrkallisto/transcripts.fasta",
                 "references",
                 "references/genome",
                 "references/genome/minimap_index",
-                "references/genome/minimap_index/chr21.mmi"
+                "references/genome/minimap_index/chr21.mmi",
+                "references/lrkallisto",
+                "references/lrkallisto/chr21.t2g.tsv",
+                "references/lrkallisto/kallisto.idx",
+                "references/lrkallisto/transcripts.fasta"
             ],
             [
                 "ERR9958133.cdna_known_barcodes.txt:md5,5066d9483f2a949505c22da29f5d7c5c",
@@ -564,12 +563,12 @@
                 "samtools-idxstats-mapped-reads-plot_Observed_over_Expected_Counts.txt:md5,872d0a25e6a6910f8872931d19c38883",
                 "samtools-idxstats-mapped-reads-plot_Raw_Counts.txt:md5,709feb01f857918996d2f8294d549b84",
                 "read_counts.csv:md5,582d4afccfa579c7c50712a185b65674",
+                "chr21.mmi:md5,945aa85197434e02c251e8a760350b6c",
                 "chr21.t2g.tsv:md5,f9d4281c25dde9fcf33af7d897c582a4",
-                "transcripts.fasta:md5,2941f5afe9b231409500b03f24693e86",
-                "chr21.mmi:md5,945aa85197434e02c251e8a760350b6c"
+                "transcripts.fasta:md5,2941f5afe9b231409500b03f24693e86"
             ]
         ],
-        "timestamp": "2026-11-05T11:55:35.794011564",
+        "timestamp": "2026-11-09T10:23:20.321109376",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"

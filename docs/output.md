@@ -391,7 +391,7 @@ It should also be noted that oarfish can only accurately perform quantification 
 <details markdown="1">
 <summary>Output files</summary>
 
-- `reference/`
+- `references/`
   - `lrkallisto/`
     - `kallisto.idx` : The k=63 kallisto index.
     - `*.t2g.tsv` : The transcript-to-gene mapping.
