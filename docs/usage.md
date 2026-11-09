@@ -82,7 +82,7 @@ CONTROL_REP4,AEG588A4_S3.fastq.gz,9000,cdna
 The typical command for running the pipeline on a 10X Multiome samplesheet (cDNA + DNA) is as follows:
 
 ```bash
-nextflow run IntGenomicsLab/lrsinglecell -r v1.0.1 \
+nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 \
   --input ./samplesheet.csv \
   --outdir ./results \
   --genome_fasta /path/to/genome.fa \
