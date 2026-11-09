@@ -49,13 +49,13 @@ The pipeline is built using [Nextflow](https://www.nextflow.io) and the [nf-core
 
 ### Quick test
 
-All you need is Nextflow (≥ 25.10.4) and Docker, Singularity/Apptainer or Conda. The bundled test profiles download a small public dataset (a subsample of one 10X Multiome cell line, chr21 reference) and finish in minutes:
+All you need is Nextflow (≥ 25.10.4) and Docker, Singularity/Apptainer or Conda. The bundled test profiles download small public datasets against a chr21 reference and finish in minutes. `test_mixed` uses a subsample of one 10X Multiome cell line (cDNA + DNA):
 
 ```bash
 nextflow run IntGenomicsLab/lrsinglecell -r v1.0.1 -profile test_mixed,singularity --outdir test_results
 ```
 
-Use `test` for cDNA only, `test_dna` for DNA only, or `test_mixed` for both. Replace `singularity` with `docker`, `apptainer` or `conda` to match your system.
+Use `test` for cDNA only (two 10X 3' v3 samples), `test_dna` for DNA only (the DNA half of the Multiome subsample), or `test_mixed` for both. Replace `singularity` with `docker`, `apptainer` or `conda` to match your system.
 
 ### Samplesheet
 

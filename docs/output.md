@@ -603,9 +603,10 @@ The FastQC plots displayed in the MultiQC report shows _untrimmed_ reads. They m
 
 - `<sample_identifier>/`
   - `cdna/`
-    - `qc/`
-      - `rseqc/`
-        - `*.read_distribution.txt`: This file contains statistics noting the type of reads located within the dataset
+    - `genome/` (and `transcriptome/`)
+      - `qc/`
+        - `rseqc/`
+          - `*.read_distribution.txt`: This file contains statistics noting the type of reads located within the dataset
 
 </details>
 
