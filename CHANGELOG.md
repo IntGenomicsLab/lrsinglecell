@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.1.0dev - [unreleased]
 
+### Fixes
+
+- ([#36](https://github.com/IntGenomicsLab/lrsinglecell/pull/36)) Fixed `--split_amount > 0` failing in `CAT_CAT` with an input file name collision when a sample has more than one FASTQ, or when a FASTQ name contains an extra `.`. `CHOPPER` took the chunk index as the second `.`-separated field of the `SEQKIT_SPLIT2` chunk name, which for `<id>.merged.part_001.fastq.gz` is `merged` for every chunk. It now takes the last `part_NNN` in the name, so an input name that already contains `part_N` also works. Adds the module test `modules/local/chopper/tests/main.nf.test`
+
 ## v1.0.1 - [2026-11-05]
 
 ### Fixes

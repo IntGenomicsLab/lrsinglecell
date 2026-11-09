@@ -1,0 +1,83 @@
+nextflow_process {
+
+    name "Test Process CHOPPER"
+    script "../main.nf"
+    process "CHOPPER"
+    tag "modules"
+    tag "modules_local"
+    tag "chopper"
+
+    // With split_amount > 0, CHOPPER runs on SEQKIT_SPLIT2 chunks named
+    // <input name>.part_NNN.fastq.gz and must name its output after the chunk
+    // index, or CAT_CAT gets a name collision. The input name can contain extra
+    // dots (CAT_FASTQ's <id>.merged.fastq.gz) or its own part_N.
+
+    test("split chunk of a merged fastq") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/S1.merged.part_001.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@r1\\n' + 'ACGT' * 25 + '\\n+\\n' + 'I' * 100 + '\\n'
+                }
+                input[0] = [ [ id:'S1' ], fq ]
+                input[1] = 2
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert file(process.out.reads[0][1]).name == 'S1.part_001.filtered.fastq.gz' }
+            )
+        }
+    }
+
+    test("split chunk of a fastq whose name already contains part_N") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/run.part_2.part_003.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@r1\\n' + 'ACGT' * 25 + '\\n+\\n' + 'I' * 100 + '\\n'
+                }
+                input[0] = [ [ id:'S1' ], fq ]
+                input[1] = 2
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert file(process.out.reads[0][1]).name == 'S1.part_003.filtered.fastq.gz' }
+            )
+        }
+    }
+
+    test("no splitting") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/S1.merged.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@r1\\n' + 'ACGT' * 25 + '\\n+\\n' + 'I' * 100 + '\\n'
+                }
+                input[0] = [ [ id:'S1' ], fq ]
+                input[1] = 0
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert file(process.out.reads[0][1]).name == 'S1.filtered.fastq.gz' }
+            )
+        }
+    }
+}

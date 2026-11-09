@@ -25,7 +25,7 @@ process CHOPPER {
     """
     FILE_PREFIX=${prefix}
     if [ ${split_amount} -gt 0 ]; then
-        IDX=\$(basename ${reads} | grep -oE 'part_[0-9]+')
+        IDX=\$(basename ${reads} | grep -oE 'part_[0-9]+' | tail -n1)
         FILE_PREFIX=\${FILE_PREFIX}.\${IDX}
     fi
 
