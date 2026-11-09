@@ -34,12 +34,12 @@ On an HPC cluster, first check whether your institute has a profile in [nf-core/
 
 ```bash
 nextflow run IntGenomicsLab/lrsinglecell \
-    -r v1.0.1 \
+    -r v1.1.0 \
     -profile test_mixed,singularity \
     --outdir results_test
 ```
 
-- `-r v1.0.1` pins a released version, so you get the same pipeline every time. Always pin a version for real analyses.
+- `-r v1.1.0` pins a released version, so you get the same pipeline every time. Always pin a version for real analyses.
 - `test_mixed` fills in all required parameters (samplesheet, chr21 reference, GTF, `--barcode_format 10X_multiome`, `--quantifier isoquant`) from the public [test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell) repository. `test` (cDNA only) and `test_dna` (DNA only) are also available.
 - The first run downloads the containers, which takes most of the time. On our cluster the whole run takes about 7 minutes.
 
@@ -79,7 +79,7 @@ You need a genome FASTA and (for cDNA) a matching GTF, e.g. from [GENCODE](https
 10X Multiome (cDNA + DNA):
 
 ```bash
-nextflow run IntGenomicsLab/lrsinglecell -r v1.0.1 \
+nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 \
     -profile singularity \
     --input samplesheet.csv \
     --genome_fasta /refs/GRCh38.primary_assembly.genome.fa \
@@ -102,7 +102,7 @@ The settings to change for your data:
 
 To keep the command short and reproducible, put the parameters in a YAML file and pass it with `-params-file params.yml`. Add `-resume` to restart a failed or interrupted run without redoing finished steps. For large PromethION runs, see the resource notes in the [README troubleshooting section](../README.md#troubleshooting).
 
-All parameters are listed with `nextflow run IntGenomicsLab/lrsinglecell -r v1.0.1 --help_full` and documented in the [usage docs](usage.md).
+All parameters are listed with `nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 --help_full` and documented in the [usage docs](usage.md).
 
 ## 5. Find your way around the results
 
