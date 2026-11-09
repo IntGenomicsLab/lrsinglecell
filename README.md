@@ -12,9 +12,12 @@
 
 ## Introduction
 
-**LRSinglecell** (`IntGenomicsLab/lrsinglecell`) is a bioinformatics pipeline for single-cell/nuclei long-read sequencing data from Oxford Nanopore. It processes 10X Genomics cDNA libraries (gene and isoform quantification) and single-cell DNA libraries, either separately or together in one run (e.g. 10X Multiome), from raw FASTQ to deduplicated per-cell BAMs, feature-barcode matrices and QC reports.
+**LRSinglecell** (`IntGenomicsLab/lrsinglecell`) is a bioinformatics pipeline for single-cell/nuclei long-read sequencing data from Oxford Nanopore. It processes 10X Genomics cDNA libraries (gene and isoform quantification) and single-cell DNA libraries, either separately or together in one run (e.g. 10X Multiome), from raw FASTQ to cell-barcode-tagged, deduplicated BAMs, feature-barcode matrices and QC reports.
 
 LRSinglecell is derived from [nf-core/scnanoseq](https://github.com/nf-core/scnanoseq) v1.3.0 and extends it with DNA support, flexiplex demultiplexing, gene-aware UMI deduplication and an lr-kallisto quantifier. See the [CHANGELOG](CHANGELOG.md) for everything that differs from nf-core/scnanoseq.
+
+> [!NOTE]
+> **LRSinglecell replaces our earlier [scdnalong](https://github.com/IntGenomicsLab/scdnalong) pipeline, which is retired and no longer maintained.** Everything scdnalong was meant to do (single-cell long-read DNA) is in LRSinglecell, together with the cDNA arm. LRSinglecell is a separate pipeline and not part of nf-core; it shares code with nf-core/scnanoseq but is developed independently.
 
 The pipeline is built using [Nextflow](https://www.nextflow.io) and the [nf-core](https://nf-co.re) template, with one container per process for reproducibility.
 
@@ -42,23 +45,44 @@ The pipeline is built using [Nextflow](https://www.nextflow.io) and the [nf-core
 ## Usage
 
 > [!NOTE]
-> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/get_started/environment_setup/overview) on how to set-up Nextflow. Make sure to test your setup with `-profile test` (cDNA), `-profile test_dna` (DNA) or `-profile test_mixed` (both) before running the workflow on actual data.
+> If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/get_started/environment_setup/overview) on how to set-up Nextflow. A step-by-step walkthrough from installation to loading the results in R is in the **[tutorial](docs/tutorial.md)**.
 
-First, prepare a samplesheet with your input data that looks as follows:
+### Quick test
+
+All you need is Nextflow (≥ 25.10.4) and Docker, Singularity/Apptainer or Conda. The bundled test profiles download small public datasets against a chr21 reference and finish in minutes. `test_mixed` uses a subsample of one 10X Multiome cell line (cDNA + DNA):
+
+```bash
+nextflow run IntGenomicsLab/lrsinglecell -r v1.0.1 -profile test_mixed,singularity --outdir test_results
+```
+
+Use `test` for cDNA only (two 10X 3' v3 samples), `test_dna` for DNA only (the DNA half of the Multiome subsample), or `test_mixed` for both. Replace `singularity` with `docker`, `apptainer` or `conda` to match your system.
+
+### Samplesheet
+
+Prepare a comma-separated samplesheet with a header row and one row per FASTQ file:
 
 ```csv title="samplesheet.csv"
 sample,fastq,cell_count,type
-CONTROL_REP1,AEG588A1_S1.fastq.gz,5000,cdna
-CONTROL_REP1,AEG588A1_S2.fastq.gz,5000,cdna
-CONTROL_REP1,AEG588A1_DNA.fastq.gz,5000,dna
+CONTROL_REP1,/data/AEG588A1_cDNA_run1.fastq.gz,5000,cdna
+CONTROL_REP1,/data/AEG588A1_cDNA_run2.fastq.gz,5000,cdna
+CONTROL_REP1,/data/AEG588A1_DNA.fastq.gz,5000,dna
 ```
 
-Each row represents a single-end FASTQ file. Rows with the same `sample` and `type` are merged before processing. `cell_count` is the expected number of cells, and `type` (`cdna` or `dna`, default `cdna`) selects the processing arm.
+| Column       | Required | Description                                                                                                                         |
+| ------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `sample`     | yes      | Sample name, no spaces. Rows with the same `sample` and `type` are concatenated before processing (e.g. several runs of a library). |
+| `fastq`      | yes      | Path or URL to a gzipped single-end ONT FASTQ (`.fastq.gz` / `.fq.gz`). The cDNA and DNA libraries are separate files.              |
+| `cell_count` | yes      | Expected number of cells/nuclei (integer > 0). Used by BLAZE as `--expect-cells`; required but unused on DNA rows.                  |
+| `type`       | no       | `cdna` (default) or `dna`; selects the processing arm.                                                                              |
 
-Now, you can run the pipeline using:
+A ready-made example is in [`assets/samplesheet.csv`](assets/samplesheet.csv); the samplesheets used by the test profiles are in [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell/samplesheet).
+
+### Running
+
+cDNA only (e.g. 10X 3' v3):
 
 ```bash
-nextflow run IntGenomicsLab/lrsinglecell \
+nextflow run IntGenomicsLab/lrsinglecell -r v1.0.1 \
    -profile <docker/singularity/.../institute> \
    --input samplesheet.csv \
    --genome_fasta genome.fa \
@@ -68,12 +92,25 @@ nextflow run IntGenomicsLab/lrsinglecell \
    --outdir <OUTDIR>
 ```
 
-`--quantifier` (`isoquant`, `oarfish`, `lrkallisto`, comma-separated) is only required when the samplesheet contains cDNA samples.
+DNA, or DNA + cDNA together (10X Multiome):
+
+```bash
+nextflow run IntGenomicsLab/lrsinglecell -r v1.0.1 \
+   -profile <docker/singularity/.../institute> \
+   --input samplesheet.csv \
+   --genome_fasta genome.fa \
+   --gtf genes.gtf \
+   --barcode_format 10X_multiome \
+   --quantifier isoquant \
+   --outdir <OUTDIR>
+```
+
+`--quantifier` (`isoquant`, `oarfish`, `lrkallisto`, comma-separated) is only required when the samplesheet contains cDNA samples. DNA samples need `--genome_fasta` and a known barcode layout: `--barcode_format 10X_multiome`, or a custom flexiplex pattern given with `--custom_flexiplex_barcode_dna` together with `--dna_whitelist` (see [DNA libraries](docs/usage.md#dna-libraries)).
 
 > [!WARNING]
 > Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/running/run-pipelines#using-parameter-files).
 
-For more details and further functionality, please refer to the [usage documentation](docs/usage.md) and the [parameter schema](nextflow_schema.json).
+For a full walkthrough see the [tutorial](docs/tutorial.md); for more details and further functionality, please refer to the [usage documentation](docs/usage.md) and the [parameter schema](nextflow_schema.json).
 
 ## Pipeline output
 
