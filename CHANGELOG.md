@@ -3,6 +3,20 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.1.0 - [2026-11-09]
+
+### Changes
+
+- The lr-kallisto reference files (`kallisto.idx`, `*.t2g.tsv`, `transcripts.fasta`) are now published to `references/lrkallisto/` instead of `reference/lrkallisto/`, alongside the minimap2 indexes in `references/`. Update any scripts that read the old path
+
+### Documentation
+
+- Added `docs/tutorial.md`, a step-by-step walkthrough from installation to loading the results in Seurat and splitting the DNA BAM per cell, built from a real `test_mixed` run
+- README: added a quick-test command, a samplesheet column table, separate cDNA and Multiome/DNA run examples, and a note that LRSinglecell replaces the retired scdnalong pipeline. The previous example combined DNA rows with `--barcode_format 10X_3v3`, which the pipeline rejects
+- `docs/usage.md`: the example samplesheet listed the same FASTQ file for a `cdna` and a `dna` row, as if one library could be both; the DNA rows now point to separate DNA FASTQs. Added a "DNA libraries" section (multiome preset, bundled whitelists, custom flexiplex pattern) and fixed the typical command to use `10X_multiome`
+- `docs/output.md`: file trees now include the `<sample>/<type>/` level the pipeline publishes to; the IsoQuant outputs are listed as the Matrix Market files actually written; the Seurat QC paths (`qc/seurat_isoquant/`, `qc/seurat_oarfish/`, `lrkallisto/qc/seurat/`) and `*_seurat.rds` objects are documented; removed leftover TODO notes
+- `assets/samplesheet.csv` now shows the `type` column; the `barcode_format` schema description names `--cdna_whitelist`/`--dna_whitelist` instead of the non-existent `--whitelist`
+
 ## v1.0.1 - [2026-11-05]
 
 ### Fixes
