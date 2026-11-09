@@ -1,4 +1,4 @@
-sample,fastq,cell_count
-ERR9958133,/path/to/fastq/files/ERR9958133.fastq.gz,1000
-ERR9958134,/path/to/fastq/files/ERR9958134.fastq.gz,1000
-ERR9958135,/path/to/fastq/files/ERR9958135.fastq.gz,1000
+sample,fastq,cell_count,type
+ERR9958133,/path/to/fastq/files/ERR9958133.fastq.gz,1000,cdna
+ERR9958134,/path/to/fastq/files/ERR9958134.fastq.gz,1000,cdna
+ERR9958135,/path/to/fastq/files/ERR9958135.fastq.gz,1000,cdna

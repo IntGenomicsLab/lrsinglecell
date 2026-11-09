@@ -12,18 +12,18 @@ You will need to create a samplesheet with information about the samples you wou
 
 ### Full samplesheet
 
-The example `samplesheet.csv` below contains a single FASTQ file per biological replicate with sample specific cell counts.
+The example `samplesheet.csv` below describes four 10X Multiome samples, each with one cDNA and one DNA FASTQ file, and sample-specific cell counts. The cDNA and DNA libraries of one sample are separate FASTQ files.
 
 ```csv title="samplesheet.csv"
 sample,fastq,cell_count,type
-CONTROL_REP1,AEG588A1_S1.fastq.gz,5000,cdna
-CONTROL_REP2,AEG588A2_S1.fastq.gz,6000,cdna
-TREATMENT_REP1,AEG588A4_S1.fastq.gz,5500,cdna
-TREATMENT_REP2,AEG588A5_S1.fastq.gz,6000,cdna
-CONTROL_REP1,AEG588A1_S1.fastq.gz,5000,dna
-CONTROL_REP2,AEG588A2_S1.fastq.gz,6000,dna
-TREATMENT_REP1,AEG588A4_S1.fastq.gz,5500,dna
-TREATMENT_REP2,AEG588A5_S1.fastq.gz,6000,dna
+CONTROL_REP1,/data/AEG588A1_cDNA.fastq.gz,5000,cdna
+CONTROL_REP2,/data/AEG588A2_cDNA.fastq.gz,6000,cdna
+TREATMENT_REP1,/data/AEG588A4_cDNA.fastq.gz,5500,cdna
+TREATMENT_REP2,/data/AEG588A5_cDNA.fastq.gz,6000,cdna
+CONTROL_REP1,/data/AEG588A1_DNA.fastq.gz,5000,dna
+CONTROL_REP2,/data/AEG588A2_DNA.fastq.gz,6000,dna
+TREATMENT_REP1,/data/AEG588A4_DNA.fastq.gz,5500,dna
+TREATMENT_REP2,/data/AEG588A5_DNA.fastq.gz,6000,dna
 ```
 
 | Column       | Description                                                                                                                                                                                  |
@@ -35,9 +35,32 @@ TREATMENT_REP2,AEG588A5_S1.fastq.gz,6000,dna
 
 Rows with the same `sample` and `type` must use the same `cell_count`; the run stops with an error otherwise.
 
-Note: DNA samples are only compatible with `flexiplex` demultiplexing. They also need `--genome_fasta` and a known barcode layout: either `--barcode_format 10X_multiome`, or a custom pattern with `--custom_flexiplex_barcode_dna` together with `--dna_whitelist`.
+Note: DNA samples are only compatible with `flexiplex` demultiplexing. They also need `--genome_fasta` and a known barcode layout; see [DNA libraries](#dna-libraries).
 
-An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
+An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline, and the samplesheets used by the test profiles (with real, downloadable FASTQ URLs) are in [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell/samplesheet).
+
+### DNA libraries
+
+DNA rows (`type` = `dna`) are demultiplexed with flexiplex and need a barcode layout plus a matching whitelist. There are two ways to give them:
+
+1. **10X Multiome (ATAC side)**: `--barcode_format 10X_multiome`. The pipeline then uses the bundled ATAC whitelist `assets/whitelist/cellranger_arc_atac.737K-arc-v1.txt.gz` for DNA, and the RNA whitelist `assets/whitelist/cellranger_arc_rna.737K-arc-v1.txt.gz` for any cDNA rows in the same run. The flexiplex pattern used is
+
+   ```text
+   -x ACCGAGATCTACAC -b ???????????????? -x CGCGTCTGTCGTCGGCAGCGTCAGATGTGTATAAGAGACAG -f 8
+   ```
+
+   (end of the P5 adapter, 16 bp cell barcode, then the Nextera read 1 + Tn5 mosaic-end sequence; DNA libraries carry no UMI).
+
+2. **Any other barcoding chemistry**: give your own flexiplex pattern with `--custom_flexiplex_barcode_dna` and a plain-text or gzipped whitelist (one barcode per line) with `--dna_whitelist`. For example:
+
+   ```bash
+   --custom_flexiplex_barcode_dna "-x ACCGAGATCTACAC -b ???????????????? -x CGCGTCTGTCGTCGGCAGCGTCAGATGTGTATAAGAGACAG -f 8" \
+   --dna_whitelist /path/to/barcodes.txt.gz
+   ```
+
+   See the [flexiplex documentation](https://davidsongroup.github.io/flexiplex/) for the pattern syntax.
+
+The pipeline checks this at start-up: a samplesheet with DNA rows but no known layout, or a custom pattern without `--dna_whitelist`, stops with an error before any job is submitted. DNA-only runs do not need `--gtf` or `--quantifier`.
 
 ### Multiple runs of the same sample
 
@@ -56,10 +79,10 @@ CONTROL_REP4,AEG588A4_S3.fastq.gz,9000,cdna
 
 ## Running the pipeline
 
-The typical command for running the pipeline is as follows:
+The typical command for running the pipeline on a 10X Multiome samplesheet (cDNA + DNA) is as follows:
 
 ```bash
-nextflow run IntGenomicsLab/lrsinglecell \
+nextflow run IntGenomicsLab/lrsinglecell -r v1.0.1 \
   --input ./samplesheet.csv \
   --outdir ./results \
   --genome_fasta /path/to/genome.fa \
@@ -68,9 +91,11 @@ nextflow run IntGenomicsLab/lrsinglecell \
   --quantifier "isoquant,oarfish" \
   --demux_tool_cdna flexiplex \
   --demux_tool_dna flexiplex \
-  --barcode_format 10X_3v3 \
+  --barcode_format 10X_multiome \
   -profile <docker/singularity/institute>
 ```
+
+For a cDNA-only run, set `--barcode_format` to the 10X chemistry of the library (`10X_3v3`, `10X_3v4`, `10X_5v2` or `10X_5v3`); this also selects the matching bundled cDNA whitelist, which you can override with `--cdna_whitelist`.
 
 Please note that while the above command specifies both transcriptome and genome fasta files, only one is needed for the pipeline and is dependent on which quantifier you wish to use. Isoquant requires a genome fasta, while oarfish requires a transcript fasta. Furthermore, if you have any DNA samples, the `genome_fasta` is required. `--gtf` is required whenever the samplesheet contains `cdna` rows, and can be omitted for a DNA-only run.
 Additionally, for the `quantifier` parameter in the above command, we've listed the quantifiers as a comma-delimited string. It is possible to only use one quantifier, and can be accomplished by just providing the name of the quantifying tool you wish to run as a single value, i.e. providing `oarfish` if you only wish to run `oarfish`.
