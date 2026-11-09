@@ -47,7 +47,7 @@
                     "samtools": "1.22.1"
                 },
                 "Workflow": {
-                    "IntGenomicsLab/lrsinglecell": "v1.1.0"
+                    "IntGenomicsLab/lrsinglecell": "v1.2.0dev"
                 }
             },
             [
