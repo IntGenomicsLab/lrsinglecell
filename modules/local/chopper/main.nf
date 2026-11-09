@@ -41,7 +41,13 @@ process CHOPPER {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}.filtered.fastq.gz
+    FILE_PREFIX=${prefix}
+    if [ ${split_amount} -gt 0 ]; then
+        IDX=\$(basename ${reads} | grep -oE 'part_[0-9]+' | tail -n1)
+        FILE_PREFIX=\${FILE_PREFIX}.\${IDX}
+    fi
+
+    echo '' | gzip > \${FILE_PREFIX}.filtered.fastq.gz
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

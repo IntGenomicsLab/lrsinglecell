@@ -58,6 +58,31 @@ nextflow_process {
         }
     }
 
+    test("split chunk of a merged fastq - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/S1.merged.part_001.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@r1\\n' + 'ACGT' * 25 + '\\n+\\n' + 'I' * 100 + '\\n'
+                }
+                input[0] = [ [ id:'S1' ], fq ]
+                input[1] = 2
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert file(process.out.reads[0][1]).name == 'S1.part_001.filtered.fastq.gz' }
+            )
+        }
+    }
+
     test("no splitting") {
 
         when {
