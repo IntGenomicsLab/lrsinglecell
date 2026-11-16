@@ -1,0 +1,90 @@
+nextflow_pipeline {
+
+    name "Test pipeline with mixed cDNA and DNA (multiome) input"
+    script "../main.nf"
+    tag "pipeline"
+    profile "test_mixed"
+
+    // One sample with a cdna and a dna row in the same run, so both arms run
+    // side by side and their per-type outputs must not collide.
+
+    test("-profile test_mixed") {
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            // stable_name: All files + folders in ${params.outdir}/ with a stable name
+            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
+            // stable_path: All files in ${params.outdir}/ with stable content
+            def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+
+            def sample = 'RPMI8402'
+            // The Matrix Market size line, the first line that is not a comment
+            def mtxSize = { File f ->
+                def line = f.withReader { reader -> reader.readLines().find { l -> !l.startsWith('%') } }
+                line.tokenize()*.toLong()
+            }
+            // Two-column metric/value tsv as a map
+            def metrics = { f -> f.readLines().drop(1)*.tokenize('\t').findAll { r -> r.size() == 2 }.collectEntries() }
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+
+            assertAll(
+                { assert workflow.success },
+                // cDNA arm: IsoQuant matrices for the called cells, non-empty, one column
+                // per barcode and no '-' barcode
+                { def barcode_lists = []
+                  new File("$outputDir/${sample}/cdna/genome").eachFileRecurse(groovy.io.FileType.FILES) { f ->
+                      if (f.path =~ '/genome/isoquant(_all_droplets)?/' && f.name.endsWith('counts.barcodes.tsv')) {
+                          barcode_lists << f
+                      }
+                  }
+                  assert barcode_lists.size() == 4
+                  barcode_lists.each { f ->
+                      def barcodes = f.readLines()
+                      assert !barcodes.contains('-') : "${f.name} has a '-' barcode"
+                      def mtx = new File(f.path.replace('.barcodes.tsv', '.matrix.mtx'))
+                      def (n_rows, n_cols, n_entries) = mtxSize(mtx)
+                      assert n_entries > 0 : "${mtx.name} has no entries"
+                      assert n_cols == barcodes.size() : "${mtx.name} does not have one column per barcode"
+                  }
+                },
+                { ['gene', 'transcript'].each { feature ->
+                    assert file("$outputDir/${sample}/cdna/genome/qc/seurat_isoquant/${feature}").exists()
+                } },
+                // cDNA umi_tools dedup summary
+                { def summary = file("$outputDir/${sample}/cdna/genome/qc/umitools/dedup/${sample}.cdna.genome.umi_dedup_summary.tsv")
+                  def (header, row) = summary.readLines()*.tokenize('\t')
+                  def rec = [header, row].transpose().collectEntries()
+                  assert rec.input_reads.toLong() > 0
+                  assert rec.duplication_rate.toDouble() > 0
+                },
+                // DNA arm: the duplicate-marked bam and its summary, under the dna type
+                { assert file("$outputDir/${sample}/dna/bam/dedup/${sample}.bam").size() > 0 },
+                { assert file("$outputDir/${sample}/dna/bam/dedup/${sample}.bam.bai").exists() },
+                { def m = metrics(file("$outputDir/${sample}/dna/qc/dedup/${sample}.dna.dedup.dedup_summary.tsv"))
+                  assert m.primary_reads.toLong() > 0
+                  assert m.duplicate_rate.toDouble() > 0
+                },
+                // Each arm has its own flexiplex outputs, with its own whitelist
+                { ['cdna', 'dna'].each { type ->
+                    assert file("$outputDir/${sample}/${type}/flexiplex/${sample}.${type}_known_barcodes.txt").size() > 0
+                } },
+                { ['ISOQUANT', 'UMITOOLS_DEDUP_SUMMARY', 'MARK_DUPLICATES_DNA', 'FLEXIPLEX_ASSIGN'].each { proc ->
+                    assert versions.contains("${proc}:") : "${proc} is missing from the versions"
+                } },
+                { assert snapshot(
+                    // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
+                    removeNextflowVersion("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml"),
+                    // All stable path name, with a relative path
+                    stable_name,
+                    // All files with stable contents
+                    stable_path
+                ).match() }
+            )
+        }
+    }
+}

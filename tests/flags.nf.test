@@ -1,0 +1,318 @@
+nextflow_pipeline {
+
+    name "Test pipeline flags and barcode formats (stub)"
+    script "../main.nf"
+    tag "pipeline"
+    tag "stub"
+    options "-stub"
+
+    // Stub runs check the channel wiring and what each flag publishes or
+    // suppresses. They do not snapshot: each test asserts the paths the flag is
+    // about, and the versions file for which processes ran.
+
+    test("-profile test --skip_cdna_dedup -stub") {
+
+        when {
+            params {
+                outdir          = "$outputDir"
+                skip_cdna_dedup = true
+            }
+        }
+
+        then {
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+            assertAll(
+                { assert workflow.success },
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    // No cDNA dedup is run or published ...
+                    assert !file("$outputDir/${sample}/cdna/genome/bam/dedup").exists()
+                    assert !file("$outputDir/${sample}/cdna/genome/qc/umitools").exists()
+                    assert !file("$outputDir/${sample}/cdna/genome/qc/samtools/dedup").exists()
+                    // ... but IsoQuant still quantifies the tagged bam
+                    assert file("$outputDir/${sample}/cdna/genome/isoquant").exists()
+                } },
+                { ['UMITOOLS_DEDUP_MAIN', 'UMITOOLS_DEDUP_GENE', 'UMITOOLS_DEDUP_SUMMARY', 'TAG_GENES', 'BAMTOOLS_SPLIT'].each { proc ->
+                    assert !versions.contains("${proc}:") : "${proc} ran with --skip_cdna_dedup"
+                } },
+                { assert versions.contains('ISOQUANT:') }
+            )
+        }
+    }
+
+    test("-profile test --dedup_per_gene false --dedup_per_contig false --quantifier isoquant,oarfish -stub") {
+
+        when {
+            params {
+                outdir           = "$outputDir"
+                dedup_per_gene   = false
+                dedup_per_contig = false
+                quantifier       = "isoquant,oarfish"
+            }
+        }
+
+        then {
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+            assertAll(
+                { assert workflow.success },
+                // Positional dedup only: no gene tagging, no gene/position split
+                { ['TAG_GENES', 'SPLIT_GENE_STATUS', 'UMITOOLS_DEDUP_GENE'].each { proc ->
+                    assert !versions.contains("${proc}:") : "${proc} ran with --dedup_per_gene false"
+                } },
+                { ['UMITOOLS_DEDUP_MAIN', 'UMITOOLS_DEDUP_SUMMARY', 'GROUP_TRANSCRIPTS', 'OARFISH'].each { proc ->
+                    assert versions.contains("${proc}:") : "${proc} is missing from the versions"
+                } },
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    assert file("$outputDir/${sample}/cdna/genome/qc/umitools/dedup").exists()
+                    assert file("$outputDir/${sample}/cdna/transcriptome/qc/umitools/dedup").exists()
+                    assert file("$outputDir/${sample}/cdna/transcriptome/oarfish").exists()
+                } }
+            )
+        }
+    }
+
+    test("-profile test --skip_qc -stub") {
+
+        when {
+            params {
+                outdir  = "$outputDir"
+                skip_qc = true
+            }
+        }
+
+        then {
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+            assertAll(
+                { assert workflow.success },
+                { assert !file("$outputDir/batch_qcs").exists() },
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    assert !file("$outputDir/${sample}/cdna/qc").exists()
+                    assert !file("$outputDir/${sample}/cdna/genome/qc/seurat_isoquant").exists()
+                    assert !file("$outputDir/${sample}/cdna/genome/qc/rseqc").exists()
+                    assert file("$outputDir/${sample}/cdna/genome/isoquant").exists()
+                } },
+                { ['MULTIQC', 'FASTQC', 'NANOPLOT', 'SEURAT', 'READ_COUNTS', 'RSEQC_READDISTRIBUTION'].each { proc ->
+                    assert !versions.contains("${proc}:") : "${proc} ran with --skip_qc"
+                } }
+            )
+        }
+    }
+
+    test("-profile test --skip_seurat -stub") {
+
+        when {
+            params {
+                outdir      = "$outputDir"
+                skip_seurat = true
+            }
+        }
+
+        then {
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+            assertAll(
+                { assert workflow.success },
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    assert !file("$outputDir/${sample}/cdna/genome/qc/seurat_isoquant").exists()
+                    assert file("$outputDir/${sample}/cdna/genome/isoquant").exists()
+                } },
+                { assert !versions.contains('SEURAT:') },
+                // The rest of the QC still runs
+                { assert file("$outputDir/batch_qcs/read_counts").exists() }
+            )
+        }
+    }
+
+    test("-profile test --quantifier lrkallisto --skip_lrkallisto_all_droplets --kallisto_dlist false -stub") {
+
+        when {
+            params {
+                outdir                       = "$outputDir"
+                quantifier                   = "lrkallisto"
+                skip_lrkallisto_all_droplets = true
+                kallisto_dlist               = false
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert file("$outputDir/references/lrkallisto/kallisto.idx").exists() },
+                { assert file("$outputDir/references/lrkallisto/transcripts.fasta").exists() },
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    assert file("$outputDir/${sample}/cdna/lrkallisto/gene").exists()
+                    assert file("$outputDir/${sample}/cdna/lrkallisto/transcript").exists()
+                    assert !file("$outputDir/${sample}/cdna/lrkallisto_all_droplets").exists()
+                } }
+            )
+        }
+    }
+
+    test("-profile test --quantifier lrkallisto --lrkallisto_all_min_reads 5 -stub") {
+
+        when {
+            params {
+                outdir                   = "$outputDir"
+                quantifier               = "lrkallisto"
+                lrkallisto_all_min_reads = 5
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    ['lrkallisto', 'lrkallisto_all_droplets'].each { pass ->
+                        assert file("$outputDir/${sample}/cdna/${pass}/gene").exists()
+                        assert file("$outputDir/${sample}/cdna/${pass}/transcript").exists()
+                    }
+                } }
+            )
+        }
+    }
+
+    test("-profile test --skip_save_minimap2_index --quantifier isoquant,oarfish -stub") {
+
+        when {
+            params {
+                outdir                   = "$outputDir"
+                skip_save_minimap2_index = true
+                quantifier               = "isoquant,oarfish"
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                { assert !file("$outputDir/references/genome/minimap_index").exists() },
+                { assert !file("$outputDir/references/transcriptome/minimap_index").exists() },
+                // The derived transcriptome is still published
+                { assert file("$outputDir/references/transcriptome/transcripts.fasta").exists() },
+                { assert file("$outputDir/ERR9958133/cdna/genome/bam/original").exists() },
+                { assert file("$outputDir/ERR9958133/cdna/transcriptome/bam/original").exists() }
+            )
+        }
+    }
+
+    test("-profile test --quantifier isoquant,oarfish,lrkallisto, no --transcript_fasta -stub") {
+
+        when {
+            params {
+                outdir     = "$outputDir"
+                quantifier = "isoquant,oarfish,lrkallisto"
+            }
+        }
+
+        then {
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+            assertAll(
+                { assert workflow.success },
+                // One gffread transcriptome serves both quantifiers and is published
+                // at both of their reference paths
+                { assert file("$outputDir/references/lrkallisto/transcripts.fasta").exists() },
+                { assert file("$outputDir/references/transcriptome/transcripts.fasta").exists() },
+                { assert (versions =~ /(?m)^GFFREAD:$/).size() == 1 },
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    assert file("$outputDir/${sample}/cdna/transcriptome/oarfish").exists()
+                    assert file("$outputDir/${sample}/cdna/lrkallisto/gene").exists()
+                    assert file("$outputDir/${sample}/cdna/genome/isoquant").exists()
+                } }
+            )
+        }
+    }
+
+    test("-profile test --quantifier isoquant,oarfish --transcript_fasta -stub") {
+
+        when {
+            params {
+                outdir           = "$outputDir"
+                quantifier       = "isoquant,oarfish"
+                // Stub run: the transcript fasta's contents are never read, so the
+                // chr21 genome fasta stands in for a transcriptome here.
+                transcript_fasta = "https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/reference/chr21.fa"
+            }
+        }
+
+        then {
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+            assertAll(
+                { assert workflow.success },
+                // A given transcriptome is used as is: nothing is extracted or published
+                { assert !versions.contains('GFFREAD:') },
+                { assert !file("$outputDir/references/transcriptome/transcripts.fasta").exists() },
+                { assert file("$outputDir/references/transcriptome/minimap_index/chr21.mmi").exists() }
+            )
+        }
+    }
+
+    test("-profile test --demux_tool_cdna blaze -stub") {
+
+        when {
+            params {
+                outdir          = "$outputDir"
+                demux_tool_cdna = "blaze"
+            }
+        }
+
+        then {
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+            assertAll(
+                { assert workflow.success },
+                { ['BLAZE', 'PREEXTRACT_FASTQ', 'CORRECT_BARCODES', 'TAG_BARCODES'].each { proc ->
+                    assert versions.contains("${proc}:") : "${proc} is missing from the versions"
+                } },
+                { assert !versions.contains('FLEXIPLEX_ASSIGN:') },
+                { ['ERR9958133', 'ERR9958134'].each { sample ->
+                    assert file("$outputDir/${sample}/cdna/blaze").exists()
+                    assert !file("$outputDir/${sample}/cdna/flexiplex").exists()
+                    assert file("$outputDir/${sample}/cdna/genome/isoquant").exists()
+                    assert file("$outputDir/${sample}/cdna/genome/qc/umitools/dedup").exists()
+                } }
+            )
+        }
+    }
+
+    // Each cDNA barcode preset with flexiplex, through both a genome quantifier
+    // and lr-kallisto, whose barcode/umi geometry is looked up per preset
+    ['10X_3v4', '10X_5v2', '10X_5v3'].each { format ->
+
+        test("-profile test --barcode_format ${format} --quantifier isoquant,lrkallisto -stub") {
+
+            when {
+                params {
+                    outdir         = "$outputDir"
+                    barcode_format = format
+                    quantifier     = "isoquant,lrkallisto"
+                }
+            }
+
+            then {
+                assertAll(
+                    { assert workflow.success },
+                    { ['ERR9958133', 'ERR9958134'].each { sample ->
+                        assert file("$outputDir/${sample}/cdna/flexiplex/${sample}.cdna_known_barcodes.txt").exists()
+                        assert file("$outputDir/${sample}/cdna/genome/isoquant").exists()
+                        assert file("$outputDir/${sample}/cdna/lrkallisto/gene").exists()
+                    } }
+                )
+            }
+        }
+    }
+
+    test("oarfish without transcript_fasta or genome_fasta is rejected") {
+
+        when {
+            params {
+                outdir       = "$outputDir"
+                quantifier   = "oarfish"
+                genome_fasta = null
+            }
+        }
+
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("In order to quantify with oarfish, either a transcript fasta (--transcript_fasta) or a genome fasta (--genome_fasta) to extract the transcripts from must be provided") }
+            )
+        }
+    }
+}
