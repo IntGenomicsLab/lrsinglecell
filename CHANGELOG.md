@@ -5,6 +5,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.2.0dev - [unreleased]
 
+### Documentation
+
+- Erratum for the v1.0.0 entry below: the whitelist parameters are `--dna_whitelist` and `--cdna_whitelist`, not `--whitelist_dna` and `--whitelist_cdna`. The entry is left as it was published
+- ([#27](https://github.com/IntGenomicsLab/lrsinglecell/issues/27)) Rewrote `docs/output.md` against the published paths (`conf/modules.config` and the `tests/*.snap` path lists): MultiQC is in `batch_qcs/multiqc/{final_qc,raw_qc}`, NanoComp in `batch_qcs/nanocomp/{fastq,bam}/...` and off by default for FASTQ too; exact file names for NanoPlot, flexiplex, BLAZE, samtools, oarfish and the lr-kallisto `quant/`, `bus/` and `counts_unfiltered/` files; DNA `qc/samtools/corrected/`, `gene_tag_summary.tsv` and the real `pipeline_info/` contents are documented; the Picard and UCSC sections and the duplicated `--skip_dedup` paragraph are gone; every section says whether it is cDNA/DNA-only and flexiplex/BLAZE-only
+- ([#28](https://github.com/IntGenomicsLab/lrsinglecell/issues/28)) `docs/usage.md`: fixed the lr-kallisto `KALLISTO_BUS` selector (`.*:LRKALLISTO_COUNT(_ALL)?:KALLISTO_BUS`); described the retries (`maxRetries = 2`); listed every test profile; a `--barcode_format` table (whitelist, flexiplex pattern, barcode/UMI lengths, demultiplexers); sections on trimming, strandedness, deduplication (`--skip_dedup` vs `--skip_cdna_dedup`, `--dna_exact_only_contigs`) and analysis options; a valid `--quantifier` example and `-r <version>`; nf-core-only text replaced
+- One troubleshooting section, in `docs/usage.md`, rewritten for the flexiplex default (BLAZE notes in their own subsection); the README links to it. `--split_amount` counts reads, not lines (also in the schema), and the BLAZE barcode script is `bin/pre_extract_barcodes.py`
+- README: a "Citing LRSinglecell" section with placeholders for the manuscript and the Zenodo DOI
+- `CITATIONS.md`: added BamTools, csvtk, gawk, HTSlib, p7zip, RSeQC, SeqKit and pysam; removed Picard, which no module runs any more
+- `ro-crate-metadata.json`: GitHub URL and publisher instead of nf-co.re, real keywords and `dateCreated`. `docs/CONTRIBUTING.md`: `nf-test test --tag pipeline`, with `+singularity` as well as `+docker`. `assets/samplesheet.csv` has `dna` rows. Schema help text corrected for `transcript_fasta`, `genome_fasta`, `stranded`, `retain_introns` and others
+
 ## v1.1.0 - [2026-11-09]
 
 ### Changes
