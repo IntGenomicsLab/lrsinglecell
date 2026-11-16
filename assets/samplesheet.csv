@@ -1,4 +1,6 @@
 sample,fastq,cell_count,type
-ERR9958133,/path/to/fastq/files/ERR9958133.fastq.gz,1000,cdna
-ERR9958134,/path/to/fastq/files/ERR9958134.fastq.gz,1000,cdna
-ERR9958135,/path/to/fastq/files/ERR9958135.fastq.gz,1000,cdna
+RPMI8402,/path/to/fastq/files/RPMI8402_cDNA.fastq.gz,1000,cdna
+RPMI8402,/path/to/fastq/files/RPMI8402_DNA.fastq.gz,1000,dna
+SAMPLE2,/path/to/fastq/files/SAMPLE2_cDNA_run1.fastq.gz,5000,cdna
+SAMPLE2,/path/to/fastq/files/SAMPLE2_cDNA_run2.fastq.gz,5000,cdna
+SAMPLE2,/path/to/fastq/files/SAMPLE2_DNA.fastq.gz,5000,dna

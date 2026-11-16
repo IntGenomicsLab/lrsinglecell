@@ -75,7 +75,7 @@ CONTROL_REP1,/data/AEG588A1_DNA.fastq.gz,5000,dna
 | `cell_count` | yes      | Expected number of cells/nuclei (integer > 0). Used by BLAZE as `--expect-cells`; required but unused on DNA rows.                  |
 | `type`       | no       | `cdna` (default) or `dna`; selects the processing arm.                                                                              |
 
-A ready-made example is in [`assets/samplesheet.csv`](assets/samplesheet.csv); the samplesheets used by the test profiles are in [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell/samplesheet).
+A ready-made example (two 10X Multiome samples, one with its cDNA library sequenced twice) is in [`assets/samplesheet.csv`](assets/samplesheet.csv); the samplesheets used by the test profiles are in [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell/samplesheet).
 
 ### Running
 
