@@ -5,6 +5,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.2.0dev - [unreleased]
 
+### Changes
+
+- ([#25](https://github.com/IntGenomicsLab/lrsinglecell/issues/25)) Right-sized single-threaded steps: `UMITOOLS_DEDUP` now gets 1 CPU (its `process_medium` memory is kept), `TAG_BARCODES` and `FLEXIPLEX_FILTER` move to `process_low` (`TAG_BARCODES` keeps 36 GB per attempt, as it holds every read's barcode and UMI in memory), and `TAG_GENES`, whose threads only (de)compress the BAM, moves from `process_high` to `process_medium`
+- ([#25](https://github.com/IntGenomicsLab/lrsinglecell/issues/25)) `maxRetries` is now 2, so a task killed for memory or time is retried twice, at 2× and 3× its first resources, instead of once
+- ([#28](https://github.com/IntGenomicsLab/lrsinglecell/issues/28)) Removed `conf/modules.config` selectors that matched no process (`BAM_SORT_STATS_SAMTOOLS_CORRECTED`, `BAM_SORT_STATS_SAMTOOLS_MERGED`, `SAMTOOLS_VIEW_SPLIT`, `GUNZIP_FASTQ`, `GUNZIP_WHITELIST`, `CUSTOM_DUMPSOFTWAREVERSIONS`), a duplicated `ALIGN_DEDUPLICATE_DNA:NANOCOMP` block and an empty `process {}`. Published outputs are unchanged
+- ([#20](https://github.com/IntGenomicsLab/lrsinglecell/issues/20)) Removed the unused `MERGE_MTX` module and `bin/mtx_merge.py`
+
+### Fixes
+
+- ([#29](https://github.com/IntGenomicsLab/lrsinglecell/issues/29)) The reads are now paired with their barcode files by a keyed `join` on the sample id, with `failOnMismatch`, in `DEMULTIPLEX_FLEXIPLEX` (reads with the flexiplex known-barcode list) and `LRKALLISTO_COUNT` (reads with the barcode counts, and the BUS output with the known-barcode list). The previous `combine` + `filter` built every sample × sample pair and silently dropped a sample whose barcode file was missing; such a run now fails instead. Outputs are unchanged
+
 ## v1.1.0 - [2026-11-09]
 
 ### Changes
