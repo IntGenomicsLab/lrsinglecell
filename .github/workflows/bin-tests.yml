@@ -1,16 +1,17 @@
 name: Unit-test bin scripts
 # nf-test only collects *.nf.test, so the stdlib unittest suites under tests/bin run
 # here, in the container of the module that calls the script.
+# Each tests/bin/test_*.py needs a job below.
 on:
   pull_request:
     paths:
-      - "bin/mark_dna_duplicates.py"
-      - "bin/group_transcripts.sh"
-      - "bin/split_bam.py"
-      - "bin/tag_genes.py"
-      - "bin/correct_barcodes.py"
-      - "bin/pre_extract_barcodes.py"
-      - "bin/drop_barcode.py"
+      - "bin/**"
+      - "tests/bin/**"
+      - ".github/workflows/bin-tests.yml"
+  push:
+    branches: [dev]
+    paths:
+      - "bin/**"
       - "tests/bin/**"
       - ".github/workflows/bin-tests.yml"
   workflow_dispatch: null
@@ -27,6 +28,26 @@ env:
   UBUNTU_IMAGE: quay.io/nf-core/ubuntu:20.04
 
 jobs:
+  # Fails when a suite under tests/bin has no job in this workflow, so it cannot be
+  # added and then silently never run.
+  every-suite-has-a-job:
+    name: every tests/bin suite has a job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pipeline code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Check each tests/bin/test_*.py is run below
+        run: |
+          missing=0
+          for suite in tests/bin/test_*.py; do
+            if ! grep -qF "$suite" .github/workflows/bin-tests.yml; then
+              echo "::error file=$suite::$suite has no job in .github/workflows/bin-tests.yml"
+              missing=1
+            fi
+          done
+          exit $missing
+
   mark-dna-duplicates:
     name: mark_dna_duplicates.py
     runs-on: ubuntu-latest

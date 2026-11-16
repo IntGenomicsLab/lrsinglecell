@@ -27,6 +27,11 @@ runs:
     - name: Get number of shards
       id: shards
       shell: bash
+      env:
+        # Only pull requests test what changed (HEAD^ of the PR merge commit is the
+        # base branch tip); push, schedule, release and dispatch runs test everything.
+        # Keep this in sync with .github/actions/nf-test/action.yml.
+        CHANGED_SINCE: ${{ github.event_name == 'pull_request' && '--changed-since HEAD^' || '' }}
       run: |
         # Run nf-test with dynamic parameter
         nftest_output=$(nf-test test \
@@ -34,7 +39,7 @@ runs:
           $(if [ -n "${{ inputs.tags }}" ]; then echo "--tag ${{ inputs.tags }}"; fi) \
           --dry-run \
           --ci \
-          --changed-since HEAD^) || {
+          $CHANGED_SINCE) || {
             echo "nf-test command failed with exit code $?"
             echo "Full output: $nftest_output"
             exit 1

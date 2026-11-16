@@ -1,4 +1,7 @@
 name: Run nf-test
+# Pull requests run only the tests affected by the change (see the get-shards and
+# nf-test actions). Every other event runs the full suite: each merge to dev, the
+# weekly schedule, releases and manual dispatch.
 on:
   pull_request:
     paths-ignore:
@@ -7,11 +10,26 @@ on:
       - "**/*.md"
       - "**/*.png"
       - "**/*.svg"
+  push:
+    branches: [dev]
+    # Same list as pull_request: a docs-only merge skips the run, as its PR did.
+    paths-ignore:
+      - "docs/**"
+      - "**/meta.yml"
+      - "**/*.md"
+      - "**/*.png"
+      - "**/*.svg"
+  schedule:
+    # Mondays 03:00 UTC: catches drift in containers and Nextflow edge releases.
+    # GitHub runs scheduled workflows from the default branch (main), so this
+    # trigger takes effect once it reaches main; the jobs then check out dev.
+    - cron: "0 3 * * 1"
   release:
     types: [published]
   workflow_dispatch: null
 
-# Cancel if a newer run is started
+# Cancel if a newer run is started. Pushes to dev share one group, so a newer merge
+# cancels the full run of the previous one.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -42,6 +60,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          # scheduled runs start on the default branch (main); test dev instead
+          ref: ${{ github.event_name == 'schedule' && 'dev' || '' }}
 
       - name: get number of shards
         id: set-shards
@@ -70,11 +90,13 @@ jobs:
         # (e.g. plotly>=6 breaks NanoPlot 1.46.1), so it fails on drift
         # unrelated to the pipeline.
         profile: [docker, singularity]
-        isMain:
-          - ${{ github.base_ref == 'master' || github.base_ref == 'main' }}
-        # Exclude singularity on dev
+        # Singularity/apptainer is the cluster runtime, but doubles the matrix, so
+        # PRs to dev run docker only. PRs to main and every non-PR run (push to dev,
+        # schedule, release, dispatch) also run singularity.
+        fullMatrix:
+          - ${{ github.event_name != 'pull_request' || github.base_ref == 'master' || github.base_ref == 'main' }}
         exclude:
-          - isMain: false
+          - fullMatrix: false
             profile: "singularity"
         NXF_VER:
           - "25.10.4"
@@ -87,6 +109,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          # scheduled runs start on the default branch (main); test dev instead
+          ref: ${{ github.event_name == 'schedule' && 'dev' || '' }}
 
       - name: Run nf-test
         id: run_nf_test
@@ -132,7 +156,9 @@ jobs:
           path: pr-comment-fragment/
 
   confirm-pass:
-    needs: [nf-test]
+    # nf-test-changes is listed too: if it fails, nf-test is skipped, and a skipped
+    # nf-test on its own would let this job pass.
+    needs: [nf-test-changes, nf-test]
     if: always()
     runs-on: # use GitHub runners
       - "ubuntu-latest"
