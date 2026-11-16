@@ -13,6 +13,7 @@ process TAG_GENES {
     output:
     tuple val(meta), path("*.gene_tagged.bam"), emit: gene_tagged_bam
     tuple val(meta), path("*.gene_assignment.tsv"), emit: summary
+    tuple val(meta), path("*.gene_tag_summary.tsv"), emit: tag_summary
     path "versions.yml"                       , emit: versions_tag_genes, topic: versions
 
     when:
@@ -27,6 +28,8 @@ process TAG_GENES {
         -g ${gtf} \\
         -o ${prefix}.gene_tagged.bam \\
         -s ${prefix}.gene_assignment.tsv \\
+        -q ${prefix}.gene_tag_summary.tsv \\
+        -n ${meta.id} \\
         -t ${task.cpus}
 
     cat <<-END_VERSIONS > versions.yml
@@ -40,6 +43,7 @@ process TAG_GENES {
     """
     touch ${prefix}.gene_tagged.bam
     touch ${prefix}.gene_assignment.tsv
+    touch ${prefix}.gene_tag_summary.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

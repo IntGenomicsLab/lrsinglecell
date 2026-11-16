@@ -5,6 +5,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.2.0dev - [unreleased]
 
+### Changes
+
+- ([#26](https://github.com/IntGenomicsLab/lrsinglecell/issues/26)) Completed the MultiQC reports:
+  - DNA: the samtools `stats` and `idxstats` of the DNA BAM now reach the final report, and the `mark_dna_duplicates.py` summary (`*.dedup_summary.tsv`, one `metric`/`value` row per line) is collected into a "DNA Duplicate Marking" table under the deduplication section, with the duplicate rate per sample. The nuclear duplicate rate, which leaves out chrM/MT and is the rate to read when the mitochondrial fraction is high, is also a general statistics column ("DNA nuclear dups"). Rows are named `<sample>.dna`, like the samtools rows of the same BAM
+  - `tag_genes.py` writes the share of alignments that overlap no gene (`GS=none`) to `<sample>/cdna/genome/qc/gene_assignment/<sample>.cdna.genome.gene_tag_summary.tsv` (columns `sample`, `reads`, `gs_none_reads`, `gs_none_fraction`; `reads` counts every alignment record, as the `GS=none fraction` in its log does), next to `*.gene_assignment.tsv`. Before it was only printed to the task log. MultiQC shows it as a general statistics column, "% reads without gene": a jump between runs suggests a GTF that does not match the reference. Written whenever genome alignments are deduplicated per gene (`--dedup_per_gene`, the default)
+  - The lr-kallisto Seurat stats (`lrkallisto_gene.tsv`, `lrkallisto_transcript.tsv`) now have their own sections next to the IsoQuant and oarfish ones; before MultiQC did not pick them up at all. Their `Feature_Type` column now reads `gene`/`transcript` instead of `./`
+  - The read counts table is added to the final report once, also for DNA-only runs, instead of once per quantifier
+  - The raw-read MultiQC report (`batch_qcs/multiqc/raw_qc/`) now runs when any of NanoPlot, FastQC or the fastq NanoComp does. It required all three, and FastQC and NanoComp are off by default, so it never ran. With the defaults it now reports the pre-trim NanoPlot stats. The pre-trim FastQC files are no longer added twice
+  - The methods description is now in the final report. The template was added to MultiQC as a raw file, not rendered, so it never showed. Its text now names the tools of the steps the run performed, from its parameters and the sample types in the samplesheet (pre-processing, demultiplexing with flexiplex or BLAZE, alignment, deduplication, the quantifiers chosen, QC), with a reference list taken from `CITATIONS.md`
+  - The report comment links to the release that ran (`releases/tag/v<version>`, or `tree/dev` for a development version). It is built at run time from the manifest and passed to MultiQC as an extra config, because the repository's tags carry a `v` prefix that `nf-core pipelines bump-version` does not write. `assets/multiqc_config.yml` keeps a version-free fallback
+  - A config given with `--multiqc_config` is now passed to MultiQC as a config (after the pipeline's own), rather than staged among the input files, where MultiQC ignored it
+
 ## v1.1.0 - [2026-11-09]
 
 ### Changes

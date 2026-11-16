@@ -82,6 +82,7 @@ workflow DEDUP_UMIS {
         }
 
         ch_dedup_input_bam = ch_bam
+        ch_gene_tag_summary = channel.empty()
 
         if (val_per_gene) {
             //
@@ -96,6 +97,7 @@ workflow DEDUP_UMIS {
                     .combine(ch_gtf.map{ meta, gtf -> gtf }.first())
             )
             ch_dedup_input_bam = TAG_GENES.out.gene_tagged_bam
+            ch_gene_tag_summary = TAG_GENES.out.tag_summary
         }
 
         if (val_split_bam) {
@@ -315,4 +317,5 @@ workflow DEDUP_UMIS {
         dedup_bai      = ch_dedup_bai                    // channel: [ val(meta), path(bai) ]
         dedup_flagstat = BAM_STATS_SAMTOOLS.out.flagstat // channel: [ val(meta), path(flagstat) ]
         dedup_summary  = ch_dedup_summary                // channel: [ val(meta), path(summary_tsv) ], umitools only
+        gene_tag_summary = ch_gene_tag_summary           // channel: [ val(meta), path(gene_tag_summary_tsv) ], per-gene dedup only
 }

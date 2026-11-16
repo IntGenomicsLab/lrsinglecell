@@ -39,6 +39,7 @@
                 "ERR9958133/cdna/genome/qc",
                 "ERR9958133/cdna/genome/qc/gene_assignment",
                 "ERR9958133/cdna/genome/qc/gene_assignment/ERR9958133.cdna.genome.gene_assignment.tsv",
+                "ERR9958133/cdna/genome/qc/gene_assignment/ERR9958133.cdna.genome.gene_tag_summary.tsv",
                 "ERR9958133/cdna/genome/qc/rseqc",
                 "ERR9958133/cdna/genome/qc/rseqc/ERR9958133.read_distribution.txt",
                 "ERR9958133/cdna/genome/qc/samtools",
@@ -172,6 +173,7 @@
                 "ERR9958134/cdna/genome/qc",
                 "ERR9958134/cdna/genome/qc/gene_assignment",
                 "ERR9958134/cdna/genome/qc/gene_assignment/ERR9958134.cdna.genome.gene_assignment.tsv",
+                "ERR9958134/cdna/genome/qc/gene_assignment/ERR9958134.cdna.genome.gene_tag_summary.tsv",
                 "ERR9958134/cdna/genome/qc/rseqc",
                 "ERR9958134/cdna/genome/qc/rseqc/ERR9958134.read_distribution.txt",
                 "ERR9958134/cdna/genome/qc/samtools",
@@ -276,6 +278,12 @@
                 "batch_qcs/multiqc/final_qc/multiqc_plots",
                 "batch_qcs/multiqc/final_qc/multiqc_plots/.stub",
                 "batch_qcs/multiqc/final_qc/multiqc_report.html",
+                "batch_qcs/multiqc/raw_qc",
+                "batch_qcs/multiqc/raw_qc/multiqc_data",
+                "batch_qcs/multiqc/raw_qc/multiqc_data/.stub",
+                "batch_qcs/multiqc/raw_qc/multiqc_plots",
+                "batch_qcs/multiqc/raw_qc/multiqc_plots/.stub",
+                "batch_qcs/multiqc/raw_qc/multiqc_report.html",
                 "batch_qcs/read_counts",
                 "batch_qcs/read_counts/read_counts.csv",
                 "pipeline_info",
@@ -289,7 +297,7 @@
                 "references/transcriptome/minimap_index/chr21.mmi"
             ]
         ],
-        "timestamp": "2026-11-05T11:57:00.116194245",
+        "timestamp": "2026-11-16T15:40:03.994122251",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"
@@ -335,6 +343,7 @@
                 "ERR9958133/cdna/genome/qc",
                 "ERR9958133/cdna/genome/qc/gene_assignment",
                 "ERR9958133/cdna/genome/qc/gene_assignment/ERR9958133.cdna.genome.gene_assignment.tsv",
+                "ERR9958133/cdna/genome/qc/gene_assignment/ERR9958133.cdna.genome.gene_tag_summary.tsv",
                 "ERR9958133/cdna/genome/qc/rseqc",
                 "ERR9958133/cdna/genome/qc/rseqc/ERR9958133.read_distribution.txt",
                 "ERR9958133/cdna/genome/qc/samtools",
@@ -421,6 +430,7 @@
                 "ERR9958134/cdna/genome/qc",
                 "ERR9958134/cdna/genome/qc/gene_assignment",
                 "ERR9958134/cdna/genome/qc/gene_assignment/ERR9958134.cdna.genome.gene_assignment.tsv",
+                "ERR9958134/cdna/genome/qc/gene_assignment/ERR9958134.cdna.genome.gene_tag_summary.tsv",
                 "ERR9958134/cdna/genome/qc/rseqc",
                 "ERR9958134/cdna/genome/qc/rseqc/ERR9958134.read_distribution.txt",
                 "ERR9958134/cdna/genome/qc/samtools",
@@ -478,6 +488,12 @@
                 "batch_qcs/multiqc/final_qc/multiqc_plots",
                 "batch_qcs/multiqc/final_qc/multiqc_plots/.stub",
                 "batch_qcs/multiqc/final_qc/multiqc_report.html",
+                "batch_qcs/multiqc/raw_qc",
+                "batch_qcs/multiqc/raw_qc/multiqc_data",
+                "batch_qcs/multiqc/raw_qc/multiqc_data/.stub",
+                "batch_qcs/multiqc/raw_qc/multiqc_plots",
+                "batch_qcs/multiqc/raw_qc/multiqc_plots/.stub",
+                "batch_qcs/multiqc/raw_qc/multiqc_report.html",
                 "batch_qcs/read_counts",
                 "batch_qcs/read_counts/read_counts.csv",
                 "pipeline_info",
@@ -488,7 +504,7 @@
                 "references/genome/minimap_index/chr21.mmi"
             ]
         ],
-        "timestamp": "2026-11-05T11:56:15.929895167",
+        "timestamp": "2026-11-16T15:39:27.95918017",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"
