@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.2.0dev - [unreleased]
 
+### Documentation
+
+- Replaced the README pipeline diagram (`assets/lrsinglecell_tube_map.{svg,png}`), which was still the nf-core/scnanoseq tube map, with a new one of the current pipeline: the cDNA and DNA arms, flexiplex/BLAZE demultiplexing, gene-aware UMI-tools deduplication and the IsoQuant, oarfish and lr-kallisto quantifiers
+
 ## v1.1.0 - [2026-11-09]
 
 ### Changes
