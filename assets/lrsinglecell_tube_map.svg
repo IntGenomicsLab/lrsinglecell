@@ -6,16 +6,17 @@
 <path d="M 760 330 A 40 40 0 0 0 800 290 L 800 150" fill="none" stroke="#2e8b3a" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 910 330 L 1770 330" fill="none" stroke="#24489c" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 1140 330 A 40 40 0 0 0 1180 290 L 1180 150" fill="none" stroke="#24489c" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 1440 330 A 40 40 0 0 0 1480 290 L 1480 150" fill="none" stroke="#24489c" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 1460 330 A 40 40 0 0 0 1500 290 L 1500 150" fill="none" stroke="#24489c" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 1800 330 A 40 40 0 0 0 1840 290 L 1840 150" fill="none" stroke="#24489c" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 880 330 A 40 40 0 0 1 920 370 L 920 1080 A 40 40 0 0 1 880 1120 L 640 1120" fill="none" stroke="#e07b00" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 920 730 L 1010 730" fill="none" stroke="#e07b00" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 920 560 L 1010 560" fill="none" stroke="#e07b00" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 920 780 L 1010 780" fill="none" stroke="#e07b00" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 1220 330 A 40 40 0 0 1 1260 370 L 1260 1110 A 40 40 0 0 1 1220 1150 L 640 1150" fill="none" stroke="#d6337f" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 1260 800 L 1330 800" fill="none" stroke="#d6337f" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 1260 870 L 1330 870" fill="none" stroke="#d6337f" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 1250 330 A 40 40 0 0 1 1290 370 L 1290 520 A 40 40 0 0 0 1330 560 L 1600 560 A 40 40 0 0 1 1640 600 L 1640 1140 A 40 40 0 0 1 1600 1180 L 640 1180" fill="none" stroke="#13a8d8" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 1640 800 L 1710 800" fill="none" stroke="#13a8d8" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 1640 870 L 1710 870" fill="none" stroke="#13a8d8" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 1770 330 L 2020 330 A 40 40 0 0 1 2060 370 L 2060 1170 A 40 40 0 0 1 2020 1210 L 640 1210" fill="none" stroke="#7b3fa0" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M 2060 800 L 2130 800" fill="none" stroke="#7b3fa0" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 2060 870 L 2130 870" fill="none" stroke="#7b3fa0" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M 640 1165 L 560 1165" fill="none" stroke="#2e8b3a" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
 <g transform="translate(95,330)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">FASTQ</text></g>
 <circle cx="180" cy="330" r="17" fill="#808080" stroke="#000" stroke-width="6"/>
@@ -25,8 +26,8 @@
 <rect x="274" y="145" width="52" height="10" fill="#000"/>
 <g transform="translate(300,95)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">HTML</text></g>
 <text x="330" y="205" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="start">Raw read QC</text>
-<text x="330" y="231" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#2e8b3a" text-anchor="start">NanoPlot &amp; FastQC &amp;</text>
-<text x="330" y="257" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#2e8b3a" text-anchor="start">NanoComp &amp; ToulligQC</text>
+<text x="330" y="231" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#2e8b3a" text-anchor="start">NanoPlot &amp; FastQC* &amp;</text>
+<text x="330" y="257" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#2e8b3a" text-anchor="start">NanoComp* &amp; ToulligQC*</text>
 <circle cx="480" cy="330" r="17" fill="#fff" stroke="#000" stroke-width="5" stroke-dasharray="7 5"/>
 <text x="480" y="380" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">FASTQ splitting</text>
 <text x="480" y="406" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#2e8b3a" text-anchor="middle">seqkit</text>
@@ -39,8 +40,8 @@
 <rect x="774" y="145" width="52" height="10" fill="#000"/>
 <g transform="translate(800,95)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">HTML</text></g>
 <text x="830" y="205" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="start">Post-trim read QC</text>
-<text x="830" y="231" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#2e8b3a" text-anchor="start">NanoPlot &amp; FastQC &amp;</text>
-<text x="830" y="257" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#2e8b3a" text-anchor="start">ToulligQC</text>
+<text x="830" y="231" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#2e8b3a" text-anchor="start">NanoPlot &amp; FastQC* &amp;</text>
+<text x="830" y="257" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#2e8b3a" text-anchor="start">ToulligQC*</text>
 <circle cx="1060" cy="330" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
 <text x="1060" y="380" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">Barcode &amp; UMI</text>
 <text x="1060" y="406" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">demultiplexing</text>
@@ -49,21 +50,23 @@
 <rect x="1154" y="145" width="52" height="10" fill="#000"/>
 <g transform="translate(1180,95)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">HTML</text></g>
 <text x="1210" y="205" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="start">Post-demux QC</text>
-<text x="1210" y="231" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="start">NanoPlot &amp; FastQC</text>
-<text x="1210" y="257" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="start">&amp; read counts</text>
+<text x="1210" y="231" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="start">NanoPlot &amp; FastQC*</text>
+<text x="1210" y="257" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="start">&amp; ToulligQC*</text>
+<text x="1210" y="283" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="start">&amp; read counts</text>
 <circle cx="1400" cy="330" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
 <text x="1400" y="380" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">Genome</text>
 <text x="1400" y="406" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">alignment</text>
 <text x="1400" y="432" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="middle">minimap2</text>
-<circle cx="1480" cy="225" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
-<rect x="1454" y="145" width="52" height="10" fill="#000"/>
-<g transform="translate(1480,95)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">TXT</text></g>
-<text x="1510" y="205" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="start">Alignment QC</text>
-<text x="1510" y="231" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="start">SAMtools &amp; RSeQC &amp;</text>
-<text x="1510" y="257" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="start">NanoComp</text>
-<circle cx="1580" cy="330" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
+<circle cx="1500" cy="225" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
+<rect x="1474" y="145" width="52" height="10" fill="#000"/>
+<g transform="translate(1500,95)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">TXT</text></g>
+<text x="1530" y="205" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="start">Alignment QC</text>
+<text x="1530" y="231" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="start">SAMtools &amp; RSeQC &amp;</text>
+<text x="1530" y="257" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="start">NanoComp*</text>
+<circle cx="1580" cy="330" r="17" fill="#fff" stroke="#000" stroke-width="5" stroke-dasharray="7 5"/>
 <text x="1580" y="380" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">Barcode</text>
 <text x="1580" y="406" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">tagging</text>
+<text x="1580" y="432" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">(BLAZE only)</text>
 <circle cx="1770" cy="330" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
 <text x="1770" y="380" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">Gene tagging &amp;</text>
 <text x="1770" y="406" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">UMI deduplication</text>
@@ -79,45 +82,51 @@
 <circle cx="1540" cy="560" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
 <text x="1540" y="506" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">UMI dedup</text>
 <text x="1540" y="532" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#0b84ab" text-anchor="middle">UMI-tools</text>
-<circle cx="1260" cy="800" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
-<text x="1230" y="793" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Quantification</text>
-<text x="1230" y="819" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#d6337f" text-anchor="end">lr-kallisto</text>
-<rect x="1325" y="774" width="10" height="52" fill="#000"/>
-<g transform="translate(1382,800)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">MTX</text></g>
-<text x="1382" y="875" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">Gene &amp; transcript</text>
-<text x="1382" y="901" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">matrices</text>
-<circle cx="1640" cy="800" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
-<text x="1610" y="793" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Quantification</text>
-<text x="1610" y="819" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#0b84ab" text-anchor="end">oarfish</text>
-<rect x="1705" y="774" width="10" height="52" fill="#000"/>
-<g transform="translate(1762,800)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">MTX</text></g>
-<text x="1762" y="875" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">Transcript</text>
-<text x="1762" y="901" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">matrix</text>
-<circle cx="2060" cy="800" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
-<text x="2030" y="793" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Quantification</text>
-<text x="2030" y="819" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#7b3fa0" text-anchor="end">IsoQuant</text>
-<rect x="2125" y="774" width="10" height="52" fill="#000"/>
-<g transform="translate(2182,800)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">MTX</text></g>
-<text x="2182" y="875" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">Gene &amp; transcript</text>
-<text x="2182" y="901" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">matrices</text>
-<circle cx="920" cy="470" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
-<text x="892" y="462" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Barcode</text>
-<text x="892" y="488" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">demultiplexing</text>
-<text x="892" y="514" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#b85f00" text-anchor="end">flexiplex</text>
-<circle cx="920" cy="600" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
-<text x="892" y="592" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Genome alignment</text>
-<text x="892" y="618" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#b85f00" text-anchor="end">minimap2</text>
-<circle cx="920" cy="730" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
-<text x="892" y="722" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Barcode-aware</text>
-<text x="892" y="748" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">duplicate marking</text>
-<text x="892" y="774" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#b85f00" text-anchor="end">mark_dna_duplicates.py</text>
-<rect x="1005" y="704" width="10" height="52" fill="#000"/>
-<g transform="translate(1065,730)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">BAM</text></g>
-<text x="1118" y="722" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="start">Alignment</text>
-<text x="1118" y="748" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="start">file</text>
-<circle cx="920" cy="880" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
-<text x="892" y="872" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Alignment QC</text>
-<text x="892" y="898" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#b85f00" text-anchor="end">SAMtools &amp; NanoComp</text>
+<circle cx="1260" cy="870" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
+<text x="1230" y="863" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Quantification</text>
+<text x="1230" y="889" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#d6337f" text-anchor="end">lr-kallisto</text>
+<rect x="1325" y="844" width="10" height="52" fill="#000"/>
+<g transform="translate(1382,870)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">MTX</text></g>
+<text x="1382" y="945" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">Gene &amp; transcript</text>
+<text x="1382" y="971" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">matrices</text>
+<circle cx="1640" cy="870" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
+<text x="1610" y="863" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Quantification</text>
+<text x="1610" y="889" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#0b84ab" text-anchor="end">oarfish</text>
+<rect x="1705" y="844" width="10" height="52" fill="#000"/>
+<g transform="translate(1762,870)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">MTX</text></g>
+<text x="1762" y="945" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">Transcript</text>
+<text x="1762" y="971" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">matrix</text>
+<circle cx="2060" cy="870" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
+<text x="2030" y="863" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Quantification</text>
+<text x="2030" y="889" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#7b3fa0" text-anchor="end">IsoQuant</text>
+<rect x="2125" y="844" width="10" height="52" fill="#000"/>
+<g transform="translate(2182,870)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">MTX</text></g>
+<text x="2182" y="945" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">Gene &amp; transcript</text>
+<text x="2182" y="971" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="middle">matrices</text>
+<circle cx="920" cy="450" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
+<text x="892" y="442" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Barcode</text>
+<text x="892" y="468" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">demultiplexing</text>
+<text x="892" y="494" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#b85f00" text-anchor="end">flexiplex</text>
+<circle cx="920" cy="560" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
+<text x="892" y="552" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Post-demux QC</text>
+<text x="892" y="578" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#b85f00" text-anchor="end">NanoPlot &amp; FastQC* &amp;</text>
+<text x="892" y="604" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#b85f00" text-anchor="end">ToulligQC* &amp; read counts</text>
+<rect x="1005" y="534" width="10" height="52" fill="#000"/>
+<g transform="translate(1065,560)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">HTML</text></g>
+<circle cx="920" cy="670" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
+<text x="892" y="662" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Genome alignment</text>
+<text x="892" y="688" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#b85f00" text-anchor="end">minimap2</text>
+<circle cx="920" cy="780" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
+<text x="892" y="772" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Barcode-aware</text>
+<text x="892" y="798" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">duplicate marking</text>
+<text x="892" y="824" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#b85f00" text-anchor="end">mark_dna_duplicates.py</text>
+<rect x="1005" y="754" width="10" height="52" fill="#000"/>
+<g transform="translate(1065,780)"><path d="M -30 -43 L 14 -43 L 30 -27 L 30 43 L -30 43 Z" fill="#fff" stroke="#000" stroke-width="5" stroke-linejoin="round"/><path d="M 14 -43 L 14 -27 L 30 -27 Z" fill="#000" stroke="#000" stroke-width="4" stroke-linejoin="round"/><rect x="-42" y="-8" width="84" height="32" rx="5" fill="#000"/><text x="0" y="16" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">BAM</text></g>
+<text x="1118" y="772" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="start">Alignment</text>
+<text x="1118" y="798" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="19" font-weight="bold" fill="#000" text-anchor="start">file</text>
+<circle cx="920" cy="890" r="17" fill="#fff" stroke="#000" stroke-width="6"/>
+<text x="892" y="882" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="end">Alignment QC</text>
+<text x="892" y="908" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#b85f00" text-anchor="end">SAMtools &amp; NanoComp*</text>
 <rect x="1100" y="1130" width="40" height="100" rx="20" fill="#fff" stroke="#000" stroke-width="6"/>
 <text x="1120" y="1272" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#000" text-anchor="middle">Matrix QC</text>
 <text x="1120" y="1298" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="22" font-weight="bold" fill="#24489c" text-anchor="middle">Seurat &amp; csvtk</text>
@@ -148,6 +157,7 @@
 <text x="120" y="858" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#000" text-anchor="start">Optional step</text>
 <rect x="310" y="830" width="40" height="40" rx="20" fill="#fff" stroke="#000" stroke-width="5"/>
 <text x="365" y="858" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#000" text-anchor="start">Shared step</text>
+<text x="60" y="900" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="21" font-weight="bold" fill="#000" text-anchor="start">* off by default (opt-in)</text>
 <text x="60" y="1010" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="72" font-weight="bold" fill="#000" text-anchor="start">LRSinglecell</text>
 <text x="62" y="1048" font-family="Helvetica, Arial, 'DejaVu Sans', sans-serif" font-size="24" font-weight="bold" fill="#000" text-anchor="start">Long-read single-cell cDNA &amp; DNA</text>
 </svg>
