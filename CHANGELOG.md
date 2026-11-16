@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Replaced the README pipeline diagram (`assets/lrsinglecell_tube_map.{svg,png}`), which was still the nf-core/scnanoseq tube map, with a new one of the current pipeline: the cDNA and DNA arms, flexiplex/BLAZE demultiplexing, gene-aware UMI-tools deduplication and the IsoQuant, oarfish and lr-kallisto quantifiers
 - Added `docs/tutorial.md`, a step-by-step walkthrough from installation to loading the results in Seurat and splitting the DNA BAM per cell, built from a real `test_mixed` run
 - README: added a quick-test command, a samplesheet column table, separate cDNA and Multiome/DNA run examples, and a note that LRSinglecell replaces the retired scdnalong pipeline. The previous example combined DNA rows with `--barcode_format 10X_3v3`, which the pipeline rejects
 - `docs/usage.md`: the example samplesheet listed the same FASTQ file for a `cdna` and a `dna` row, as if one library could be both; the DNA rows now point to separate DNA FASTQs. Added a "DNA libraries" section (multiome preset, bundled whitelists, custom flexiplex pattern) and fixed the typical command to use `10X_multiome`
