@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.2.0dev - [unreleased]
 
+### Changes
+
+- ([#11](https://github.com/IntGenomicsLab/lrsinglecell/issues/11)) Removed the Picard cDNA deduplication (`--dedup_tool picard`), deprecated in v1.0.1. Its removal was announced for v1.1.0 but had not happened. `--dedup_tool` remains and only accepts `umitools`; a run with `--dedup_tool picard` now fails at parameter validation with `--dedup_tool picard was removed in v1.2.0; use --dedup_tool umitools`, also with `--validate_params false`. The `picard/markduplicates` nf-core module and its `conf/modules.config` selectors are removed. DNA deduplication (`mark_dna_duplicates.py`) is unaffected and still writes Picard-format metrics for MultiQC
+
+### Added
+
+- ([#29](https://github.com/IntGenomicsLab/lrsinglecell/issues/29)) `--dna_exact_only_contigs` (default `chrM,MT`): the comma-separated contigs on which DNA duplicate marking applies only the exact rules (same 5' key, same raw read). Before, `chrM` and `MT` were hard-coded in the `MARK_DUPLICATES_DNA` arguments, so a genome naming its mitochondrion differently (e.g. `chrMT`, `M`) silently got the tolerance rules on it. An empty value turns the exact-only set off (new `mark_dna_duplicates.py --no-exact-only-contig`). `mark_dna_duplicates.py` now warns on stderr when none of the given names is in the BAM header. Added both cases to `tests/bin/test_mark_dna_duplicates.py`
+
 ## v1.1.0 - [2026-11-09]
 
 ### Changes

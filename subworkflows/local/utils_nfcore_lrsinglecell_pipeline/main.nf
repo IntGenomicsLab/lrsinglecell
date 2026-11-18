@@ -186,8 +186,14 @@ def validateInputParameters() {
     //
     // Deduplication
     //
+    // The schema enum already rejects anything but umitools; these checks also
+    // cover runs with --validate_params false.
+    //
     if (params.dedup_tool == 'picard') {
-        log.warn("--dedup_tool picard is deprecated and will be removed in v1.1.0. It applies to cDNA only (DNA is always deduplicated by mark_dna_duplicates.py), groups on the cell barcode and ignores the UMI. Please use --dedup_tool umitools instead")
+        error("--dedup_tool picard was removed in v1.2.0; use --dedup_tool umitools")
+    }
+    if (params.dedup_tool != 'umitools') {
+        error("Unknown --dedup_tool '${params.dedup_tool}'. Only umitools is supported")
     }
 
     //

@@ -170,23 +170,39 @@ nextflow_pipeline {
         }
     }
 
-    // The warning is logged before the remaining checks run, so a cheap
-    // validation failure is enough to see it (no full stub run needed).
-    test("dedup_tool picard logs a deprecation warning") {
+    // Picard cDNA dedup was deprecated in v1.0.1 and removed in v1.2.0.
+    test("dedup_tool picard is rejected") {
         options "-stub"
         when {
             params {
                 outdir     = "$outputDir"
                 dedup_tool = "picard"
-                gtf        = null
             }
         }
         then {
-            // Warnings reach only the nextflow log, not the captured stdout
-            def nf_log = file("$outputDir/../meta/nextflow.log").text
+            def out = (workflow.stdout + workflow.stderr).join('\n')
             assertAll(
                 { assert workflow.failed },
-                { assert nf_log.contains("--dedup_tool picard is deprecated and will be removed in v1.1.0") }
+                { assert out.contains("--dedup_tool picard was removed in v1.2.0") }
+            )
+        }
+    }
+
+    // Same message from validateInputParameters when the schema is not checked
+    test("dedup_tool picard is rejected without schema validation") {
+        options "-stub"
+        when {
+            params {
+                outdir          = "$outputDir"
+                dedup_tool      = "picard"
+                validate_params = false
+            }
+        }
+        then {
+            def out = (workflow.stdout + workflow.stderr).join('\n')
+            assertAll(
+                { assert workflow.failed },
+                { assert out.contains("--dedup_tool picard was removed in v1.2.0; use --dedup_tool umitools") }
             )
         }
     }
