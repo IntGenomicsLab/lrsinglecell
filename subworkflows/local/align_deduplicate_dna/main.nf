@@ -88,13 +88,30 @@ workflow ALIGN_DEDUPLICATE_DNA {
         // and strand only; this also merges records of one raw read that flexiplex wrote
         // out twice, 5' jitter of up to 10 bp between reads that read through to the
         // far adapter, and A-A fragments read from the other end, and it propagates the
-        // duplicate flag to secondary and supplementary records. On chrM/MT only the
-        // exact rules apply (--exact-only-contig). See the script header.
+        // duplicate flag to secondary and supplementary records. On the
+        // --dna_exact_only_contigs (default chrM, MT) only the exact rules apply. See the
+        // script header.
         // Both the tool's output and minimap2's are coordinate-sorted already, so neither
         // is sorted again: the dedup bam is only indexed, and minimap2's comes with its bai.
         final_bam = ch_tagged_bam
         final_bai = MINIMAP2_ALIGN.out.index
         if( !skip_dedup ) {
+            // Warn when none of the --dna_exact_only_contigs names is in the reference.
+            // The script prints the same warning, but on the stderr of a task that
+            // succeeds, which Nextflow does not show. Checked once, and only when there
+            // are DNA reads (fastq.first()), against the .fai the bam header comes from.
+            def exact_only = (params.dna_exact_only_contigs ?: '').toString().tokenize(',')*.trim().findAll { name -> name }
+            if( exact_only ) {
+                fai
+                    .combine( fastq.first() )
+                    .subscribe { _meta, fai_file, _meta_reads, _reads ->
+                        def contigs = fai_file.readLines().collect { line -> line.tokenize('\t')[0] }
+                        if( !exact_only.any { name -> name in contigs } ) {
+                            log.warn("None of the --dna_exact_only_contigs (${exact_only.join(',')}) is in the reference, so DNA duplicate marking applies the tolerance rules on every contig, the mitochondrial genome included. If your reference names it differently, add that name to --dna_exact_only_contigs")
+                        }
+                    }
+            }
+
             MARK_DUPLICATES_DNA (
                 ch_tagged_bam.join(MINIMAP2_ALIGN.out.index, by: [0])
             )
