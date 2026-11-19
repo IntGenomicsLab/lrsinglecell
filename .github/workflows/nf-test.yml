@@ -1,7 +1,7 @@
 name: Run nf-test
-# Pull requests run only the tests affected by the change (see the get-shards and
-# nf-test actions). Every other event runs the full suite: each merge to dev, the
-# weekly schedule, releases and manual dispatch.
+# Pull requests into dev run only the tests affected by the change (see the get-shards
+# and nf-test actions). Every other event runs the full suite: PRs into main, each
+# merge to dev, the weekly schedule, releases and manual dispatch.
 on:
   pull_request:
     paths-ignore:
@@ -21,6 +21,8 @@ on:
       - "**/*.svg"
   schedule:
     # Mondays 03:00 UTC: catches drift in containers and Nextflow edge releases.
+    # On this event a latest-everything failure fails the run (see "Run nf-test"),
+    # and GitHub emails whoever last edited this cron line about failed scheduled runs.
     # GitHub runs scheduled workflows from the default branch (main), so this
     # trigger takes effect once it reaches main; the jobs then check out dev.
     - cron: "0 3 * * 1"
@@ -115,7 +117,9 @@ jobs:
       - name: Run nf-test
         id: run_nf_test
         uses: ./.github/actions/nf-test
-        continue-on-error: ${{ matrix.NXF_VER == 'latest-everything' }}
+        # latest-everything is non-blocking, except on the weekly schedule, whose job is
+        # to surface Nextflow edge drift (nobody would see a green-with-warning run).
+        continue-on-error: ${{ matrix.NXF_VER == 'latest-everything' && github.event_name != 'schedule' }}
         env:
           NFT_WORKDIR: ${{ env.NFT_WORKDIR }}
           NXF_VERSION: ${{ matrix.NXF_VER }}
@@ -131,10 +135,9 @@ jobs:
             echo "::error::Test with ${{ matrix.NXF_VER }} failed"
             # Add to workflow summary
             echo "## ❌ Test failed: ${{ matrix.profile }} | ${{ matrix.NXF_VER }} | Shard ${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ matrix.NXF_VER }}" == "latest-everything" ]]; then
+            if [[ "${{ matrix.NXF_VER }}" == "latest-everything" && "${{ github.event_name }}" != "schedule" ]]; then
               echo "::warning::Test with latest-everything failed but will not cause workflow failure. Please check if the error is expected or if it needs fixing."
-            fi
-            if [[ "${{ matrix.NXF_VER }}" != "latest-everything" ]]; then
+            else
               exit 1
             fi
           fi

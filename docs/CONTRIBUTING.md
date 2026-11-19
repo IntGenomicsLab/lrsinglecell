@@ -168,8 +168,9 @@ If you update images or graphics, follow the nf-core [style guidelines](https://
 
 ## Continuous integration
 
-- Pull requests run only the nf-test tests affected by the change, with Docker. Changes under `conf/`, `assets/`, `bin/`, `modules/local/` or `subworkflows/local/` (and the other `triggers` in `nf-test.config`) run the whole suite.
+- Pull requests into `dev` run only the nf-test tests affected by the change, with Docker. Changes under `conf/`, `assets/`, `bin/`, `modules/local/` or `subworkflows/local/` (and the other `triggers` in `nf-test.config`) run the whole suite.
 - Pull requests into `main`, every merge into `dev`, a weekly scheduled run on `dev`, releases and manual dispatches run the whole suite with both Docker and Singularity/Apptainer.
+- Failures with the `latest-everything` Nextflow version do not fail CI, except on the weekly scheduled run, so that edge-release breakage gets noticed.
 - `test_full` is not run by CI; see the release checklist below.
 
 ## Release checklist

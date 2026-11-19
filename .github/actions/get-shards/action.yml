@@ -28,10 +28,10 @@ runs:
       id: shards
       shell: bash
       env:
-        # Only pull requests test what changed (HEAD^ of the PR merge commit is the
-        # base branch tip); push, schedule, release and dispatch runs test everything.
-        # Keep this in sync with .github/actions/nf-test/action.yml.
-        CHANGED_SINCE: ${{ github.event_name == 'pull_request' && '--changed-since HEAD^' || '' }}
+        # Only pull requests into dev test what changed (HEAD^ of the PR merge commit is
+        # the base branch tip); PRs into main, push, schedule, release and dispatch runs
+        # test everything. Keep this in sync with .github/actions/nf-test/action.yml.
+        CHANGED_SINCE: ${{ github.event_name == 'pull_request' && github.base_ref != 'main' && github.base_ref != 'master' && '--changed-since HEAD^' || '' }}
       run: |
         # Run nf-test with dynamic parameter
         nftest_output=$(nf-test test \

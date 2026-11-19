@@ -62,11 +62,12 @@ runs:
       shell: bash
       env:
         NFT_WORKDIR: ${{ env.NFT_WORKDIR }}
-        # Only pull requests test what changed. On a PR, actions/checkout checks out the
-        # merge commit, whose first parent (HEAD^) is the tip of the base branch, so
-        # HEAD^ covers the whole PR. Push, schedule, release and dispatch runs test
-        # everything. Keep this in sync with .github/actions/get-shards/action.yml.
-        CHANGED_SINCE: ${{ github.event_name == 'pull_request' && '--changed-since HEAD^' || '' }}
+        # Only pull requests into dev test what changed. On a PR, actions/checkout checks
+        # out the merge commit, whose first parent (HEAD^) is the tip of the base branch,
+        # so HEAD^ covers the whole PR. PRs into main (release and patch PRs), push,
+        # schedule, release and dispatch runs test everything.
+        # Keep this in sync with .github/actions/get-shards/action.yml.
+        CHANGED_SINCE: ${{ github.event_name == 'pull_request' && github.base_ref != 'main' && github.base_ref != 'master' && '--changed-since HEAD^' || '' }}
       run: |
         nf-test test \
           --profile=+${{ inputs.profile }} \
