@@ -68,12 +68,6 @@
                         "installed_by": ["modules"],
                         "patch": "modules/nf-core/nanoplot/nanoplot.diff"
                     },
-                    "picard/markduplicates": {
-                        "branch": "master",
-                        "git_sha": "a631e12055f6c23ba2c942d3902b3ed1b9eed859",
-                        "installed_by": ["modules"],
-                        "patch": "modules/nf-core/picard/markduplicates/picard-markduplicates.diff"
-                    },
                     "pigz/compress": {
                         "branch": "master",
                         "git_sha": "c908ccaf0a5c802b6f8e814d8c5cf85da2364222",
