@@ -456,15 +456,12 @@ UMI deduplication is split by chromosome for speed. For the transcriptome alignm
 
 ### BLAZE
 
-With `--demux_tool_cdna blaze`, barcodes are called by BLAZE and then cut out of the reads and corrected by the pipeline's own scripts, `bin/pre_extract_barcodes.py` (process `PREEXTRACT_FASTQ`) and `bin/correct_barcodes.py` (process `CORRECT_BARCODES`). With `--split_amount` > 0 these two run on chunks of that many reads. Without splitting, `CORRECT_BARCODES` can take hours rather than minutes on a large sample; if you run without `--split_amount`, consider raising its time limit, and that of the BLAZE-only tagging step:
+With `--demux_tool_cdna blaze`, barcodes are called by BLAZE and then cut out of the reads and corrected by the pipeline's own scripts, `bin/pre_extract_barcodes.py` (process `PREEXTRACT_FASTQ`) and `bin/correct_barcodes.py` (process `CORRECT_BARCODES`). With `--split_amount` > 0 these two run on chunks of that many reads. Without splitting, `CORRECT_BARCODES` can take hours rather than minutes on a large sample; if you run without `--split_amount`, consider raising its time limit. The BLAZE-only tagging step (`TAG_BARCODES`) holds every read's barcode and UMI in memory and already requests 72 GB and 20 h per attempt; only raise those if its trace shows it running out:
 
 ```groovy title="custom.config"
 process {
     withName: '.*:BLAZE' {
         cpus = 30
-    }
-    withName: '.*:TAG_BARCODES' {
-        memory = 60.GB
     }
     withName: '.*:CORRECT_BARCODES' {
         time = 15.h
