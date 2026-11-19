@@ -183,7 +183,9 @@ nextflow_pipeline {
             def out = (workflow.stdout + workflow.stderr).join('\n')
             assertAll(
                 { assert workflow.failed },
-                { assert out.contains("--dedup_tool picard was removed in v1.2.0") }
+                // Only the schema errorMessage has this text, so this fails if the
+                // rejection came from validateInputParameters instead
+                { assert out.contains("Only umitools is supported; --dedup_tool picard was removed in v1.2.0") }
             )
         }
     }
@@ -202,7 +204,8 @@ nextflow_pipeline {
             def out = (workflow.stdout + workflow.stderr).join('\n')
             assertAll(
                 { assert workflow.failed },
-                { assert out.contains("--dedup_tool picard was removed in v1.2.0; use --dedup_tool umitools") }
+                { assert out.contains("--dedup_tool picard was removed in v1.2.0; use --dedup_tool umitools") },
+                { assert !out.contains("Only umitools is supported") }
             )
         }
     }
