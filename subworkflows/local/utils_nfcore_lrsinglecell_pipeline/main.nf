@@ -441,7 +441,8 @@ def methodsSteps(sample_types) {
     def steps = []
 
     // Pre-processing
-    if ((params.split_amount as Integer) > 0) {
+    // SEQKIT_SPLIT2 only runs as part of trimming (workflows/lrsinglecell.nf)
+    if (!params.skip_trimming && (params.split_amount as Integer) > 0) {
         steps << [ "Reads were split into chunks for parallel processing with ${citeTools(refs, ['seqkit'])}.", [ 'seqkit' ] ]
     }
     if (!params.skip_trimming) {
