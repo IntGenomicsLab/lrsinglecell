@@ -103,12 +103,23 @@ workflow DEMULTIPLEX_FLEXIPLEX {
         ch_versions = ch_versions.mix(FLEXIPLEX_FILTER.out.versions_flexiplex_filter)
         ch_corrected_bc_info = FLEXIPLEX_FILTER.out.barcodes
 
-        // Merge the reads and barcodes channels
+        // Pair every read chunk with its sample's barcode list. join is
+        // one-to-one, so the chunks of a sample are grouped first (the group
+        // closes once all splitcount parts are in, which the barcode list waits
+        // for anyway), joined on the sample id and spread back out. A sample
+        // without a barcode list fails the run instead of being dropped.
         flexiplex_input_barcodes = flexiplex_input
-            .combine(ch_corrected_bc_info)
-            .map { meta, rds, meta2, barcodes ->
-                meta.id == meta2.id ? [meta, rds, barcodes] : null }
-            .filter { it != null }
+            .map { meta, rds -> [ groupKey(meta.id, (meta.splitcount ?: 1) as Integer), meta, rds ] }
+            .groupTuple()
+            .map { key, metas, rds -> [ key.getGroupTarget(), metas, rds ] }
+            .join(
+                ch_corrected_bc_info.map { meta, barcodes -> [ meta.id, barcodes ] },
+                failOnMismatch: true,
+                failOnDuplicate: true
+            )
+            .flatMap { _id, metas, rds, barcodes ->
+                [ metas, rds ].transpose().collect { meta, chunk -> [ meta, chunk, barcodes ] }
+            }
 
         //
         // MODULE: Assign flexiplex
