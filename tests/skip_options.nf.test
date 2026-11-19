@@ -30,6 +30,26 @@ nextflow_pipeline {
         }
     }
 
+    test("-profile test --skip_nanoplot --skip_fastqc false -stub") {
+
+        when {
+            params {
+                outdir        = "$outputDir"
+                skip_nanoplot = true
+                skip_fastqc   = false
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.success },
+                // The raw-QC report still runs on FastQC alone, without NanoPlot
+                { assert file("$outputDir/batch_qcs/multiqc/raw_qc").exists() },
+                { assert !file("$outputDir/ERR9958133/cdna/qc/nanoplot").exists() }
+            )
+        }
+    }
+
     test("-profile test --skip_dedup --quantifier isoquant,oarfish -stub") {
 
         when {

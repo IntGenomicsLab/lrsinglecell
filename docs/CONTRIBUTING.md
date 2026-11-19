@@ -8,22 +8,21 @@ markdownPlugin: checklist
 Hi there!
 Thanks for taking an interest in improving IntGenomicsLab/lrsinglecell.
 
-This page describes the recommended nf-core way to contribute to both IntGenomicsLab/lrsinglecell and nf-core pipelines in general, including:
+IntGenomicsLab/lrsinglecell is not an nf-core pipeline, but it is built on the nf-core template and follows nf-core conventions, so most nf-core tooling (nf-core/tools, nf-test, the module and subworkflow repositories) works on it. This page describes how to contribute, including:
 
-- [General contribution guidelines](#general-contribution-guidelines): common procedures or guides across all nf-core pipelines.
+- [General contribution guidelines](#general-contribution-guidelines): procedures that follow the nf-core template.
 - [Pipeline-specific contribution guidelines](#pipeline-specific-contribution-guidelines): procedures or guides specific to the development conventions of IntGenomicsLab/lrsinglecell.
 
 ## General contribution guidelines
 
 ### Contribution quick start
 
-To contribute code to any nf-core pipeline:
+To contribute code:
 
-- [ ] Ensure you have Nextflow, nf-core tools, and nf-test installed. See the [nf-core/tools repository](https://github.com/nf-core/tools) for instructions.
+- [ ] Ensure you have Nextflow, nf-core tools, nf-test and a container engine (Docker, or Singularity/Apptainer) installed. See the [nf-core/tools repository](https://github.com/nf-core/tools) for instructions.
 - [ ] Check whether a GitHub [issue](https://github.com/IntGenomicsLab/lrsinglecell/issues) about your idea already exists. If an issue does not exist, create one so that others are aware you are working on it.
 - [ ] [Fork](https://help.github.com/en/github/getting-started-with-github/fork-a-repo) the [IntGenomicsLab/lrsinglecell repository](https://github.com/IntGenomicsLab/lrsinglecell) to your GitHub account.
 - [ ] Create a branch on your forked repository and make your changes following [pipeline conventions](#pipeline-contribution-conventions) (if applicable).
-- [ ] To fix major bugs, name your branch `patch` and follow the [patch release](#patch-release) process.
 - [ ] Update relevant documentation within the `docs/` folder, use nf-core/tools to update `nextflow_schema.json`, and update `CITATIONS.md`.
 - [ ] Run and/or update tests. See [Testing](#testing) for more information.
 - [ ] [Lint](#lint-tests) your code with nf-core/tools.
@@ -44,18 +43,23 @@ To get started, open the repository in [Codespaces](https://github.com/IntGenomi
 ### Testing
 
 Once you have made your changes, run the pipeline with nf-test to test them locally.
+The pipeline-level tests in `tests/` are tagged `pipeline`. Add a container profile with `+`: `+docker`, or `+singularity` on systems without Docker (most HPC clusters; Apptainer provides the `singularity` command).
 For additional information, use the `--verbose` flag to view the Nextflow console log output.
 
 ```bash
-nf-test test --tag test --profile +docker --verbose
+nf-test test --tag pipeline --profile +docker --verbose
+# or, without Docker:
+nf-test test --tag pipeline --profile +singularity --verbose
 ```
 
 If you have added new functionality, ensure you update the test assertions in the `.nf.test` files in the `tests/` directory.
 Update the snapshots with the following command:
 
 ```bash
-nf-test test --tag test --profile +docker --verbose --update-snapshots
+nf-test test --tag pipeline --profile +singularity --verbose --update-snapshots
 ```
+
+A single test file can be run with `nf-test test tests/default.nf.test --profile +singularity`.
 
 When you create a pull request with changes, GitHub Actions will run automatic tests.
 Pull requests are typically reviewed when these tests are passing.
@@ -64,8 +68,8 @@ Two types of tests are typically run:
 
 #### Lint tests
 
-nf-core has a [set of guidelines](https://nf-co.re/docs/specifications/overview) which all pipelines must follow.
-To enforce these, run linting with nf-core/tools:
+The pipeline follows the nf-core [pipeline guidelines](https://nf-co.re/docs/specifications/overview) where they apply; the exceptions are listed under `lint:` in `.nf-core.yml`.
+To check them, run linting with nf-core/tools:
 
 ```bash
 nf-core pipelines lint <pipeline_directory>
@@ -76,8 +80,8 @@ For more information about linting tests, see [nf-core/tools API documentation](
 
 #### Pipeline tests
 
-Each nf-core pipeline should be set up with a minimal set of test data.
-GitHub Actions runs the pipeline on this data to ensure it runs through and exits successfully.
+The test profiles (`test`, `test_dna`, `test_mixed`, `test_lrkallisto`, `test_oarfish`, ...) run the pipeline on small datasets from [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell).
+GitHub Actions runs the nf-tests on them to ensure the pipeline runs through and its outputs match the snapshots; see [Continuous integration](#continuous-integration) for which tests run when, and with which container engine.
 If there are any failures then the automated tests fail.
 These tests are run with the latest available version of Nextflow and the minimum required version specified in the pipeline code.
 
@@ -86,17 +90,17 @@ These tests are run with the latest available version of Nextflow and the minimu
 > [!WARNING]
 > Only in the unlikely event of a release that contains a critical bug.
 
-- [ ] Create a new branch `patch` on your fork based on `upstream/main` or `upstream/master`.
+- [ ] Create a branch `patch` based on `main`.
 - [ ] Fix the bug and use nf-core/tools to bump the version to the next semantic version, for example, `1.2.3` → `1.2.4`.
-- [ ] Open a Pull Request from `patch` directly to `main`/`master` with the changes.
+- [ ] Open a Pull Request from `patch` directly to `main` with the changes. Pull requests to `main` must come from `dev` or `patch`.
 
 ### Pipeline contribution conventions
 
-nf-core semi-standardises how you write code and other contributions to make the IntGenomicsLab/lrsinglecell code and processing logic more understandable for new contributors and to ensure quality.
+The nf-core template semi-standardises how code and other contributions are written, to make the IntGenomicsLab/lrsinglecell code and processing logic more understandable for new contributors and to ensure quality.
 
 #### Add a new pipeline step
 
-To contribute a new step to the pipeline, follow the general nf-core coding procedure.
+To contribute a new step to the pipeline, follow the nf-core coding procedure.
 Please also refer to the [pipeline-specific contribution guidelines](#pipeline-specific-contribution-guidelines):
 
 - [ ] Define the corresponding [input channel](#channel-naming-schemes) into your new process from the expected previous process channel.
@@ -104,10 +108,10 @@ Please also refer to the [pipeline-specific contribution guidelines](#pipeline-s
 - [ ] Define the output channel if needed. Mix the version output channel into `ch_versions` and relevant files into `ch_multiqc`.
 - [ ] Add new or updated parameters to `nextflow.config` with a [default value](#default-parameter-values).
 - [ ] Add new or updated parameters and relevant help text to `nextflow_schema.json` with [nf-core/tools](#default-parameter-values).
-- [ ] Add validation for relevant parameters to the pipeline utilisation section of `utils_nfcore_\_pipeline/main.nf` subworkflow.
+- [ ] Add validation for relevant parameters to `validateInputParameters` in `subworkflows/local/utils_nfcore_lrsinglecell_pipeline/main.nf`.
 - [ ] Perform local tests to validate that the new code works as expected.
   - [ ] If applicable, add a new test in the `tests` directory.
-- [ ] Update `usage.md`, `output.md`, and `citation.md` as appropriate.
+- [ ] Update `docs/usage.md`, `docs/output.md` and `CITATIONS.md` as appropriate.
 - [ ] [Lint](#lint-tests) the code with nf-core/tools.
 - [ ] Update any diagrams or pipeline images as necessary.
 - [ ] Update MultiQC config `assets/multiqc_config.yml` so relevant suffixes, file name cleanup, and module plots are in the appropriate order.
@@ -158,7 +162,7 @@ nf-core pipelines bump-version --nextflow . <min_nf_version>
 
 #### Images and figures guidelines
 
-If you update images or graphics, follow the nf-core [style guidelines](https://nf-co.re/docs/community/brand/workflow-schematics).
+If you update images or graphics, the nf-core [style guidelines](https://nf-co.re/docs/community/brand/workflow-schematics) are a good reference. The pipeline diagram is `assets/lrsinglecell_tube_map.svg` (with a `.png` export for the README).
 
 ## Pipeline specific contribution guidelines
 

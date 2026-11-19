@@ -52,6 +52,7 @@ include { QCFASTQ_NANOPLOT_FASTQC as FASTQC_NANOPLOT_POST_EXTRACT      } from ".
 include { paramsSummaryMultiqc                                         } from "../subworkflows/nf-core/utils_nfcore_pipeline"
 include { softwareVersionsToYAML                                       } from "../subworkflows/nf-core/utils_nfcore_pipeline"
 include { methodsDescriptionText                                       } from "../subworkflows/local/utils_nfcore_lrsinglecell_pipeline"
+include { multiqcReportComment                                         } from "../subworkflows/local/utils_nfcore_lrsinglecell_pipeline"
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -418,6 +419,12 @@ workflow LRSINGLECELL {
 
     ch_multiqc_finalqc_files = channel.empty()
 
+    // Read counts cover every sample, cDNA and DNA, so they are added once here
+    // rather than by each quantifier block.
+    ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
+        ch_read_counts.collect().ifEmpty([])
+    )
+
     // The genome alignment is produced whenever there are cDNA reads to align,
     // not only when a genome quantifier asked for one: the bam is a deliverable
     // in its own right (coverage, igv, fusions, variants). lr-kallisto
@@ -479,11 +486,14 @@ workflow LRSINGLECELL {
             ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
                 PROCESS_LONGREAD_SCRNA_GENOME.out.dedup_summary.collect{it -> it[1]}.ifEmpty([])
             )
+            // Share of alignments TAG_GENES could not place on a gene, shown in the
+            // general statistics as "% reads without gene". Only written with
+            // --dedup_per_gene, so empty otherwise.
+            ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
+                PROCESS_LONGREAD_SCRNA_GENOME.out.gene_tag_summary.collect{it -> it[1]}.ifEmpty([])
+            )
         }
 
-        ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
-            ch_read_counts.collect().ifEmpty([])
-        )
         ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
             PROCESS_LONGREAD_SCRNA_GENOME.out.gene_qc_stats
                 .map{ _meta, stats -> [stats]}
@@ -545,9 +555,6 @@ workflow LRSINGLECELL {
         )
 
         ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
-            ch_read_counts.collect().ifEmpty([])
-        )
-        ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
             PROCESS_LONGREAD_SCRNA_TRANSCRIPT.out.transcript_qc_stats
                 .map{ _meta, stats -> [stats]}
                 .collect()
@@ -573,9 +580,6 @@ workflow LRSINGLECELL {
 
         ch_versions = ch_versions.mix(QUANTIFY_SCRNA_LRKALLISTO.out.versions)
 
-        ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
-            ch_read_counts.collect().ifEmpty([])
-        )
         ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
             QUANTIFY_SCRNA_LRKALLISTO.out.gene_qc_stats
                 .map{ _meta, stats -> [stats]}
@@ -610,7 +614,35 @@ workflow LRSINGLECELL {
         ALIGN_DEDUPLICATE_DNA.out.flagstat.collect{it[1]}.ifEmpty([])
     )
     ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
+        ALIGN_DEDUPLICATE_DNA.out.stats.collect{it -> it[1]}.ifEmpty([])
+    )
+    ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
+        ALIGN_DEDUPLICATE_DNA.out.idxstats.collect{it -> it[1]}.ifEmpty([])
+    )
+    ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
         ALIGN_DEDUPLICATE_DNA.out.dedup_metrics.collect{it[1]}.ifEmpty([])
+    )
+
+    //
+    // The per-sample *.dedup_summary.tsv is long (metric<TAB>value), which MultiQC
+    // custom content cannot transpose. Collect one wide row per sample instead: a
+    // table of the main counts and rates, and the duplicate rates for the general
+    // statistics. MultiQC reads each file into one section only, hence two files.
+    // The rows are named <id>.dna, as the samtools stats of the same bam are.
+    //
+    def ch_dna_dedup_rows = ALIGN_DEDUPLICATE_DNA.out.dedup_summary
+        .map { meta, summary -> [ "${meta.id}.${meta.type}", dnaDedupMetrics(summary) ] }
+        .filter { _sample, metrics -> metrics }
+
+    ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
+        ch_dna_dedup_rows
+            .map { sample, metrics -> wideRow(sample, metrics, dnaDedupTableColumns()) }
+            .collectFile(name: 'dna_dedup_summary.tsv', seed: wideHeader(dnaDedupTableColumns()), sort: true)
+    )
+    ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
+        ch_dna_dedup_rows
+            .map { sample, metrics -> wideRow(sample, metrics, dnaDedupGeneralStatsColumns()) }
+            .collectFile(name: 'dna_dedup_general_stats.tsv', seed: wideHeader(dnaDedupGeneralStatsColumns()), sort: true)
     )
     ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(
         ALIGN_DEDUPLICATE_DNA.out.nanocomp_bam_txt.collect{it[1]}.ifEmpty([])
@@ -652,21 +684,36 @@ workflow LRSINGLECELL {
     ch_multiqc_list = channel.empty()
     if (!params.skip_qc && !params.skip_multiqc){
 
-        if (!params.skip_fastqc && !params.skip_fastq_nanocomp && !params.skip_nanoplot) {
+        //
+        // MultiQC configs, in the order MultiQC applies them (a later one wins): the
+        // pipeline's, the report comment for this version, then --multiqc_config.
+        //
+        def ch_multiqc_report_comment = channel.of(multiqcReportComment())
+            .collectFile(name: 'multiqc_report_comment.yml')
+        def ch_multiqc_configs = ch_multiqc_config
+            .concat(ch_multiqc_report_comment, ch_multiqc_custom_config)
+            .collect()
+            .map { cfg -> [ cfg ] }
+
+        // Raw-read QC runs whenever any of its inputs does: NanoPlot (on by
+        // default), FastQC or the fastq NanoComp.
+        if (!params.skip_fastqc || !params.skip_fastq_nanocomp || !params.skip_nanoplot) {
             //
             // MODULE: MultiQC for raw data
             //
             ch_multiqc_rawqc_files = ch_fastqc_multiqc_pretrim.collect().ifEmpty([])
-            ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_nanostat_pretrim.collect().ifEmpty([]))
-            ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_nanocomp_fastq_txt.collect().ifEmpty([]))
-            ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_multiqc_custom_config.collect().ifEmpty([]))
+            // ch_nanostat_pretrim is ifEmpty([]): with NanoPlot skipped it emits a
+            // bare [], and it[1] on that would hand MultiQC a null path.
+            if (!params.skip_nanoplot) {
+                ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_nanostat_pretrim.collect{it -> it[1]}.ifEmpty([]))
+            }
+            ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_nanocomp_fastq_txt.collect{it -> it[1]}.ifEmpty([]))
             ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_collated_versions.collect())
-            ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_fastqc_multiqc_pretrim.collect().ifEmpty([]))
 
             MULTIQC_RAWQC (
                 channel.value([ [ 'id': 'rawqc' ] ])
                     .combine(ch_multiqc_rawqc_files.collect().map { files -> [ files ] })
-                    .combine(ch_multiqc_config.collect().map { cfg -> [ cfg ] })
+                    .combine(ch_multiqc_configs)
                     .combine(ch_multiqc_logo.collect().ifEmpty([[]]).map { logo -> [ logo ] })
                     .combine(channel.value([ [] ]))
                     .combine(channel.value([ [] ]))
@@ -682,10 +729,18 @@ workflow LRSINGLECELL {
         def summary_params      = paramsSummaryMap(workflow, parameters_schema: "nextflow_schema.json")
         def ch_workflow_summary = channel.value(paramsSummaryMultiqc(summary_params))
 
-        ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(ch_multiqc_custom_config.collect().ifEmpty([]))
+        // The methods text names the tools of the arms this samplesheet runs
+        def ch_methods_description = ch_samplesheet
+            .map { meta, _fastqs -> meta.type }
+            .unique()
+            .toSortedList()
+            .map { sample_types -> [ sample_types ] }
+            .combine(ch_multiqc_custom_methods_description)
+            .map { sample_types, methods_yaml -> methodsDescriptionText(methods_yaml, sample_types) }
+
         ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
         ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(ch_collated_versions)
-        ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(ch_multiqc_custom_methods_description.collect())
+        ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
 
         ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(ch_fastqc_multiqc_postrim.collect().ifEmpty([]))
         ch_multiqc_finalqc_files = ch_multiqc_finalqc_files.mix(ch_fastqc_multiqc_postextract.collect().ifEmpty([]))
@@ -693,7 +748,7 @@ workflow LRSINGLECELL {
         MULTIQC_FINALQC (
             channel.value([ [ 'id': 'finalqc' ] ])
                 .combine(ch_multiqc_finalqc_files.collect().map { files -> [ files ] })
-                .combine(ch_multiqc_config.collect().map { cfg -> [ cfg ] })
+                .combine(ch_multiqc_configs)
                 .combine(ch_multiqc_logo.collect().ifEmpty([[]]).map { logo -> [ logo ] })
                 .combine(channel.value([ [] ]))
                 .combine(channel.value([ [] ]))
@@ -710,6 +765,60 @@ workflow LRSINGLECELL {
     versions       = ch_versions
 }
 
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*/
+
+//
+// Rows of mark_dna_duplicates.py's *.dedup_summary.tsv shown in the MultiQC DNA
+// deduplication table, in the order the script writes them. The headers in
+// assets/multiqc_config.yml describe each one. A row missing from the summary is
+// left empty, so the table does not depend on every row being there.
+//
+def dnaDedupTableColumns() {
+    return [
+        'primary_reads',
+        'molecules',
+        'duplicates',
+        'duplicate_rate',
+        'nuclear_duplicate_rate',
+        'exact_only_contigs_primary_reads',
+        'exact_only_contigs_duplicates',
+        'dup_by_key_5prime_strand',
+        'dup_added_by_same_raw_read',
+        'dup_added_by_5prime_jitter',
+        'dup_added_by_aa_opposite_end',
+        'no_barcode',
+    ]
+}
+
+// The rates shown in the MultiQC general statistics
+def dnaDedupGeneralStatsColumns() {
+    return [ 'nuclear_duplicate_rate', 'duplicate_rate' ]
+}
+
+// The metric<TAB>value rows of a *.dedup_summary.tsv as a map; empty for a stub file
+def dnaDedupMetrics(summary) {
+    def metrics = [:]
+    summary.readLines().drop(1).each { line ->
+        def fields = line.split('\t', -1)
+        if (fields.size() == 2) {
+            metrics[fields[0]] = fields[1]
+        }
+    }
+    return metrics
+}
+
+def wideHeader(columns) {
+    return ([ 'sample' ] + columns).join('\t') + '\n'
+}
+
+def wideRow(sample, metrics, columns) {
+    return ([ sample ] + columns.collect { column -> metrics.get(column, '') }).join('\t') + '\n'
+}
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
