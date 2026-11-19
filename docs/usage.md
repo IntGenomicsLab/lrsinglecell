@@ -239,6 +239,8 @@ Reads are filtered with [chopper](https://github.com/wdecoster/chopper) before b
 - `--min_length` (default `1`): minimum read length (`chopper --minlength`).
 - `--skip_trimming`: skip chopper altogether; the post-trim read QC is then not produced.
 
+With `--drop_duplex_parents` (off by default), the simplex parents of dorado duplex reads are removed before the pre-trim read QC; see [Dorado duplex reads](#dorado-duplex-reads).
+
 ### Strandedness
 
 Everything runs unstranded by default: `--stranded` is unset, so minimap2 is run with `-un` and IsoQuant with `--stranded none`. `--stranded forward` or `--stranded reverse` switch both to the given strand (`-uf`/`-ub`, `--stranded forward/reverse`); lr-kallisto is always unstranded (see above). Which setting is right for each 10X kit has not been established yet; see [#46](https://github.com/IntGenomicsLab/lrsinglecell/issues/46).

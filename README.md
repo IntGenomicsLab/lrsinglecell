@@ -26,7 +26,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io) and the [nf-core
 
 ![LRSinglecell diagram](assets/lrsinglecell_tube_map.png)
 
-1. Raw read QC ([`NanoPlot`](https://github.com/wdecoster/NanoPlot), optionally [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [`NanoComp`](https://github.com/wdecoster/nanocomp) and [`ToulligQC`](https://github.com/GenomiqueENS/toulligQC))
+1. Optional removal of dorado duplex parent reads (`--drop_duplex_parents`), then raw read QC ([`NanoPlot`](https://github.com/wdecoster/NanoPlot), optionally [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/), [`NanoComp`](https://github.com/wdecoster/nanocomp) and [`ToulligQC`](https://github.com/GenomiqueENS/toulligQC))
 2. Optional FASTQ splitting for parallelisation ([`seqkit`](https://bioinf.shenwei.me/seqkit/))
 3. Read trimming and filtering ([`Chopper`](https://github.com/wdecoster/chopper))
 4. Barcode and UMI demultiplexing, per data type:
