@@ -1,0 +1,71 @@
+nextflow_pipeline {
+
+    name "Test pipeline with the input split into chunks"
+    script "../main.nf"
+    tag "pipeline"
+
+    // --split_amount > 0 (SEQKIT_SPLIT2, per-chunk CHOPPER and flexiplex,
+    // CAT_CAT, MERGE_BARCODES). This is a real run rather than a stub: the
+    // nf-core SEQKIT_SPLIT2 stub writes its input file back under the same
+    // name, without the `part_NNN` the chunk handling parses. The test
+    // fastqs have 5000 reads each, so 2000 gives three chunks per sample.
+
+    test("-profile test --split_amount 2000") {
+
+        when {
+            params {
+                outdir       = "$outputDir"
+                split_amount = 2000
+            }
+        }
+
+        then {
+            def samples = ['ERR9958133', 'ERR9958134']
+            // The Matrix Market size line, the first line that is not a comment
+            def mtxSize = { File f ->
+                def line = f.withReader { reader -> reader.readLines().find { l -> !l.startsWith('%') } }
+                line.tokenize()*.toLong()
+            }
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+
+            assertAll(
+                { assert workflow.success },
+                { ['SEQKIT_SPLIT2', 'CAT_CAT', 'MERGE_BARCODES', 'CHOPPER', 'FLEXIPLEX_ASSIGN'].each { proc ->
+                    assert versions.contains("${proc}:") : "${proc} is missing from the versions"
+                } },
+                // The chunks are merged back into one sample: one known-barcode list and
+                // one set of matrices per sample, not one per chunk
+                { samples.each { sample ->
+                    def flexiplex = new File("$outputDir/${sample}/cdna/flexiplex")
+                    assert flexiplex.list().findAll { n -> n.endsWith('known_barcodes.txt') } == ["${sample}.cdna_known_barcodes.txt"]
+                    assert new File(flexiplex, "${sample}.cdna_known_barcodes.txt").readLines().size() > 0
+                    assert !new File("$outputDir/${sample}").list().any { n -> n.contains('part_') }
+                } },
+                { samples.each { sample ->
+                    def barcode_lists = []
+                    new File("$outputDir/${sample}/cdna/genome/isoquant").eachFileRecurse(groovy.io.FileType.FILES) { f ->
+                        if (f.name.endsWith('counts.barcodes.tsv')) {
+                            barcode_lists << f
+                        }
+                    }
+                    assert barcode_lists.size() == 2
+                    barcode_lists.each { f ->
+                        def barcodes = f.readLines()
+                        assert !barcodes.contains('-') : "${f.name} has a '-' barcode"
+                        def mtx = new File(f.path.replace('.barcodes.tsv', '.matrix.mtx'))
+                        def (n_rows, n_cols, n_entries) = mtxSize(mtx)
+                        assert n_entries > 0 : "${mtx.name} has no entries"
+                        assert n_cols == barcodes.size() : "${mtx.name} does not have one column per barcode"
+                    }
+                } },
+                { samples.each { sample ->
+                    def summary = file("$outputDir/${sample}/cdna/genome/qc/umitools/dedup/${sample}.cdna.genome.umi_dedup_summary.tsv")
+                    def (header, row) = summary.readLines()*.tokenize('\t')
+                    def rec = [header, row].transpose().collectEntries()
+                    assert rec.input_reads.toLong() > 0
+                    assert rec.duplication_rate.toDouble() > 0
+                } }
+            )
+        }
+    }
+}
