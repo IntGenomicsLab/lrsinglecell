@@ -77,6 +77,38 @@ CONTROL_REP4,AEG588A4_S2.fastq.gz,9000,cdna
 CONTROL_REP4,AEG588A4_S3.fastq.gz,9000,cdna
 ```
 
+### Dorado duplex reads
+
+`dorado duplex` writes three kinds of reads to the same output, told apart by the `dx` tag:
+
+| `dx`      | read                                                                    |
+| --------- | ----------------------------------------------------------------------- |
+| `dx:i:1`  | duplex consensus read, built from the template and complement strand    |
+| `dx:i:0`  | simplex read without a duplex partner                                   |
+| `dx:i:-1` | simplex template or complement read that also went into a `dx:i:1` read |
+
+Without filtering, each duplex molecule enters the pipeline three times: the consensus read and both of its parents. Deduplication collapses most of these, but with `--drop_duplex_parents` the `dx:i:-1` reads are removed before QC and demultiplexing, so each molecule is used once, as its more accurate consensus read, with its barcode read from both strands. The option is off by default.
+
+```bash
+nextflow run IntGenomicsLab/lrsinglecell ... --drop_duplex_parents
+```
+
+The FASTQ headers must carry dorado's tags. **`dorado duplex --emit-fastq` does not write the `dx` tag** (checked with dorado 1.2.0), so convert dorado's duplex BAM instead, keeping the tags with `-T '*'`:
+
+```bash
+samtools fastq -T '*' calls.bam | gzip > reads.fastq.gz
+```
+
+A plain `samtools fastq` without `-T '*'` drops the tags too.
+
+With `--drop_duplex_parents` set, the pipeline looks at the first 1000 reads of each sample:
+
+- **`dx` tags found**: the `dx:i:-1` reads are dropped and the counts are written to `<sample>/<type>/qc/duplex_filter/` (see the [output docs](output.md#duplex-filter)). If the file has `dx:i:-1` reads but no `dx:i:1` reads, the consensus reads were most likely removed upstream; all reads are then kept, with a warning, as dropping the parents would lose these molecules.
+- **No `dx` tags, but duplex consensus reads (read names `<id1>;<id2>`)**: the run stops with an error. This is what `--emit-fastq` output looks like, and the parents cannot be identified in it. Convert from BAM as above, or run without `--drop_duplex_parents`.
+- **No `dx` tags and no duplex reads** (simplex data): the FASTQ is passed through unchanged, without reading it in full, and the pipeline prints a warning.
+
+Because only the first reads are checked, do not mix simplex and duplex FASTQs within one sample. A duplex FASTQ is filtered in a single pass, limited by single-threaded decompression; for very large inputs (hundreds of GB of `fastq.gz`) this takes one to two hours.
+
 ## Running the pipeline
 
 The typical command for running the pipeline on a 10X Multiome samplesheet (cDNA + DNA) is as follows:

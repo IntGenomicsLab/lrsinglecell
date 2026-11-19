@@ -140,6 +140,12 @@
                     "type": "boolean",
                     "description": "Skip quality trimming step.",
                     "fa_icon": "fas fa-forward"
+                },
+                "drop_duplex_parents": {
+                    "type": "boolean",
+                    "description": "Drop the simplex parents (`dx:i:-1`) of dorado duplex reads from the input FASTQs.",
+                    "help_text": "`dorado duplex` writes duplex consensus reads (`dx:i:1`), unpaired simplex reads (`dx:i:0`) and the simplex template and complement of each consensus read (`dx:i:-1`) to the same file. With this option the `dx:i:-1` records are removed before QC and demultiplexing, so each duplex molecule is used once, as its consensus read. The FASTQ headers must keep dorado's tags: `dorado duplex --emit-fastq` does not write `dx`, so convert the duplex BAM with `samtools fastq -T '*'`. FASTQs without `dx` tags are passed through unchanged with a warning, and a duplex FASTQ without `dx` tags (read names `<id1>;<id2>`) stops the run with an error.",
+                    "fa_icon": "fas fa-clone"
                 }
             },
             "fa_icon": "fas fa-cut"

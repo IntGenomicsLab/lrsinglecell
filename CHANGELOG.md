@@ -5,6 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.2.0dev - [unreleased]
 
+### Additions
+
+- `--drop_duplex_parents` (off by default) removes the simplex parents (`dx:i:-1`) of dorado duplex reads from the input FASTQs before QC and demultiplexing, so each duplex molecule is used once, as its consensus read. FASTQs without `dx` tags are passed through unchanged with a warning; a duplex FASTQ without `dx` tags (`dorado duplex --emit-fastq`, which does not write them) stops the run with an error saying to convert the duplex BAM with `samtools fastq -T '*'`. Per-sample counts are published to `<sample>/<type>/qc/duplex_filter/`. New module `FILTER_DUPLEX_PARENTS` with tests in `modules/local/filter_duplex_parents/tests/`
+
 ## v1.1.0 - [2026-11-09]
 
 ### Changes

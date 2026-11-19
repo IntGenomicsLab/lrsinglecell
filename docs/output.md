@@ -29,6 +29,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
 - [Other steps](#other-steps)\*
   - [UCSC](#ucsc) - Annotation BED file
 - [Quality Control](#quality-control)
+  - [Duplex filter](#duplex-filter) - Dorado duplex parent reads dropped (`--drop_duplex_parents`)
   - [FastQC](#fastqc) - FASTQ QC
   - [NanoComp](#nanocomp) - Long Read FASTQ QC
   - [NanoPlot](#nanoplot) - Long Read FASTQ QC
@@ -487,6 +488,33 @@ Ambient RNA and empty-droplet tools such as CellBender fit a count likelihood an
 [`ucsc-gtftogenepred` and `ucsc-genepredtobed`](https://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/) are stand-alone applications developed by UCSC which, together, converts a GTF file the BED file format.
 
 ## Quality Control
+
+### Duplex filter
+
+<details markdown="1">
+<summary>Output files</summary>
+
+- `<sample_identifier>/`
+  - `<type>/` (`cdna` or `dna`)
+    - `qc/`
+      - `duplex_filter/`
+        - `<sample>.<type>.duplex_filter.tsv`: number of reads kept and dropped by `--drop_duplex_parents`.
+
+</details>
+
+Only written with `--drop_duplex_parents`. A two-column `metric`/`value` table:
+
+| metric       | meaning                                                                                                                                                                                |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mode`       | `filtered`; `passthrough_no_dx` (no `dx` tags, file used unchanged); `nothing_to_drop` (no `dx:i:-1` reads); `kept_all_no_consensus` (`dx:i:-1` reads but no `dx:i:1` reads, all kept) |
+| `records_in` | reads in the input FASTQ                                                                                                                                                               |
+| `dx_1`       | duplex consensus reads                                                                                                                                                                 |
+| `dx_0`       | simplex reads without a duplex partner                                                                                                                                                 |
+| `dx_minus1`  | simplex parents of a duplex consensus read                                                                                                                                             |
+| `no_dx_tag`  | reads without a `dx` tag, or with a value other than -1, 0 or 1                                                                                                                        |
+| `dropped`    | reads removed; equals `dx_minus1` when `mode` is `filtered`, else 0                                                                                                                    |
+
+For `passthrough_no_dx` the file is not read in full, so the counts are `NA`. In a normal duplex run, `dropped` is twice `dx_1`. The filter runs before the pre-trim QC, so FastQC, NanoPlot, NanoComp and the read counts all describe the filtered reads. See the [usage docs](usage.md#dorado-duplex-reads) for the input requirements.
 
 ### FastQC
 

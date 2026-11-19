@@ -9,6 +9,7 @@
 //
 
 include { CHOPPER                           } from "../modules/local/chopper"
+include { FILTER_DUPLEX_PARENTS             } from "../modules/local/filter_duplex_parents"
 include { READ_COUNTS                       } from "../modules/local/read_counts"
 include { UCSC_GENEPREDTOBED                } from "../modules/local/ucsc_genepredtobed"
 
@@ -161,6 +162,31 @@ workflow LRSINGLECELL {
         .reads
         .mix ( ch_fastqs.single )
         .set { ch_cat_fastq }
+
+    //
+    // MODULE: Drop the simplex parents (dx:i:-1) of dorado duplex reads, so each
+    // duplex molecule enters once, as its consensus read. FASTQs without dx tags
+    // pass through unchanged. Runs before QC so all counts describe the reads used.
+    //
+
+    if (params.drop_duplex_parents) {
+        FILTER_DUPLEX_PARENTS ( ch_cat_fastq )
+        ch_cat_fastq = FILTER_DUPLEX_PARENTS.out.reads
+        ch_versions = ch_versions.mix(FILTER_DUPLEX_PARENTS.out.versions_filter_duplex_parents)
+
+        // A duplex FASTQ without dx tags fails in the module itself; warn about
+        // the files that went through unfiltered
+        FILTER_DUPLEX_PARENTS.out.mode
+            .subscribe { meta, mode ->
+                if (mode == 'passthrough_no_dx') {
+                    log.warn("--drop_duplex_parents: no dorado 'dx' tags in the reads of ${meta.id} (${meta.type}), so no duplex parents were dropped. " +
+                        "This is expected for simplex FASTQs. For duplex data, convert dorado's duplex BAM with 'samtools fastq -T \"*\"' to keep the tags")
+                } else if (mode == 'kept_all_no_consensus') {
+                    log.warn("--drop_duplex_parents: the reads of ${meta.id} (${meta.type}) have duplex parents (dx:i:-1) but no duplex consensus reads (dx:i:1). " +
+                        "Kept all reads, because dropping the parents would lose these molecules")
+                }
+            }
+    }
 
     //
     // SUBWORKFLOW: Fastq QC with Nanoplot, ToulligQC and FastQC - pre-trim QC
