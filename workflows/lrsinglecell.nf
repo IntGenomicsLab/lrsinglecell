@@ -700,7 +700,11 @@ workflow LRSINGLECELL {
             // MODULE: MultiQC for raw data
             //
             ch_multiqc_rawqc_files = ch_fastqc_multiqc_pretrim.collect().ifEmpty([])
-            ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_nanostat_pretrim.collect{it -> it[1]}.ifEmpty([]))
+            // ch_nanostat_pretrim is ifEmpty([]): with NanoPlot skipped it emits a
+            // bare [], and it[1] on that would hand MultiQC a null path.
+            if (!params.skip_nanoplot) {
+                ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_nanostat_pretrim.collect{it -> it[1]}.ifEmpty([]))
+            }
             ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_nanocomp_fastq_txt.collect{it -> it[1]}.ifEmpty([]))
             ch_multiqc_rawqc_files = ch_multiqc_rawqc_files.mix(ch_collated_versions.collect())
 
