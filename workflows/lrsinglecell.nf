@@ -242,7 +242,8 @@ workflow LRSINGLECELL {
     PREPARE_REFERENCE_FILES (
         params.genome_fasta,
         params.transcript_fasta,
-        params.gtf
+        params.gtf,
+        quantifier_list
     )
 
     genome_fasta = PREPARE_REFERENCE_FILES.out.prepped_genome_fasta
@@ -589,6 +590,7 @@ workflow LRSINGLECELL {
             ch_extracted_fastq_cdna,
             ch_corrected_bc_info_cdna,
             ch_barcode_counts_cdna,
+            PREPARE_REFERENCE_FILES.out.derived_transcript_fasta,
             genome_fasta,
             gtf,
             params.skip_qc,
