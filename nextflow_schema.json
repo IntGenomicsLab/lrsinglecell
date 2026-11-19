@@ -56,7 +56,7 @@
                     "mimetype": "text/plain",
                     "pattern": "^\\S+\\.fn?a(sta)?(\\.gz|\\.zip)?$",
                     "description": "Path to genome FASTA file.",
-                    "help_text": "Required for DNA samples and for the `isoquant` and `lrkallisto` quantifiers.",
+                    "help_text": "Required for DNA samples, for the `isoquant` and `lrkallisto` quantifiers, and for `oarfish` when `--transcript_fasta` is not given.",
                     "fa_icon": "fas fa-book-open"
                 },
                 "transcript_fasta": {

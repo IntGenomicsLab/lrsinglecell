@@ -96,7 +96,7 @@ The settings to change for your data:
 | 10X 3' v3 / v4 or 5' v2 / v3    | `--barcode_format 10X_3v3`, `10X_3v4`, `10X_5v2` or `10X_5v3`                                                           |
 | 10X Multiome                    | `--barcode_format 10X_multiome` (required for DNA rows unless you give a custom pattern)                                |
 | Another DNA barcoding chemistry | `--custom_flexiplex_barcode_dna "<flexiplex pattern>" --dna_whitelist barcodes.txt` ([details](usage.md#dna-libraries)) |
-| Transcript quantification only  | `--quantifier oarfish` (also needs `--transcript_fasta`), or `--quantifier lrkallisto`                                  |
+| Transcript quantification only  | `--quantifier oarfish` (`--transcript_fasta` is optional), or `--quantifier lrkallisto`                                 |
 | Several quantifiers             | `--quantifier isoquant,oarfish,lrkallisto`                                                                              |
 | DNA only                        | omit `--gtf` and `--quantifier`                                                                                         |
 

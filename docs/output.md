@@ -212,6 +212,7 @@ The knee plot shows all barcodes detected in a sample, ranked from highest to lo
 - `references/` (unless `--skip_save_minimap2_index`)
   - `genome/minimap_index/*.mmi`: The minimap2 index of the genome FASTA used for cDNA genome alignment (`-x splice -k<kmer_size>`).
   - `transcriptome/minimap_index/*.mmi`: The minimap2 index of the transcriptome FASTA used for cDNA transcriptome alignment (`-x map-ont -k<kmer_size>`).
+- `references/transcriptome/transcripts.fasta` (when `oarfish` is a quantifier and `--transcript_fasta` is not given): The transcriptome the oarfish arm aligns to, extracted from the genome and GTF by `gffread -w`. Published regardless of `--skip_save_minimap2_index`.
   - `dna/minimap_index/*.mmi`: The minimap2 index of the genome FASTA used for DNA alignment (`-x map-ont`).
 
 </details>

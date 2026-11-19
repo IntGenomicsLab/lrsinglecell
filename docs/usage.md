@@ -102,9 +102,9 @@ For a cDNA-only run, set `--barcode_format` to the 10X chemistry of the library 
 
 Which references are needed depends on the data types and quantifiers:
 
-- `--genome_fasta` is required for DNA samples, and for the `isoquant` and `lrkallisto` quantifiers.
+- `--genome_fasta` is required for DNA samples, for the `isoquant` and `lrkallisto` quantifiers, and for `oarfish` when `--transcript_fasta` is not given.
 - `--gtf` is required whenever the samplesheet contains `cdna` rows, and can be omitted for a DNA-only run.
-- `--transcript_fasta` is required for the `oarfish` quantifier, and is not used otherwise (lr-kallisto extracts its own transcriptome from `--genome_fasta` and `--gtf` with `gffread`). Its transcript ids must match the GTF.
+- `--transcript_fasta` is optional and only used by `oarfish`. Without it, the transcript sequences are extracted from `--genome_fasta` and `--gtf` with `gffread -w` (the same transcriptome lr-kallisto indexes) and published to `references/transcriptome/transcripts.fasta`. If you give one, e.g. GENCODE `transcripts.fa`, its sequence ids must match the `transcript_id`s of the GTF (after [`--fasta_delimiter`](#transcriptome-deduplication-and---fasta_delimiter)). lr-kallisto always uses the `gffread` transcriptome.
 
 For the `--quantifier` parameter, give one quantifier (`isoquant`, `oarfish` or `lrkallisto`) or several as a comma-separated list without spaces, e.g. `isoquant,oarfish`.
 
@@ -112,11 +112,11 @@ For the `--quantifier` parameter, give one quantifier (`isoquant`, `oarfish` or 
 
 Three quantifiers are available through `--quantifier`, and any combination of them can be requested as a comma-delimited string:
 
-| Quantifier   | Reference required         | Levels            | Notes                                                                  |
-| ------------ | -------------------------- | ----------------- | ---------------------------------------------------------------------- |
-| `isoquant`   | `genome_fasta` + `gtf`     | gene + transcript | Quantifies from a genome alignment                                     |
-| `oarfish`    | `transcript_fasta` + `gtf` | transcript        | Quantifies from a transcriptome alignment; always deduplicates         |
-| `lrkallisto` | `genome_fasta` + `gtf`     | gene + transcript | Pseudoaligns straight from the FASTQ; quantification uses no alignment |
+| Quantifier   | Reference required                                            | Levels            | Notes                                                                  |
+| ------------ | ------------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------- |
+| `isoquant`   | `genome_fasta` + `gtf`                                        | gene + transcript | Quantifies from a genome alignment                                     |
+| `oarfish`    | `gtf`, plus `transcript_fasta` or `genome_fasta` to derive it | transcript        | Quantifies from a transcriptome alignment; always deduplicates         |
+| `lrkallisto` | `genome_fasta` + `gtf`                                        | gene + transcript | Pseudoaligns straight from the FASTQ; quantification uses no alignment |
 
 `--quantifier` only applies to `cdna` samples. It is required whenever the samplesheet contains at least one `cdna` row, and can be omitted entirely for a DNA-only run: DNA samples are aligned and deduplicated but never quantified. If a DNA-only samplesheet is given without `--quantifier`, the pipeline runs the DNA path only; if a `cdna` row is present without `--quantifier`, the run stops with an error.
 
@@ -319,6 +319,8 @@ Test profiles. Each runs the pipeline end to end on small public data from [IntG
   - cDNA + DNA: both libraries of the same 10X Multiome subsample (`--barcode_format 10X_multiome`), `--quantifier isoquant`. This is the profile used in the [tutorial](tutorial.md).
 - `test_lrkallisto`
   - The cDNA data of `test`, quantified with `--quantifier lrkallisto` (with `--lrkallisto_all_min_reads 0`, so the tiny all-droplet matrix is not filtered).
+- `test_oarfish`
+  - The cDNA data of `test`, quantified with `--quantifier isoquant,oarfish` and no `--transcript_fasta`, so the oarfish arm aligns to the transcriptome derived from the genome and GTF with `gffread`.
 - `test_full`
   - A full-size cDNA run: the complete ERR9958133 and ERR9958134 FASTQs (downloaded from the ENA) against GRCh38 with the GENCODE v45 genome, transcriptome and annotation, `--barcode_format 10X_3v3`, `--split_amount 500000` and all three quantifiers. It has no resource cap and needs a cluster.
 
@@ -450,7 +452,7 @@ We have also seen recurrent node failures on Slurm clusters that are related to 
 
 ### Transcriptome deduplication and `--fasta_delimiter`
 
-UMI deduplication is split by chromosome for speed. For the transcriptome alignment the pipeline first has to group the transcripts by chromosome, which it does by reading the transcript id from the transcriptome FASTA headers and looking it up in the GTF. Transcript ids are often embedded in a longer, delimited FASTA header; the delimiters used by GENCODE, NCBI and Ensembl references are detected automatically. If your reference uses a different delimiter, set it with `--fasta_delimiter`. This only applies to the `--transcript_fasta` used by oarfish; the transcriptome lr-kallisto derives with `gffread` has plain transcript ids.
+UMI deduplication is split by chromosome for speed. For the transcriptome alignment the pipeline first has to group the transcripts by chromosome, which it does by reading the transcript id from the transcriptome FASTA headers and looking it up in the GTF. Transcript ids are often embedded in a longer, delimited FASTA header; the delimiters used by GENCODE, NCBI and Ensembl references are detected automatically. If your reference uses a different delimiter, set it with `--fasta_delimiter`. This only matters when you give `--transcript_fasta`; the transcriptome derived with `gffread` has plain transcript ids.
 
 ### BLAZE
 

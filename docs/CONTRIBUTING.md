@@ -80,7 +80,7 @@ For more information about linting tests, see [nf-core/tools API documentation](
 
 #### Pipeline tests
 
-The test profiles (`test`, `test_dna`, `test_mixed`, `test_lrkallisto`, ...) run the pipeline on small datasets from [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell).
+The test profiles (`test`, `test_dna`, `test_mixed`, `test_lrkallisto`, `test_oarfish`, ...) run the pipeline on small datasets from [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell).
 GitHub Actions runs the nf-tests on them, with Docker and Singularity, to ensure the pipeline runs through and its outputs match the snapshots.
 If there are any failures then the automated tests fail.
 These tests are run with the latest available version of Nextflow and the minimum required version specified in the pipeline code.
