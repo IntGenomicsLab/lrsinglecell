@@ -107,7 +107,7 @@ With `--drop_duplex_parents` set, the pipeline looks at the first 1000 reads of 
 - **No `dx` tags, but duplex consensus reads (read names `<id1>;<id2>`)**: the run stops with an error. This is what `--emit-fastq` output looks like, and the parents cannot be identified in it. Convert from BAM as above, or run without `--drop_duplex_parents`.
 - **No `dx` tags and no duplex reads** (simplex data): the FASTQ is passed through unchanged, without reading it in full, and the pipeline prints a warning.
 
-Because only the first reads are checked, do not mix simplex and duplex FASTQs within one sample. A duplex FASTQ is filtered in a single pass, limited by single-threaded decompression; for very large inputs (hundreds of GB of `fastq.gz`) this takes one to two hours.
+Because only the first reads are checked, do not mix simplex and duplex FASTQs within one sample. A duplex FASTQ is rewritten in a single pass with 8 CPUs, which recompress the kept reads with `pigz`. This took about 8 s per GB of uncompressed FASTQ in our tests, so very large inputs (hundreds of GB of `fastq.gz`) take one to two hours.
 
 ## Running the pipeline
 

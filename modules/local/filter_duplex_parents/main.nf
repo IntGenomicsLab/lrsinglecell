@@ -29,10 +29,10 @@ process FILTER_DUPLEX_PARENTS {
     out=${prefix}.duplex_filtered.fastq.gz
 
     # dorado writes dx on every record of a duplex-mode file, so the headers of
-    # the first 1000 records tell whether this is one. zcat | head ends with
+    # the first 1000 records tell whether this is one. pigz -dc | head ends with
     # SIGPIPE, which must not fail the task under pipefail.
     set +o pipefail
-    zcat "${reads}" | head -n 4000 | awk 'NR % 4 == 1' > probe_headers.txt || true
+    pigz -dc "${reads}" | head -n 4000 | awk 'NR % 4 == 1' > probe_headers.txt || true
     set -o pipefail
     n_probe_dx=\$(grep -cE '(^|[[:space:]])dx:i:' probe_headers.txt || true)
     # Duplex consensus reads are named <template>;<complement>
@@ -53,7 +53,7 @@ process FILTER_DUPLEX_PARENTS {
         n_in=NA; n_1=NA; n_0=NA; n_m1=NA; n_none=NA; dropped=0
         ln -s "${reads}" "\$out"
     else
-        zcat "${reads}" \\
+        pigz -dc "${reads}" \\
             | awk -v counts=counts.txt '
                 NR % 4 == 1 {
                     n_in++

@@ -1,4 +1,40 @@
 {
+    "empty input - passed through": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "dna"
+                    },
+                    "S1.duplex_filter.tsv:md5,76b6cec00d777fbbd2416711e373446e"
+                ]
+            ]
+        ],
+        "timestamp": "2026-11-19T18:23:31.967282755",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    },
+    "only dx:i:0 reads - nothing to drop, input linked": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "cdna"
+                    },
+                    "S1.duplex_filter.tsv:md5,783f21f1fb2a157f0d4c86fadda5c154"
+                ]
+            ]
+        ],
+        "timestamp": "2026-11-19T18:23:27.322768876",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    },
     "space-separated tags - parents dropped": {
         "content": [
             [
@@ -48,6 +84,24 @@
             ]
         ],
         "timestamp": "2026-11-19T15:19:58.542192218",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    },
+    "multi-member gzip - parents dropped in every member": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "dna"
+                    },
+                    "S1.duplex_filter.tsv:md5,2c796a576204e42038b2be23a85d5b04"
+                ]
+            ]
+        ],
+        "timestamp": "2026-11-19T18:23:22.773919867",
         "meta": {
             "nf-test": "0.9.4",
             "nextflow": "26.04.3"

@@ -200,6 +200,92 @@ nextflow_process {
         }
     }
 
+    // CAT_FASTQ concatenates a sample's fastq.gz files, so the input is often a
+    // multi-member gzip. The probe and the filter must read past the first member.
+    test("multi-member gzip - parents dropped in every member") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/multi_member.fastq.gz")
+                def os = fq.newOutputStream()
+                [
+                    '@t1;c1\\tdx:i:1\\nACGTACGT\\n+\\nIIIIIIII\\n@t1\\tdx:i:-1\\nACGTACGA\\n+\\nIIIIIIII\\n',
+                    '@c1\\tdx:i:-1\\nACGTACGC\\n+\\nIIIIIIII\\n@s1\\tdx:i:0\\nTTTTGGGG\\n+\\nIIIIIIII\\n'
+                ].each { member ->
+                    def gz = new java.util.zip.GZIPOutputStream(os)
+                    gz.write(member.getBytes('UTF-8'))
+                    gz.finish()
+                }
+                os.close()
+                input[0] = [ [ id:'S1', type:'dna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def headers = path(process.out.reads[0][1]).linesGzip.findAll { it.startsWith('@') }
+            assertAll(
+                { assert process.success },
+                { assert headers == [ '@t1;c1\tdx:i:1', '@s1\tdx:i:0' ] },
+                { assert path(process.out.stats[0][1]).readLines().contains('records_in\t4') },
+                { assert path(process.out.stats[0][1]).readLines().contains('dropped\t2') },
+                { assert snapshot(process.out.stats).match() }
+            )
+        }
+    }
+
+    test("only dx:i:0 reads - nothing to drop, input linked") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/simplex_dx0.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@s1\\tdx:i:0\\nTTTTGGGG\\n+\\nIIIIIIII\\n'
+                    w << '@s2\\tdx:i:0\\nGGGGTTTT\\n+\\nIIIIIIII\\n'
+                }
+                input[0] = [ [ id:'S1', type:'cdna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def out = process.out.reads[0][1]
+            assertAll(
+                { assert process.success },
+                { assert java.nio.file.Files.isSymbolicLink(java.nio.file.Paths.get(out)) },
+                { assert path(out).linesGzip.size() == 8 },
+                { assert path(process.out.stats[0][1]).readLines().contains('mode\tnothing_to_drop') },
+                { assert process.out.mode[0][1] == 'nothing_to_drop' },
+                { assert snapshot(process.out.stats).match() }
+            )
+        }
+    }
+
+    test("empty input - passed through") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/empty.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).close()
+                input[0] = [ [ id:'S1', type:'dna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def out = process.out.reads[0][1]
+            assertAll(
+                { assert process.success },
+                { assert path(out).linesGzip.size() == 0 },
+                { assert path(process.out.stats[0][1]).readLines().contains('mode\tpassthrough_no_dx') },
+                { assert snapshot(process.out.stats).match() }
+            )
+        }
+    }
+
     test("stub") {
 
         options "-stub"
