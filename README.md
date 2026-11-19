@@ -9,6 +9,7 @@
 [![run with conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
 [![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24341090.svg)](https://doi.org/10.5281/zenodo.24341090)
 
 ## Introduction
 
@@ -55,7 +56,7 @@ All you need is Nextflow (≥ 25.10.4) and Docker, Singularity/Apptainer or Cond
 nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 -profile test_mixed,singularity --outdir test_results
 ```
 
-Use `test` for cDNA only (two 10X 3' v3 samples), `test_dna` for DNA only (the DNA half of the Multiome subsample), or `test_mixed` for both; `test_lrkallisto` and `test_oarfish` run the `test` data through the other two quantifiers. All profiles are described in the [usage documentation](docs/usage.md#-profile). Replace `singularity` with `docker`, `apptainer` or `conda` to match your system.
+Use `test` for cDNA only (two 10X 3' v3 samples), `test_dna` for DNA only (the DNA half of the Multiome subsample), or `test_mixed` for both; `test_lrkallisto` runs the `test` data through lr-kallisto. All profiles are described in the [usage documentation](docs/usage.md#-profile). Replace `singularity` with `docker`, `apptainer` or `conda` to match your system.
 
 ### Samplesheet
 
@@ -134,7 +135,7 @@ If you would like to contribute to this pipeline, please see the [contributing g
 
 ## Citing LRSinglecell
 
-<!-- TODO (authors): replace the two placeholders below once the manuscript/preprint and the Zenodo record exist. -->
+<!-- TODO (authors): replace the manuscript placeholder below once the manuscript/preprint exists. -->
 
 If you use LRSinglecell for your analysis, please cite:
 
@@ -144,7 +145,7 @@ If you use LRSinglecell for your analysis, please cite:
 >
 > TODO: journal or preprint server, year. doi: TODO
 
-and the version of the pipeline you used, archived on Zenodo: doi: TODO (Zenodo DOI).
+and the version of the pipeline you used, archived on Zenodo: [10.5281/zenodo.24341090](https://doi.org/10.5281/zenodo.24341090) (this concept DOI always resolves to the latest release; each release has its own version DOI on the Zenodo record, e.g. [10.5281/zenodo.24341091](https://doi.org/10.5281/zenodo.24341091) for v1.1.0).
 
 Please also cite nf-core/scnanoseq, on which LRSinglecell is based:
 

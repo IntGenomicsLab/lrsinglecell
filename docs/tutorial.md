@@ -96,11 +96,11 @@ The settings to change for your data:
 | 10X 3' v3 / v4 or 5' v2 / v3    | `--barcode_format 10X_3v3`, `10X_3v4`, `10X_5v2` or `10X_5v3`                                                           |
 | 10X Multiome                    | `--barcode_format 10X_multiome` (required for DNA rows unless you give a custom pattern)                                |
 | Another DNA barcoding chemistry | `--custom_flexiplex_barcode_dna "<flexiplex pattern>" --dna_whitelist barcodes.txt` ([details](usage.md#dna-libraries)) |
-| Transcript quantification only  | `--quantifier oarfish` (`--transcript_fasta` is optional from v1.2.0), or `--quantifier lrkallisto`                     |
+| Transcript quantification only  | `--quantifier oarfish` (also needs `--transcript_fasta`), or `--quantifier lrkallisto`                                  |
 | Several quantifiers             | `--quantifier isoquant,oarfish,lrkallisto`                                                                              |
 | DNA only                        | omit `--gtf` and `--quantifier`                                                                                         |
 
-To keep the command short and reproducible, put the parameters in a YAML file and pass it with `-params-file params.yml`. Add `-resume` to restart a failed or interrupted run without redoing finished steps. For large PromethION runs, see [`--split_amount`](usage.md#large-runs-and---split_amount) and the [resource notes](usage.md#resources-for-large-datasets) in the usage documentation. Failed tasks that ran out of memory or time are retried automatically, with more resources, up to twice.
+To keep the command short and reproducible, put the parameters in a YAML file and pass it with `-params-file params.yml`. Add `-resume` to restart a failed or interrupted run without redoing finished steps. For large PromethION runs, see [`--split_amount`](usage.md#large-runs-and---split_amount) and the [resource notes](usage.md#resources-for-large-datasets) in the usage documentation. Failed tasks that ran out of memory or time are retried automatically once, with twice the resources.
 
 All parameters are listed with `nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 --help_full` and documented in the [usage docs](usage.md).
 

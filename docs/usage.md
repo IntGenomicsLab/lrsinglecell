@@ -104,7 +104,7 @@ Which references are needed depends on the data types and quantifiers:
 
 - `--genome_fasta` is required for DNA samples, and for the `isoquant` and `lrkallisto` quantifiers.
 - `--gtf` is required whenever the samplesheet contains `cdna` rows, and can be omitted for a DNA-only run.
-- `--transcript_fasta` is optional. It is only used by `oarfish`; when it is omitted the transcriptome is extracted from `--genome_fasta` and `--gtf` with `gffread`, as lr-kallisto already does. If you do give one, it must match the GTF (same transcript ids).
+- `--transcript_fasta` is required for the `oarfish` quantifier, and is not used otherwise (lr-kallisto extracts its own transcriptome from `--genome_fasta` and `--gtf` with `gffread`). Its transcript ids must match the GTF.
 
 For the `--quantifier` parameter, give one quantifier (`isoquant`, `oarfish` or `lrkallisto`) or several as a comma-separated list without spaces, e.g. `isoquant,oarfish`.
 
@@ -112,11 +112,11 @@ For the `--quantifier` parameter, give one quantifier (`isoquant`, `oarfish` or 
 
 Three quantifiers are available through `--quantifier`, and any combination of them can be requested as a comma-delimited string:
 
-| Quantifier   | Reference required                                            | Levels            | Notes                                                                  |
-| ------------ | ------------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------- |
-| `isoquant`   | `genome_fasta` + `gtf`                                        | gene + transcript | Quantifies from a genome alignment                                     |
-| `oarfish`    | `gtf`, plus `transcript_fasta` or `genome_fasta` to derive it | transcript        | Quantifies from a transcriptome alignment; always deduplicates         |
-| `lrkallisto` | `genome_fasta` + `gtf`                                        | gene + transcript | Pseudoaligns straight from the FASTQ; quantification uses no alignment |
+| Quantifier   | Reference required         | Levels            | Notes                                                                  |
+| ------------ | -------------------------- | ----------------- | ---------------------------------------------------------------------- |
+| `isoquant`   | `genome_fasta` + `gtf`     | gene + transcript | Quantifies from a genome alignment                                     |
+| `oarfish`    | `transcript_fasta` + `gtf` | transcript        | Quantifies from a transcriptome alignment; always deduplicates         |
+| `lrkallisto` | `genome_fasta` + `gtf`     | gene + transcript | Pseudoaligns straight from the FASTQ; quantification uses no alignment |
 
 `--quantifier` only applies to `cdna` samples. It is required whenever the samplesheet contains at least one `cdna` row, and can be omitted entirely for a DNA-only run: DNA samples are aligned and deduplicated but never quantified. If a DNA-only samplesheet is given without `--quantifier`, the pipeline runs the DNA path only; if a `cdna` row is present without `--quantifier`, the run stops with an error.
 
@@ -215,12 +215,12 @@ Everything runs unstranded by default: `--stranded` is unset, so minimap2 is run
 
 cDNA and DNA are deduplicated differently, and each arm has its own switch:
 
-- **cDNA** reads are UMI-deduplicated with UMI-tools (`--dedup_tool umitools`, the only option). The transcriptome alignment used by oarfish is always deduplicated. Deduplication of the genome alignment (used by IsoQuant) can be turned off with `--skip_cdna_dedup`, in which case the mapped-only BAM is published and quantified instead.
-- **DNA** reads carry no UMI and are duplicate-marked by `bin/mark_dna_duplicates.py`. `--skip_dedup` turns this off; it has no effect on cDNA. On the contigs in `--dna_exact_only_contigs` (comma-separated, default `chrM,MT`) only the exact duplicate rules are applied, because the mitochondrial genome's dense coverage makes the position-tolerant rules merge distinct molecules. If your reference names the mitochondrial genome differently, add its name here; the pipeline warns when none of the listed contigs is in the BAM header. See [DNA duplicate marking](output.md#dna-duplicate-marking) for the rules.
+- **cDNA** reads are UMI-deduplicated with UMI-tools (`--dedup_tool umitools`, the default). `--dedup_tool picard` is deprecated and will be removed: it groups on the cell barcode, ignores the UMI and only marks duplicates. The transcriptome alignment used by oarfish is always deduplicated. Deduplication of the genome alignment (used by IsoQuant) can be turned off with `--skip_cdna_dedup`, in which case the mapped-only BAM is published and quantified instead.
+- **DNA** reads carry no UMI and are duplicate-marked by `bin/mark_dna_duplicates.py`. `--skip_dedup` turns this off; it has no effect on cDNA. On the mitochondrial contigs `chrM` and `MT` (matched exactly) only the exact duplicate rules are applied, because the mitochondrial genome's dense coverage makes the position-tolerant rules merge distinct molecules. These two names are set in the `MARK_DUPLICATES_DNA` arguments in `conf/modules.config`; if your reference names the mitochondrial genome differently, override that process's `ext.args` (see [Custom tool arguments](#custom-tool-arguments)) with an `--exact-only-contig <name>` per contig. See [DNA duplicate marking](output.md#dna-duplicate-marking) for the rules.
 
 By default UMI-tools groups UMIs by feature rather than by alignment position: `--dedup_per_gene` (genome alignments) and `--dedup_per_contig` (transcriptome alignments), both `true`. This matters because `umi_tools` corrects its bundling position for soft clipping, and long reads carry variable amounts of untrimmed adapter and polyA, so reads from one PCR family end up in different position groups even when they align at an identical coordinate. Position-based grouping consequently leaves a large fraction of duplicates in place, and absolute molecule counts come out inflated.
 
-- `--dedup_per_gene` tags every alignment with the gene whose body it overlaps most (`GX`/`GN`/`GS` tags, written by `TAG_GENES`) and groups on that gene. It requires `--gtf`. Reads whose gene call is ambiguous, or that overlap no gene at all, are deduplicated by position instead and merged back in, so no reads are dropped. The `GS` distribution, and the fraction of reads without a gene, are published under `qc/gene_assignment/`. The genome fasta and the gtf must use the same contig names: `TAG_GENES` fails if the BAM header shares no contig with the gtf (e.g. `chr1` vs `1`), and warns if fewer than half of the gtf's gene-bearing contigs are in the BAM.
+- `--dedup_per_gene` tags every alignment with the gene whose body it overlaps most (`GX`/`GN`/`GS` tags, written by `TAG_GENES`) and groups on that gene. It requires `--gtf`. Reads whose gene call is ambiguous, or that overlap no gene at all, are deduplicated by position instead and merged back in, so no reads are dropped. The `GS` distribution per contig, which includes the reads without a gene, is published under `qc/gene_assignment/`. The genome fasta and the gtf must use the same contig names: `TAG_GENES` fails if the BAM header shares no contig with the gtf (e.g. `chr1` vs `1`), and warns if fewer than half of the gtf's gene-bearing contigs are in the BAM.
 - `--dedup_per_contig` applies to transcriptome alignments only, where a contig is a transcript. It needs no gene tag and no fallback.
 - Set either to `false` to restore position-based grouping. Note that these change absolute UMI counts substantially. Relative expression is essentially unaffected, but anything quoting UMIs per cell, library complexity or saturation will differ from earlier releases.
 
@@ -319,8 +319,6 @@ Test profiles. Each runs the pipeline end to end on small public data from [IntG
   - cDNA + DNA: both libraries of the same 10X Multiome subsample (`--barcode_format 10X_multiome`), `--quantifier isoquant`. This is the profile used in the [tutorial](tutorial.md).
 - `test_lrkallisto`
   - The cDNA data of `test`, quantified with `--quantifier lrkallisto` (with `--lrkallisto_all_min_reads 0`, so the tiny all-droplet matrix is not filtered).
-- `test_oarfish`
-  - The cDNA data of `test`, quantified with `--quantifier oarfish` and no `--transcript_fasta`, so the transcriptome is derived from the genome and GTF with `gffread`.
 - `test_full`
   - A full-size cDNA run: the complete ERR9958133 and ERR9958134 FASTQs (downloaded from the ENA) against GRCh38 with the GENCODE v45 genome, transcriptome and annotation, `--barcode_format 10X_3v3`, `--split_amount 500000` and all three quantifiers. It has no resource cap and needs a cluster.
 
@@ -359,7 +357,7 @@ Specify the path to a specific config file (this is a core Nextflow command). Us
 
 Whilst the default requirements set within the pipeline will hopefully work for most people and with most input data, you may find that you want to customise the compute resources that the pipeline requests. Each step in the pipeline has a default set of requirements for number of CPUs, memory and time, set by its label in [`conf/base.config`](../conf/base.config) (`process_single`, `process_low`, `process_medium`, `process_high`, ...).
 
-If a task fails with an exit code that usually means it was killed for running out of memory or time (the codes are listed in the `errorStrategy` in `conf/base.config`), it is retried automatically. The pipeline allows two retries (`maxRetries = 2`), so a task gets three attempts in total, and its resource requests are multiplied by the attempt number (`task.attempt`), so each attempt asks for more memory than the last. Any other failure, or a task that still fails on its last attempt, stops the pipeline once the running tasks have finished.
+If a task fails with an exit code that usually means it was killed for running out of memory or time (the codes are listed in the `errorStrategy` in `conf/base.config`), it is retried automatically. The pipeline allows one retry (`maxRetries = 1`), so a task gets two attempts in total, and its resource requests are multiplied by the attempt number (`task.attempt`), so the second attempt asks for twice the resources of the first. Any other failure, or a task that still fails on its last attempt, stops the pipeline once the running tasks have finished.
 
 To change the resource requests of a process, or to cap them at what your machine or cluster offers (`process.resourceLimits`), write a config file and pass it with `-c`. For example:
 
@@ -452,7 +450,7 @@ We have also seen recurrent node failures on Slurm clusters that are related to 
 
 ### Transcriptome deduplication and `--fasta_delimiter`
 
-UMI deduplication is split by chromosome for speed. For the transcriptome alignment the pipeline first has to group the transcripts by chromosome, which it does by reading the transcript id from the transcriptome FASTA headers and looking it up in the GTF. Transcript ids are often embedded in a longer, delimited FASTA header; the delimiters used by GENCODE, NCBI and Ensembl references are detected automatically. If your reference uses a different delimiter, set it with `--fasta_delimiter`. This only matters when you give `--transcript_fasta`; a transcriptome derived with `gffread` has plain transcript ids.
+UMI deduplication is split by chromosome for speed. For the transcriptome alignment the pipeline first has to group the transcripts by chromosome, which it does by reading the transcript id from the transcriptome FASTA headers and looking it up in the GTF. Transcript ids are often embedded in a longer, delimited FASTA header; the delimiters used by GENCODE, NCBI and Ensembl references are detected automatically. If your reference uses a different delimiter, set it with `--fasta_delimiter`. This only applies to the `--transcript_fasta` used by oarfish; the transcriptome lr-kallisto derives with `gffread` has plain transcript ids.
 
 ### BLAZE
 

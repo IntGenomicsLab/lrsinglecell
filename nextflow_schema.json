@@ -56,7 +56,7 @@
                     "mimetype": "text/plain",
                     "pattern": "^\\S+\\.fn?a(sta)?(\\.gz|\\.zip)?$",
                     "description": "Path to genome FASTA file.",
-                    "help_text": "Required for DNA samples and for the `isoquant` and `lrkallisto` quantifiers, and for `oarfish` when `--transcript_fasta` is not given (the transcriptome is then derived from the genome and the GTF).",
+                    "help_text": "Required for DNA samples and for the `isoquant` and `lrkallisto` quantifiers.",
                     "fa_icon": "fas fa-book-open"
                 },
                 "transcript_fasta": {
@@ -66,7 +66,7 @@
                     "format": "file-path",
                     "mimetype": "text/plain",
                     "fa_icon": "fas fa-book-open",
-                    "help_text": "Optional, and only used by the `oarfish` quantifier. When omitted, the transcript sequences are extracted from `--genome_fasta` and `--gtf` with gffread. If given, its transcript ids must match the GTF."
+                    "help_text": "This parameter is *mandatory* if you wish to use `oarfish` as a quantifier"
                 },
                 "gtf": {
                     "type": "string",
@@ -514,7 +514,7 @@
                 "pipelines_testdata_base_path": {
                     "type": "string",
                     "fa_icon": "far fa-check-circle",
-                    "description": "Base URL or local path to location of pipeline test dataset files. Not used by the test profiles, which point to IntGenomicsLab/test-datasets directly.",
+                    "description": "Base URL or local path to location of pipeline test dataset files",
                     "default": "https://raw.githubusercontent.com/nf-core/test-datasets/",
                     "hidden": true
                 },

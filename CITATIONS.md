@@ -92,6 +92,8 @@ LRSinglecell is derived from nf-core/scnanoseq; please cite it alongside this pi
 
 - [p7zip](https://p7zip.sourceforge.net/)
 
+- [Picard](https://broadinstitute.github.io/picard/) (cDNA deduplication with the deprecated `--dedup_tool picard` only)
+
 - [pigz](https://zlib.net/pigz/)
 
 - [RSeQC](https://pubmed.ncbi.nlm.nih.gov/22743226/)
