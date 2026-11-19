@@ -24,8 +24,12 @@ nextflow_pipeline {
             def metrics = { f -> f.readLines().drop(1)*.tokenize('\t').findAll { r -> r.size() == 2 }.collectEntries() }
             def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
 
+            // chr21 has no chrM/MT, so the --dna_exact_only_contigs warning must be logged
+            def nf_log = file("$outputDir/../meta/nextflow.log").text
+
             assertAll(
                 { assert workflow.success},
+                { assert nf_log.contains("None of the --dna_exact_only_contigs (chrM,MT) is in the reference") },
                 // The duplicate-marked bam is published and not empty
                 { assert file("$outputDir/${sample}/dna/bam/dedup/${sample}.bam").size() > 0 },
                 { assert file("$outputDir/${sample}/dna/bam/dedup/${sample}.bam.bai").exists() },
