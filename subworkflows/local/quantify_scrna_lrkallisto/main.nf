@@ -4,11 +4,11 @@
 // rather than from a bam, so this path needs no aligner and no separate
 // deduplication step: bustools deduplicates umis while counting.
 //
-// The reference is prepared once here; the counting itself lives in
-// LRKALLISTO_COUNT so it can be run twice over the same index.
+// The index is built once here, from the transcriptome PREPARE_REFERENCE_FILES
+// extracts with gffread; the counting itself lives in LRKALLISTO_COUNT so it can
+// be run twice over the same index.
 //
 
-include { GFFREAD          } from '../../../modules/nf-core/gffread/main'
 include { GTF_TO_T2G       } from '../../../modules/local/gtf_to_t2g'
 include { KALLISTO_INDEX   } from '../../../modules/local/kallisto/index'
 include { LRKALLISTO_COUNT } from '../../../subworkflows/local/lrkallisto_count'
@@ -25,6 +25,7 @@ workflow QUANTIFY_SCRNA_LRKALLISTO {
         in_fastq          // channel: [ val(meta), path(flexiplex_fastq) ]
         in_known_barcodes // channel: [ val(meta), path(known_barcodes) ]
         in_barcode_counts // channel: [ val(meta), path(barcode_counts) ]
+        in_transcripts    // channel: [ val(meta), path(transcripts_fasta) ], gffread-extracted from in_fasta + in_gtf
         in_fasta          // channel: [ val(meta), path(genome_fasta) ]
         in_gtf            // channel: [ val(meta), path(gtf) ]
         skip_qc           // bool: Skip qc steps
@@ -55,14 +56,6 @@ workflow QUANTIFY_SCRNA_LRKALLISTO {
         def technology = "0,0,${bc_length}:0,${bc_length},${bc_length + umi_length}:1,0,0"
 
         //
-        // MODULE: Extract the transcript sequences to index
-        //
-        GFFREAD (
-            in_gtf,
-            in_fasta.map { _meta, fasta -> fasta }
-        )
-
-        //
         // MODULE: Build the transcript-to-gene mapping from the same gtf
         //
         GTF_TO_T2G ( in_gtf )
@@ -78,8 +71,8 @@ workflow QUANTIFY_SCRNA_LRKALLISTO {
         def use_dlist = params.kallisto_dlist.toString().toBoolean()
 
         ch_index_input = use_dlist
-            ? GFFREAD.out.gffread_fasta.combine( in_fasta.map { _meta, fasta -> [ fasta ] } )
-            : GFFREAD.out.gffread_fasta.map { meta, transcripts -> [ meta, transcripts, [] ] }
+            ? in_transcripts.combine( in_fasta.map { _meta, fasta -> [ fasta ] } )
+            : in_transcripts.map { meta, transcripts -> [ meta, transcripts, [] ] }
 
         KALLISTO_INDEX ( ch_index_input )
         ch_versions = ch_versions.mix(KALLISTO_INDEX.out.versions_kallisto_index)

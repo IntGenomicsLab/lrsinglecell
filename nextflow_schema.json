@@ -61,12 +61,12 @@
                 },
                 "transcript_fasta": {
                     "type": "string",
-                    "description": "Path to transcriptome FASTA file.",
+                    "description": "Path to transcriptome FASTA file. Optional: without it, oarfish uses the transcriptome extracted from `--genome_fasta` and `--gtf` with gffread.",
                     "pattern": "^\\S+\\.fn?a(sta)?(\\.gz|\\.zip)?$",
                     "format": "file-path",
                     "mimetype": "text/plain",
                     "fa_icon": "fas fa-book-open",
-                    "help_text": "This parameter is *mandatory* if you wish to use `oarfish` as a quantifier"
+                    "help_text": "The transcriptome the `oarfish` arm aligns to. When it is not given, the pipeline extracts the transcript sequences from `--genome_fasta` and `--gtf` with `gffread -w` (the same transcriptome lr-kallisto indexes) and publishes it to `references/transcriptome/transcripts.fasta`. Give it to align to a different transcriptome, e.g. GENCODE `transcripts.fa`; its sequence ids must then match the `transcript_id`s of `--gtf`, after `--fasta_delimiter`. Not used by IsoQuant or lr-kallisto."
                 },
                 "gtf": {
                     "type": "string",
@@ -511,7 +511,7 @@
                     "type": "string",
                     "fa_icon": "far fa-check-circle",
                     "description": "Base URL or local path to location of pipeline test dataset files",
-                    "default": "https://raw.githubusercontent.com/nf-core/test-datasets/",
+                    "default": "https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/",
                     "hidden": true
                 },
                 "trace_report_suffix": {
