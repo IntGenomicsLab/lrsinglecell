@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-""" Unit test for bin/tag_genes.py: gene tagging and the bam/gtf contig name check.
+""" Unit test for bin/tag_genes.py: gene tagging, the bam/gtf contig name check and the
+    per-sample GS=none summary (--tag_summary).
 
     Not run by nf-test (which only collects *.nf.test); .github/workflows/bin-tests.yml
     runs it on pull requests. Locally, run it in the module's container, which has pysam
@@ -84,14 +85,19 @@ class TagGenesTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
-    def run_tool(self, tag, genes):
+    def run_tool(self, tag, genes, extra_args=()):
         d = self.tmp.name
         gtf = os.path.join(d, f"{tag}.gtf")
         write_gtf(gtf, genes)
         out = {k: os.path.join(d, f"{tag}.{k}") for k in ("bam", "tsv")}
+        out["tag_summary"] = os.path.join(d, f"{tag}.gene_tag_summary.tsv")
         proc = subprocess.run([sys.executable, SCRIPT, "-b", self.bam, "-g", gtf, "-o", out["bam"],
-                               "-s", out["tsv"], "-t", "1"], capture_output=True, text=True)
+                               "-s", out["tsv"], "-t", "1", *extra_args], capture_output=True, text=True)
         return proc, out
+
+    def read_tsv(self, path):
+        with open(path) as fh:
+            return [line.rstrip("\n").split("\t") for line in fh]
 
     def tags(self, bam):
         with pysam.AlignmentFile(bam, check_sq=False) as fh:
@@ -117,15 +123,47 @@ class TagGenesTest(unittest.TestCase):
         self.assertEqual(rows[0], ["contig", "gs", "non_primary", "count"])
         self.assertIn(["chr2", "none", "0", "1"], rows[1:])
 
+    def test_no_tag_summary_by_default(self):
+        proc, out = self.run_tool("nosummary", GENES)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertFalse(os.path.exists(out["tag_summary"]))
+
+    def test_tag_summary(self):
+        tag_summary = os.path.join(self.tmp.name, "S1.cdna.genome.gene_tag_summary.tsv")
+        proc, _ = self.run_tool("summary", GENES, ["-q", tag_summary, "-n", "S1"])
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+
+        rows = self.read_tsv(tag_summary)
+        self.assertEqual(rows[0], ["sample", "reads", "gs_none_reads", "gs_none_fraction"])
+        # 2 of the 4 alignments carry no gene, the same share the log reports
+        self.assertEqual(rows[1:], [["S1", "4", "2", "0.500000"]])
+        self.assertIn("GS=none fraction: 0.5000", proc.stderr)
+
+    def test_tag_summary_sample_defaults_to_file_name(self):
+        tag_summary = os.path.join(self.tmp.name, "S2.a.cdna.genome.gene_tag_summary.tsv")
+        proc, _ = self.run_tool("default_name", GENES, ["--tag_summary", tag_summary])
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(self.read_tsv(tag_summary)[1][0], "S2.a.cdna.genome")
+
+    def test_tag_summary_without_genes_on_any_read(self):
+        # every read is intergenic for this gtf: the whole sample is GS=none
+        far = [("chr1", 90001, 91000, "GF", "GeneFar")]
+        tag_summary = os.path.join(self.tmp.name, "far.gene_tag_summary.tsv")
+        proc, _ = self.run_tool("far", far, ["-q", tag_summary, "-n", "far"])
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(self.read_tsv(tag_summary)[1], ["far", "4", "4", "1.000000"])
+
     def test_chr_prefix_mismatch_fails(self):
         # Ensembl-style gtf ("1") against a UCSC-style bam ("chr1"): no shared contig
-        proc, out = self.run_tool("ensembl", renamed(GENES, lambda c: c[3:]))
+        tag_summary = os.path.join(self.tmp.name, "ensembl.gene_tag_summary.tsv")
+        proc, out = self.run_tool("ensembl", renamed(GENES, lambda c: c[3:]), ["-q", tag_summary])
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("none of the 1 gtf seqnames", proc.stderr)
         self.assertIn("'chr' prefix", proc.stderr)
         # it fails before writing anything
         self.assertFalse(os.path.exists(out["bam"]))
         self.assertFalse(os.path.exists(out["tsv"]))
+        self.assertFalse(os.path.exists(out["tag_summary"]))
 
     def test_small_overlap_warns(self):
         # the gtf annotates chr1 plus three contigs the bam does not have: 1 of 4 shared
