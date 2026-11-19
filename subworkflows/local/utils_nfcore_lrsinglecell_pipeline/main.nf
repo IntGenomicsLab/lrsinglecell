@@ -493,7 +493,15 @@ def methodsSteps(sample_types) {
         steps << [ "Genes and transcripts were quantified per cell from the genome alignments with ${citeTools(refs, ['isoquant'])}.", [ 'isoquant' ] ]
     }
     if (transcriptome_arm) {
-        steps << [ "Transcripts were quantified per cell from the transcriptome alignments with ${citeTools(refs, ['oarfish'])}.", [ 'oarfish' ] ]
+        // Without --transcript_fasta the transcriptome is extracted from the genome
+        // and the gtf with gffread (PREPARE_REFERENCE_FILES)
+        def derived = params.transcript_fasta
+            ? ''
+            : ", using transcript sequences extracted from the genome and the GTF with ${citeTools(refs, ['gffread'])}"
+        steps << [
+            "Transcripts were quantified per cell from the transcriptome alignments with ${citeTools(refs, ['oarfish'])}${derived}.",
+            params.transcript_fasta ? [ 'oarfish' ] : [ 'oarfish', 'gffread' ]
+        ]
     }
     if (has_cdna && quants.contains('lrkallisto')) {
         steps << [
