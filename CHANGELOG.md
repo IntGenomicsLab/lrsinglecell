@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### CI
 
-- nf-test now runs the full suite, with Docker and Singularity, after every merge into `dev`, weekly, on release and on manual dispatch. Pull requests still test only what changed, and changes under `conf/`, `assets/`, `modules/local/` or `subworkflows/local/` now trigger the full suite. A PR that only touched `conf/modules.config` used to run no tests. The bin script unit tests run for any change under `bin/` or `tests/bin/`, and on merges into `dev`. Removed the unused `fix-linting.yml` and `linting_comment.yml` workflows. `linting_comment.yml` could post another PR's lint results. Added a release checklist to `docs/CONTRIBUTING.md`
+- nf-test now runs the full suite, with Docker and Singularity, after every merge into `dev`, on release and on manual dispatch. Pull requests still test only what changed, and changes under `conf/`, `assets/`, `modules/local/` or `subworkflows/local/` now trigger the full suite. A PR that only touched `conf/modules.config` used to run no tests. The bin script unit tests run for any change under `bin/` or `tests/bin/`, and on merges into `dev`. Removed the unused `fix-linting.yml` and `linting_comment.yml` workflows. `linting_comment.yml` could post another PR's lint results. Added a release checklist to `docs/CONTRIBUTING.md`
 
 ## v1.1.0 - [2026-11-09]
 

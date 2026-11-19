@@ -1,7 +1,7 @@
 name: Run nf-test
 # Pull requests into dev run only the tests affected by the change (see the get-shards
 # and nf-test actions). Every other event runs the full suite: PRs into main, each
-# merge to dev, the weekly schedule, releases and manual dispatch.
+# merge to dev, releases and manual dispatch.
 on:
   pull_request:
     paths-ignore:
@@ -19,13 +19,6 @@ on:
       - "**/*.md"
       - "**/*.png"
       - "**/*.svg"
-  schedule:
-    # Mondays 03:00 UTC: catches drift in containers and Nextflow edge releases.
-    # On this event a latest-everything failure fails the run (see "Run nf-test"),
-    # and GitHub emails whoever last edited this cron line about failed scheduled runs.
-    # GitHub runs scheduled workflows from the default branch (main), so this
-    # trigger takes effect once it reaches main; the jobs then check out dev.
-    - cron: "0 3 * * 1"
   release:
     types: [published]
   workflow_dispatch: null
@@ -62,8 +55,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-          # scheduled runs start on the default branch (main); test dev instead
-          ref: ${{ github.event_name == 'schedule' && 'dev' || '' }}
 
       - name: get number of shards
         id: set-shards
@@ -94,7 +85,7 @@ jobs:
         profile: [docker, singularity]
         # Singularity/apptainer is the cluster runtime, but doubles the matrix, so
         # PRs to dev run docker only. PRs to main and every non-PR run (push to dev,
-        # schedule, release, dispatch) also run singularity.
+        # release, dispatch) also run singularity.
         fullMatrix:
           - ${{ github.event_name != 'pull_request' || github.base_ref == 'master' || github.base_ref == 'main' }}
         exclude:
@@ -111,15 +102,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-          # scheduled runs start on the default branch (main); test dev instead
-          ref: ${{ github.event_name == 'schedule' && 'dev' || '' }}
 
       - name: Run nf-test
         id: run_nf_test
         uses: ./.github/actions/nf-test
-        # latest-everything is non-blocking, except on the weekly schedule, whose job is
-        # to surface Nextflow edge drift (nobody would see a green-with-warning run).
-        continue-on-error: ${{ matrix.NXF_VER == 'latest-everything' && github.event_name != 'schedule' }}
+        continue-on-error: ${{ matrix.NXF_VER == 'latest-everything' }}
         env:
           NFT_WORKDIR: ${{ env.NFT_WORKDIR }}
           NXF_VERSION: ${{ matrix.NXF_VER }}
@@ -135,7 +122,7 @@ jobs:
             echo "::error::Test with ${{ matrix.NXF_VER }} failed"
             # Add to workflow summary
             echo "## ❌ Test failed: ${{ matrix.profile }} | ${{ matrix.NXF_VER }} | Shard ${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}" >> $GITHUB_STEP_SUMMARY
-            if [[ "${{ matrix.NXF_VER }}" == "latest-everything" && "${{ github.event_name }}" != "schedule" ]]; then
+            if [[ "${{ matrix.NXF_VER }}" == "latest-everything" ]]; then
               echo "::warning::Test with latest-everything failed but will not cause workflow failure. Please check if the error is expected or if it needs fixing."
             else
               exit 1
