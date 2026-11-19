@@ -5,6 +5,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## v1.2.0dev - [unreleased]
 
+### Changes
+
+- ([#18](https://github.com/IntGenomicsLab/lrsinglecell/issues/18)) `--transcript_fasta` is now optional for `--quantifier oarfish`. Without it, the transcriptome arm aligns to the transcript sequences `gffread -w` extracts from `--genome_fasta` and `--gtf`, which is published to `references/transcriptome/transcripts.fasta`. The extraction moved from the lr-kallisto subworkflow to `PREPARE_REFERENCE_FILES`, so one transcriptome serves both quantifiers. lr-kallisto still publishes it to `references/lrkallisto/transcripts.fasta`, and its outputs are unchanged. A given `--transcript_fasta` is still used as is by oarfish, and is still ignored by lr-kallisto
+- New `test_oarfish` profile (`conf/test_oarfish.config`): the chr21 test data quantified with `isoquant,oarfish`, without a transcript FASTA
+- The test profiles now build their URLs from `params.pipelines_testdata_base_path`, whose default is now `https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/` instead of nf-core/test-datasets. The resolved URLs are unchanged
+
+### Fixes
+
+- The software versions (`pipeline_info/lrsinglecell_software_mqc_versions.yml`, MultiQC) reported flexiplex `1.02.6.1` while the pipeline runs bioconda flexiplex `1.02.7`. The binary in that build prints the wrong version: bioconda built it from the upstream `v1.02.7` tag before upstream bumped the version string. The flexiplex modules now report the pinned package version, `1.02.7`
+
+### Tests
+
+- ([#18](https://github.com/IntGenomicsLab/lrsinglecell/issues/18)) `tests/oarfish.nf.test` runs the transcriptome arm for real (transcriptome alignment, `GROUP_TRANSCRIPTS`, `SPLIT_BAM`, per-contig deduplication, `OARFISH`). `tests/mixed.nf.test` runs `test_mixed`, with one sample as both cDNA and DNA. Both check the outputs as well as snapshotting them: non-empty matrices with one column per barcode and no `-` barcode, deduplication summaries with a duplication rate above 0, and the expected processes in the versions
+- ([#19](https://github.com/IntGenomicsLab/lrsinglecell/issues/19)) `tests/flags.nf.test` adds stub tests for `--skip_cdna_dedup`, `--dedup_per_gene false`/`--dedup_per_contig false`, `--skip_qc`, `--skip_seurat`, `--skip_lrkallisto_all_droplets` with `--kallisto_dlist false`, `--lrkallisto_all_min_reads` above 0, `--skip_save_minimap2_index`, `--demux_tool_cdna blaze`, the `10X_3v4`, `10X_5v2` and `10X_5v3` presets, oarfish with and without `--transcript_fasta`, and the new oarfish validation error. `tests/split.nf.test` runs `--split_amount` above 0 for real, since the nf-core `SEQKIT_SPLIT2` stub does not name its chunks `part_NNN`
+- oarfish writes its cells in a different order from run to run, so the oarfish `barcodes.tsv.gz` and `matrix.mtx.gz` are left out of the file md5s in the snapshot (`tests/.nftignore`), and their content is snapshotted in an order-independent form instead. The transcriptome BAMs and the oarfish Seurat images are ignored as well, like their genome and IsoQuant counterparts
+- ([#19](https://github.com/IntGenomicsLab/lrsinglecell/issues/19)) `tests/dna.nf.test` and `tests/lrkallisto.nf.test` now check the outputs as well as snapshotting them: non-empty matrices, deduplication summaries with a duplication rate above 0, and which processes did and did not run
+
 ### Documentation
 
 - Erratum for the v1.0.0 entry below: the whitelist parameters are `--dna_whitelist` and `--cdna_whitelist`, not `--whitelist_dna` and `--whitelist_cdna`. The entry is left as it was published
