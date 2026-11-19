@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changes
 
+- ([#11](https://github.com/IntGenomicsLab/lrsinglecell/issues/11)) Removed the Picard cDNA deduplication (`--dedup_tool picard`), deprecated in v1.0.1. Its removal was announced for v1.1.0 but had not happened. `--dedup_tool` remains and only accepts `umitools`; a run with `--dedup_tool picard` now fails at parameter validation with `--dedup_tool picard was removed in v1.2.0; use --dedup_tool umitools`, also with `--validate_params false`. The `picard/markduplicates` nf-core module and its `conf/modules.config` selectors are removed. DNA deduplication (`mark_dna_duplicates.py`) is unaffected and still writes Picard-format metrics for MultiQC
 - ([#18](https://github.com/IntGenomicsLab/lrsinglecell/issues/18)) `--transcript_fasta` is now optional for `--quantifier oarfish`. Without it, the transcriptome arm aligns to the transcript sequences `gffread -w` extracts from `--genome_fasta` and `--gtf`, which is published to `references/transcriptome/transcripts.fasta`. The extraction moved from the lr-kallisto subworkflow to `PREPARE_REFERENCE_FILES`, so one transcriptome serves both quantifiers. lr-kallisto still publishes it to `references/lrkallisto/transcripts.fasta`, and its outputs are unchanged. A given `--transcript_fasta` is still used as is by oarfish, and is still ignored by lr-kallisto
 - New `test_oarfish` profile (`conf/test_oarfish.config`): the chr21 test data quantified with `isoquant,oarfish`, without a transcript FASTA
 - The test profiles now build their URLs from `params.pipelines_testdata_base_path`, whose default is now `https://raw.githubusercontent.com/IntGenomicsLab/test-datasets/main/lrsinglecell/` instead of nf-core/test-datasets. The resolved URLs are unchanged
+
+### Added
+
+- ([#29](https://github.com/IntGenomicsLab/lrsinglecell/issues/29)) `--dna_exact_only_contigs` (default `chrM,MT`): the comma-separated contigs on which DNA duplicate marking applies only the exact rules (same 5' key, same raw read). Before, `chrM` and `MT` were hard-coded in the `MARK_DUPLICATES_DNA` arguments, so a genome naming its mitochondrion differently (e.g. `chrMT`, `M`) silently got the tolerance rules on it. An empty value turns the exact-only set off (new `mark_dna_duplicates.py --no-exact-only-contig`). The pipeline now logs a warning when none of the given names is in the reference `.fai` (`mark_dna_duplicates.py` also prints one to stderr when none is in the BAM header). Added both cases to `tests/bin/test_mark_dna_duplicates.py`, and a check for the warning to the `test_dna` nf-test (its chr21 reference has no mitochondrial contig)
 
 ### Fixes
 
