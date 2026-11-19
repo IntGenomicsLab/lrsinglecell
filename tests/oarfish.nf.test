@@ -1,0 +1,106 @@
+nextflow_pipeline {
+
+    name "Test pipeline with oarfish quantification"
+    script "../main.nf"
+    tag "pipeline"
+    profile "test_oarfish"
+
+    // The only test that runs the transcriptome arm for real: transcriptome
+    // alignment, GROUP_TRANSCRIPTS, SPLIT_BAM, per-contig umi_tools dedup and
+    // OARFISH, on a transcriptome gffread extracts from the genome and gtf
+    // because the profile gives no --transcript_fasta.
+    //
+    // The oarfish matrices in the snapshot will change once #45 (oarfish input
+    // sorted by CB + coordinate rather than collated by read name) is fixed.
+
+    test("-profile test_oarfish") {
+
+        when {
+            params {
+                outdir = "$outputDir"
+            }
+        }
+
+        then {
+            // stable_name: All files + folders in ${params.outdir}/ with a stable name
+            def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
+            // stable_path: All files in ${params.outdir}/ with stable content
+            def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+
+            def samples = ['ERR9958133', 'ERR9958134']
+            // The Matrix Market size line, the first line that is not a comment
+            def mtxSize = { File f ->
+                def stream = f.name.endsWith('.gz') ? new java.util.zip.GZIPInputStream(new FileInputStream(f)) : new FileInputStream(f)
+                def line = stream.withReader { reader -> reader.readLines().find { l -> !l.startsWith('%') } }
+                line.tokenize()*.toLong()
+            }
+            def gunzipLines = { File f ->
+                new java.util.zip.GZIPInputStream(new FileInputStream(f)).withReader { reader -> reader.readLines() }
+            }
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+            // oarfish writes the cells in a different order from run to run, so the
+            // matrix and barcode files are left out of stable_path (tests/.nftignore).
+            // Their content is snapshotted instead as an md5 over the sorted
+            // (feature, barcode, value) entries, which does not depend on that order.
+            def oarfishContent = { String sample ->
+                def dir = "$outputDir/${sample}/cdna/transcriptome/oarfish"
+                def barcodes = gunzipLines(new File("${dir}/barcodes.tsv.gz"))
+                def entries = gunzipLines(new File("${dir}/matrix.mtx.gz"))
+                    .findAll { l -> !l.startsWith('%') }
+                    .drop(1)
+                    .collect { l ->
+                        def (feature, cell, value) = l.tokenize()
+                        "${feature} ${barcodes[cell.toInteger() - 1]} ${value}".toString()
+                    }
+                    .sort()
+                java.security.MessageDigest.getInstance('MD5').digest(entries.join('\n').bytes).encodeHex().toString()
+            }
+
+            assertAll(
+                { assert workflow.success },
+                // The transcriptome is derived from the genome and gtf and published
+                // next to the transcriptome minimap2 index
+                { assert file("$outputDir/references/transcriptome/transcripts.fasta").size() > 0 },
+                { assert !file("$outputDir/references/lrkallisto").exists() },
+                // The oarfish matrix exists, is non-empty and has one column per barcode,
+                // none of them flexiplex's '-' placeholder (SAMTOOLS_FILTER_SORT drops those)
+                { samples.each { sample ->
+                    def dir = "$outputDir/${sample}/cdna/transcriptome/oarfish"
+                    def mtx = new File("${dir}/matrix.mtx.gz")
+                    def barcodes = gunzipLines(new File("${dir}/barcodes.tsv.gz"))
+                    def features = gunzipLines(new File("${dir}/features.tsv.gz"))
+                    def (n_rows, n_cols, n_entries) = mtxSize(mtx)
+                    assert n_entries > 0 : "${mtx.name} has no entries"
+                    assert n_rows == features.size() : "${mtx.name} does not have one row per feature"
+                    assert n_cols == barcodes.size() : "${mtx.name} does not have one column per barcode"
+                    assert !barcodes.contains('-') : "${sample} oarfish barcodes contain '-'"
+                    assert file("$outputDir/${sample}/cdna/transcriptome/qc/seurat_oarfish").exists()
+                } },
+                // The transcriptome arm always deduplicates; its summary must show reads
+                // going in and some of them removed
+                { samples.each { sample ->
+                    def summary = file("$outputDir/${sample}/cdna/transcriptome/qc/umitools/dedup/${sample}.cdna.transcriptome.umi_dedup_summary.tsv")
+                    assert summary.exists()
+                    def (header, row) = summary.readLines()*.tokenize('\t')
+                    def rec = [header, row].transpose().collectEntries()
+                    assert rec.input_reads.toLong() > 0
+                    assert rec.duplication_rate.toDouble() > 0
+                    assert file("$outputDir/${sample}/cdna/transcriptome/bam/dedup/${sample}.cdna.transcriptome.dedup.bam").size() > 0
+                } },
+                { ['GFFREAD', 'TRANSCRIPT_FAIDX', 'GROUP_TRANSCRIPTS', 'SPLIT_BAM', 'SAMTOOLS_FILTER_SORT', 'OARFISH', 'ISOQUANT'].each { proc ->
+                    assert versions.contains("${proc}:") : "${proc} is missing from the versions"
+                } },
+                { assert snapshot(
+                    // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
+                    removeNextflowVersion("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml"),
+                    // All stable path name, with a relative path
+                    stable_name,
+                    // All files with stable contents
+                    stable_path,
+                    // The oarfish matrices, independent of their cell order
+                    samples.collectEntries { sample -> [ (sample): oarfishContent(sample) ] }
+                ).match() }
+            )
+        }
+    }
+}
