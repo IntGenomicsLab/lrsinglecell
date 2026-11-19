@@ -1,10 +1,12 @@
 # IntGenomicsLab/lrsinglecell: Usage
 
-> _Documentation of pipeline parameters is generated automatically from the pipeline schema and can no longer be found in markdown files._
+> _The full list of parameters, with their defaults, is in the pipeline schema ([`nextflow_schema.json`](../nextflow_schema.json)) and is printed by `nextflow run IntGenomicsLab/lrsinglecell --help` (add `--help_full` for every parameter, `--show_hidden` for hidden ones). This page explains how to use the parameters that matter most._
+
+A step-by-step walkthrough, from installation to loading the results in R, is in the [tutorial](tutorial.md). The files the pipeline writes are described in [output.md](output.md).
 
 ## Samplesheet input
 
-You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 4 columns, and a header row as shown in the examples below.
+You will need to create a samplesheet with information about the samples you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with a header row, three required columns and an optional fourth, as shown in the examples below.
 
 ```bash
 --input '[path to samplesheet file]'
@@ -28,10 +30,10 @@ TREATMENT_REP2,/data/AEG588A5_DNA.fastq.gz,6000,dna
 
 | Column       | Description                                                                                                                                                                                  |
 | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sample`     | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. Spaces in sample names are automatically converted to underscores (`_`).       |
-| `fastq`      | Full path to FastQ file for Oxford Nanopore. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz".                                                                          |
+| `sample`     | Custom sample name. This entry will be identical for multiple sequencing libraries/runs from the same sample. It must not contain spaces.                                                    |
+| `fastq`      | Full path (or URL) to a FastQ file for Oxford Nanopore. File has to be gzipped and have the extension ".fastq.gz" or ".fq.gz". Each file can appear only once in the samplesheet.            |
 | `cell_count` | Expected number of cells/nuclei, an integer greater than 0. Only BLAZE (`--demux_tool_cdna blaze`) uses it, as `--expect-cells`. It is required on DNA rows too, but DNA rows do not use it. |
-| `type`       | An optional column specifiying whether the sample is DNA or cDNA. If omitted, the default `cdna` is used.                                                                                    |
+| `type`       | An optional column specifying whether the library is DNA (`dna`) or cDNA (`cdna`). If omitted, the default `cdna` is used.                                                                   |
 
 Rows with the same `sample` and `type` must use the same `cell_count`; the run stops with an error otherwise.
 
@@ -64,7 +66,7 @@ The pipeline checks this at start-up: a samplesheet with DNA rows but no known l
 
 ### Multiple runs of the same sample
 
-The `sample` identifiers have to be the same when you have re-sequenced the same sample more than once e.g. to increase sequencing depth. The pipeline will concatenate the raw reads before performing any downstream analysis. Below is an example for the same sample sequenced across replicates 1 and 4 (`REP1` and `REP4` respectively):
+The `sample` identifiers have to be the same when you have re-sequenced the same sample more than once e.g. to increase sequencing depth. The pipeline will concatenate the raw reads of rows with the same `sample` and `type` before performing any downstream analysis. Below is an example for the same sample sequenced across replicates 1 and 4 (`REP1` and `REP4` respectively):
 
 ```csv title="samplesheet.csv"
 sample,fastq,cell_count,type
@@ -114,43 +116,51 @@ Because only the first reads are checked, do not mix simplex and duplex FASTQs w
 The typical command for running the pipeline on a 10X Multiome samplesheet (cDNA + DNA) is as follows:
 
 ```bash
-nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 \
+nextflow run IntGenomicsLab/lrsinglecell -r <version> \
   --input ./samplesheet.csv \
   --outdir ./results \
   --genome_fasta /path/to/genome.fa \
-  --transcript_fasta /path/to/transcriptome.fa \
   --gtf /path/to/file.gtf \
-  --quantifier "isoquant,oarfish" \
+  --quantifier isoquant,oarfish \
   --demux_tool_cdna flexiplex \
   --demux_tool_dna flexiplex \
   --barcode_format 10X_multiome \
-  -profile <docker/singularity/institute>
+  -profile <docker/singularity/apptainer/institute>
 ```
 
-For a cDNA-only run, set `--barcode_format` to the 10X chemistry of the library (`10X_3v3`, `10X_3v4`, `10X_5v2` or `10X_5v3`); this also selects the matching bundled cDNA whitelist, which you can override with `--cdna_whitelist`.
+Replace `<version>` with a release tag, e.g. `-r v1.1.0` (see [Reproducibility](#reproducibility)).
 
-Please note that while the above command specifies both transcriptome and genome fasta files, only one is needed for the pipeline and is dependent on which quantifier you wish to use. Isoquant requires a genome fasta, while oarfish requires a transcript fasta. Furthermore, if you have any DNA samples, the `genome_fasta` is required. `--gtf` is required whenever the samplesheet contains `cdna` rows, and can be omitted for a DNA-only run.
-Additionally, for the `quantifier` parameter in the above command, we've listed the quantifiers as a comma-delimited string. It is possible to only use one quantifier, and can be accomplished by just providing the name of the quantifying tool you wish to run as a single value, i.e. providing `oarfish` if you only wish to run `oarfish`.
+For a cDNA-only run, set `--barcode_format` to the 10X chemistry of the library (`10X_3v3`, `10X_3v4`, `10X_5v2` or `10X_5v3`); this also selects the matching bundled cDNA whitelist, which you can override with `--cdna_whitelist`. See [Barcode formats](#barcode-formats).
+
+Which references are needed depends on the data types and quantifiers:
+
+- `--genome_fasta` is required for DNA samples, for the `isoquant` and `lrkallisto` quantifiers, and for `oarfish` when `--transcript_fasta` is not given.
+- `--gtf` is required whenever the samplesheet contains `cdna` rows, and can be omitted for a DNA-only run.
+- `--transcript_fasta` is optional and only used by `oarfish`. Without it, the transcript sequences are extracted from `--genome_fasta` and `--gtf` with `gffread -w` (the same transcriptome lr-kallisto indexes) and published to `references/transcriptome/transcripts.fasta`. If you give one, e.g. GENCODE `transcripts.fa`, its sequence ids must match the `transcript_id`s of the GTF (after [`--fasta_delimiter`](#transcriptome-deduplication-and---fasta_delimiter)). lr-kallisto always uses the `gffread` transcriptome.
+
+For the `--quantifier` parameter, give one quantifier (`isoquant`, `oarfish` or `lrkallisto`) or several as a comma-separated list without spaces, e.g. `isoquant,oarfish`.
 
 ### Quantifiers
 
 Three quantifiers are available through `--quantifier`, and any combination of them can be requested as a comma-delimited string:
 
-| Quantifier   | Reference required         | Levels            | Notes                                                                  |
-| ------------ | -------------------------- | ----------------- | ---------------------------------------------------------------------- |
-| `isoquant`   | `genome_fasta` + `gtf`     | gene + transcript | Quantifies from a genome alignment                                     |
-| `oarfish`    | `transcript_fasta` + `gtf` | transcript        | Quantifies from a transcriptome alignment; always deduplicates         |
-| `lrkallisto` | `genome_fasta` + `gtf`     | gene + transcript | Pseudoaligns straight from the FASTQ; quantification uses no alignment |
+| Quantifier   | Reference required                                            | Levels            | Notes                                                                  |
+| ------------ | ------------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------- |
+| `isoquant`   | `genome_fasta` + `gtf`                                        | gene + transcript | Quantifies from a genome alignment                                     |
+| `oarfish`    | `gtf`, plus `transcript_fasta` or `genome_fasta` to derive it | transcript        | Quantifies from a transcriptome alignment; always deduplicates         |
+| `lrkallisto` | `genome_fasta` + `gtf`                                        | gene + transcript | Pseudoaligns straight from the FASTQ; quantification uses no alignment |
 
 `--quantifier` only applies to `cdna` samples. It is required whenever the samplesheet contains at least one `cdna` row, and can be omitted entirely for a DNA-only run: DNA samples are aligned and deduplicated but never quantified. If a DNA-only samplesheet is given without `--quantifier`, the pipeline runs the DNA path only; if a `cdna` row is present without `--quantifier`, the run stops with an error.
+
+The cDNA genome alignment is made when `isoquant` or `lrkallisto` is requested, and the transcriptome alignment when `oarfish` is. An `oarfish`-only run therefore has no genome BAM.
 
 #### lr-kallisto
 
 [lr-kallisto](https://kallisto.readthedocs.io/en/latest/lr/pseudoalignment.html) is the long-read mode of kallisto (`kallisto --long`). Unlike the other two quantifiers, it does not align reads: it pseudoaligns them against a k=63 index and quantifies with a long-read expectation-maximisation step. That makes the quantification itself considerably faster.
 
-The cDNA genome alignment is produced regardless of quantifier, so a BAM and its alignment-derived QC are still available under `<sample>/cdna/genome/` even on an lr-kallisto-only run. lr-kallisto does not read it. If you want lr-kallisto's speed and do not need the BAM, `--skip_cdna_dedup` drops the expensive `umi_tools` chain and publishes the mapped-only BAM instead.
+The cDNA genome alignment is still produced when `lrkallisto` is requested, so a BAM and its alignment-derived QC are available under `<sample>/cdna/genome/` even on an lr-kallisto-only run. lr-kallisto does not read it. If you want lr-kallisto's speed and do not need the deduplicated BAM, `--skip_cdna_dedup` drops the expensive `umi_tools` chain and publishes the mapped-only BAM instead.
 
-Because lr-kallisto locates the cell barcode and UMI positionally rather than by name, the pipeline moves them out of the flexiplex read name into a synthetic barcode read before handing the FASTQs to `kallisto bus`. This reuses the barcodes that flexiplex already corrected against the whitelist, so cell barcodes are directly comparable with the other quantifiers. UMI deduplication is performed by `bustools` while counting, so `--dedup_tool` and `--skip_dedup` have no effect on this path. The published `gene/` matrix is an integer UMI count matrix (`bustools count --genecounts`) and can be given directly to CellBender or any other tool that expects counts; the `transcript/` matrix and the gene abundances under `quant/` are `kallisto quant-tcc` EM estimates and are fractional. See [`docs/output.md`](output.md#lr-kallisto) for the difference.
+Because lr-kallisto locates the cell barcode and UMI positionally rather than by name, the pipeline moves them out of the flexiplex read name into a synthetic barcode read before handing the FASTQs to `kallisto bus`. This reuses the barcodes that flexiplex already corrected against the whitelist, so cell barcodes are directly comparable with the other quantifiers. UMI deduplication is performed by `bustools` while counting, so `--dedup_tool`, `--skip_cdna_dedup` and `--skip_dedup` have no effect on the lr-kallisto matrices. The published `gene/` matrix is an integer UMI count matrix (`bustools count --genecounts`) and can be given directly to CellBender or any other tool that expects counts; the `transcript/` matrix and the gene abundances under `quant/` are `kallisto quant-tcc` EM estimates and are fractional. See [`docs/output.md`](output.md#lr-kallisto) for the difference.
 
 This means lr-kallisto has some extra requirements:
 
@@ -158,7 +168,12 @@ This means lr-kallisto has some extra requirements:
 - `--demux_tool_cdna` must be `flexiplex`; the `blaze` path keeps barcodes in a separate per-read table rather than in the read name.
 - `--custom_flexiplex_barcode_cdna` cannot be used, because the barcode and UMI widths are needed in order to locate them. Use one of the `--barcode_format` presets instead.
 
-The k-mer length, platform and d-list can be tuned with `--kallisto_kmer_size` (default 63), `--kallisto_platform` (`ONT` or `PacBio`, default `ONT`) and `--kallisto_dlist` (default `true`). `--kallisto_threshold` (default 0.8) is also accepted, but it is inert — see the last warning in this section.
+lr-kallisto is run twice: once on the called cells (`lrkallisto/`) and once on every droplet (`lrkallisto_all_droplets/`), for ambient-RNA and empty-droplet tools. Two parameters control the second pass:
+
+- `--lrkallisto_all_min_reads` (default `100`) keeps only the barcodes flexiplex saw at least that many times in the all-droplet pass. Without it, sequencing errors in the uncorrected below-knee barcodes create millions of near-singleton columns, and the EM time grows with them. Called cells sit far above the threshold. Set it to `0` to keep every barcode.
+- `--skip_lrkallisto_all_droplets` skips the all-droplet pass entirely, halving the lr-kallisto counting work. Nothing else in the pipeline uses its output.
+
+The k-mer length, platform and d-list can be tuned with `--kallisto_kmer_size` (default 63), `--kallisto_platform` (`ONT` or `PacBio`, default `ONT`) and `--kallisto_dlist` (default `true`). `--kallisto_threshold` (default 0.8) is also accepted, but it is inert; see the last warning in this section.
 
 > [!WARNING]
 > To turn the d-list off, write `--kallisto_dlist=false` with an equals sign. `params.kallisto_dlist` defaults to a boolean, so Nextflow treats the space-separated `--kallisto_dlist false` as a bare flag and drops the `false` as a positional argument: the d-list stays **on** and the only sign is a `positional argument` warning in the log. The same applies to any other boolean parameter you want to set to `false` on the command line.
@@ -173,8 +188,8 @@ The k-mer length, platform and d-list can be tuned with `--kallisto_kmer_size` (
 >
 > Measured on 9,805,796 flexiplex-demultiplexed ONT reads against GRCh38 (CellRanger `refdata-gex-GRCh38-2020-A`). On the same reads minimap2 places 95% and isoquant then assigns 45.8% of them to a gene, so 42.8% is in the same range as the alignment-based path rather than an order of magnitude below it.
 >
-> - **k-mer length.** Pseudoalignment needs _exact_ k-mer matches, so k interacts with per-base error rate — but **k=63 beats k=31 on real data at both d-list settings**, and it wins by most on the reads that matter: of the reads isoquant assigns confidently to a single gene, k=63 recovers 88.6% against k=31's 58.3% (d-list off). Do not lower k to chase a mapping rate. (An earlier version of this table reported the opposite ordering from the chr21 `test_lrkallisto` profile. That reference is too small for the comparison to carry: every rate there was under 21%, and the k ordering inverts on a whole transcriptome.)
-> - **d-list.** Using the genome as a d-list discards reads containing k-mers that are in the genome but not the transcriptome, which is what stops intronic and genomic reads being force-assigned to a transcript. This is far more punitive for long reads than for short ones: a long read only has to contain a single genome-only k-mer to be rejected. Turning it off recovered 1,253,671 extra reads. Classifying each of them by what isoquant made of the same read: 59% are reads isoquant also assigns to a gene, 22% are intronic reads isoquant places inside a gene but does not count, 14% are reads minimap2 never placed at all, and only **3% are intergenic** — the one class that is unambiguously spurious. On this data the d-list costs far more sensitivity than the specificity it buys, so `--kallisto_dlist=false` is worth trying for ONT cDNA. The pipeline default is still `true`, which is what lr-kallisto upstream recommends; this was one flow cell of one chemistry, so it is a reason to test the setting on your own data rather than to assume the default is wrong.
+> - **k-mer length.** Pseudoalignment needs _exact_ k-mer matches, so k interacts with per-base error rate, but **k=63 beats k=31 on real data at both d-list settings**, and it wins by most on the reads that matter: of the reads isoquant assigns confidently to a single gene, k=63 recovers 88.6% against k=31's 58.3% (d-list off). Do not lower k to chase a mapping rate. (An earlier version of this table reported the opposite ordering from the chr21 `test_lrkallisto` profile. That reference is too small for the comparison to carry: every rate there was under 21%, and the k ordering inverts on a whole transcriptome.)
+> - **d-list.** Using the genome as a d-list discards reads containing k-mers that are in the genome but not the transcriptome, which is what stops intronic and genomic reads being force-assigned to a transcript. This is far more punitive for long reads than for short ones: a long read only has to contain a single genome-only k-mer to be rejected. Turning it off recovered 1,253,671 extra reads. Classifying each of them by what isoquant made of the same read: 59% are reads isoquant also assigns to a gene, 22% are intronic reads isoquant places inside a gene but does not count, 14% are reads minimap2 never placed at all, and only **3% are intergenic**, the one class that is unambiguously spurious. On this data the d-list costs far more sensitivity than the specificity it buys, so `--kallisto_dlist=false` is worth trying for ONT cDNA. The pipeline default is still `true`, which is what lr-kallisto upstream recommends; this was one flow cell of one chemistry, so it is a reason to test the setting on your own data rather than to assume the default is wrong.
 > - **read length is not the limiting factor.** Only 1.1% of these reads were shorter than k=63, so reads too short to carry a single k-mer explain almost none of the loss.
 >
 > `--kallisto_threshold` will not recover anything: it is **inert**.
@@ -182,22 +197,72 @@ The k-mer length, platform and d-list can be tuned with `--kallisto_kmer_size` (
 > The defaults are deliberately the upstream-recommended, higher-specificity ones. If your mapping rate is far below the rate you get from minimap2 on the same data, compare against another quantifier before trusting the counts.
 
 > [!WARNING]
-> `--kallisto_threshold` currently has no effect. `kallisto bus --long` accepts `--threshold` and silently ignores it: sweeping it over 0.0, 0.1, 0.2, 0.4, 0.6, 0.8 and 0.9 on 1,000,000 reads returned the identical set of 427,251 pseudoaligned reads **and** the identical resolved transcript set for every one of them — only the equivalence-class numbering moved. `--threshold` appears in no other kallisto subcommand, and the pipeline quantifies with `kallisto quant-tcc --long`, so the parameter cannot take effect anywhere on this path. It is retained only so that existing configs keep parsing; do not use it to tune sensitivity.
+> `--kallisto_threshold` currently has no effect. `kallisto bus --long` accepts `--threshold` and silently ignores it: sweeping it over 0.0, 0.1, 0.2, 0.4, 0.6, 0.8 and 0.9 on 1,000,000 reads returned the identical set of 427,251 pseudoaligned reads **and** the identical resolved transcript set for every one of them; only the equivalence-class numbering moved. `--threshold` appears in no other kallisto subcommand, and the pipeline quantifies with `kallisto quant-tcc --long`, so the parameter cannot take effect anywhere on this path. It is retained only so that existing configs keep parsing; do not use it to tune sensitivity.
 
-Reads are pseudoaligned as non-strand-specific, because after flexiplex has trimmed the adapter, barcode, UMI and poly-T the remaining cDNA is not in a consistent orientation. `params.stranded` therefore does not apply to this path. If you do want to force a strand, override the `KALLISTO_BUS` arguments with a custom config:
+Reads are pseudoaligned as non-strand-specific (`kallisto bus --unstranded`), and `--stranded` does not apply to this path. Whether the reads flexiplex writes out are in a consistent orientation, which a stranded mode would need, is being investigated in [#46](https://github.com/IntGenomicsLab/lrsinglecell/issues/46). If you do want to force a strand, override the `KALLISTO_BUS` arguments with a custom config. The process runs as `...:QUANTIFY_SCRNA_LRKALLISTO:LRKALLISTO_COUNT:KALLISTO_BUS` (called cells) and `...:QUANTIFY_SCRNA_LRKALLISTO:LRKALLISTO_COUNT_ALL:KALLISTO_BUS` (all droplets); this selector matches both:
 
 ```groovy title="custom.config"
 process {
-    withName: '.*:QUANTIFY_SCRNA_LRKALLISTO:KALLISTO_BUS' {
+    withName: '.*:LRKALLISTO_COUNT(_ALL)?:KALLISTO_BUS' {
         ext.args = { "--threshold ${params.kallisto_threshold} --fr-stranded" }
     }
 }
 ```
 
 > [!NOTE]
-> Building the index is cheaper than you might expect for a k=63 index with a whole-genome d-list. Measured on GRCh38 (CellRanger `refdata-gex-GRCh38-2020-A`, 199,138 transcripts, 345 MB of transcript sequence) with the 3.15 Gb genome as the d-list: **463 s wall on 24 cpus and 3.6 GB peak RSS**, producing a 222 MB index. The `process_high` default is comfortably sufficient — there is no need to route `KALLISTO_INDEX` to a high-memory queue. If you use a much larger reference, check `peak_rss` for that process in the execution trace before assuming these numbers carry over.
+> Building the index is cheaper than you might expect for a k=63 index with a whole-genome d-list. Measured on GRCh38 (CellRanger `refdata-gex-GRCh38-2020-A`, 199,138 transcripts, 345 MB of transcript sequence) with the 3.15 Gb genome as the d-list: **463 s wall on 24 cpus and 3.6 GB peak RSS**, producing a 222 MB index. The `process_high` default is comfortably sufficient; there is no need to route `KALLISTO_INDEX` to a high-memory queue. If you use a much larger reference, check `peak_rss` for that process in the execution trace before assuming these numbers carry over.
 
-The pipeline supports barcode identification and extraction through both `flexiplex` and `blaze` and can be set through `demux_tool_dna` (only works with `flexiplex` for now) and `demux_tool_cdna` parameters. The barcode format can be specified through the `barcode_format` parameter. When working with completely custom barcode structures, you can additionally specify these with `custom_flexiplex_barcode_dna` and `custom_flexiplex_barcode_cdna` parameters. Note: ensure that you are using `flexiplex` as the barcode calling tool. This can be a string formatted as follows `"-x CTACACGACGCTCTTCCGATCT -b ???????????????? -u ?????????? -x TTTCTTATATGGG -f 8 -e 2"`, for more information check the documentation: https://davidsongroup.github.io/flexiplex/
+### Barcode formats
+
+The pipeline supports barcode identification and extraction through both `flexiplex` (default) and `blaze`, set with `--demux_tool_cdna`. DNA is always demultiplexed with `flexiplex` (`--demux_tool_dna flexiplex`). `--barcode_format` is required and selects, per data type, the bundled whitelist and the flexiplex pattern:
+
+| `--barcode_format` | Bundled cDNA whitelist (`assets/whitelist/`) | Bundled DNA whitelist                    | flexiplex cDNA pattern                                                                   | Barcode / UMI (bp)          | Demultiplexers                                               |
+| ------------------ | -------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------ |
+| `10X_3v3`          | `3M-february-2018.txt.gz`                    | none                                     | `-d 10x3v3`                                                                              | 16 / 12                     | cDNA: flexiplex, BLAZE (`--kit-version 3v3`). No DNA         |
+| `10X_3v4`          | `3M-3pgex-may-2023_TRU.txt.gz`               | none                                     | `-d 10x3v3` (same geometry as 3' v3)                                                     | 16 / 12                     | cDNA: flexiplex, BLAZE (`--kit-version 3v4`). No DNA         |
+| `10X_5v2`          | `737K-august-2016.txt.gz`                    | none                                     | `-d 10x5v2`                                                                              | 16 / 10                     | cDNA: flexiplex, BLAZE (`--kit-version 5v2`). No DNA         |
+| `10X_5v3`          | `3M-5pgex-jan-2023.txt.gz`                   | none                                     | `-x CTACACGACGCTCTTCCGATCT -b ???????????????? -u ?????????? -x TTTCTTATATGGG -f 8 -e 2` | 16 / 10                     | cDNA: flexiplex, BLAZE (`--kit-version 5v3`). No DNA         |
+| `10X_multiome`     | `cellranger_arc_rna.737K-arc-v1.txt.gz`      | `cellranger_arc_atac.737K-arc-v1.txt.gz` | `-d 10x3v3`; DNA: see [DNA libraries](#dna-libraries)                                    | cDNA 16 / 12; DNA 16 / none | cDNA: flexiplex, BLAZE (`--kit-version 3v3`). DNA: flexiplex |
+
+Notes:
+
+- `--cdna_whitelist` and `--dna_whitelist` replace the bundled whitelist of their data type. A whitelist is a plain-text or gzipped file with one barcode per line.
+- `--custom_flexiplex_barcode_cdna` and `--custom_flexiplex_barcode_dna` replace the flexiplex pattern of their data type; `--barcode_format` still selects the bundled whitelist. A custom pattern is a string of flexiplex options, e.g. `"-x CTACACGACGCTCTTCCGATCT -b ???????????????? -u ?????????? -x TTTCTTATATGGG -f 8 -e 2"`; see the [flexiplex documentation](https://davidsongroup.github.io/flexiplex/). Custom patterns only apply to flexiplex, and a custom cDNA pattern cannot be combined with `lrkallisto`.
+- DNA rows need `--barcode_format 10X_multiome`, or a custom DNA pattern together with `--dna_whitelist`.
+- With BLAZE, `10X_multiome` cDNA is processed as 3' v3. The barcode and UMI lengths in the table are also the ones the BLAZE path and lr-kallisto use to cut out the barcode and UMI.
+
+### Read trimming and filtering
+
+Reads are filtered with [chopper](https://github.com/wdecoster/chopper) before barcode calling:
+
+- `--min_q_score` (default `10`): minimum average read quality (`chopper --quality`).
+- `--min_length` (default `1`): minimum read length (`chopper --minlength`).
+- `--skip_trimming`: skip chopper altogether; the post-trim read QC is then not produced.
+
+### Strandedness
+
+Everything runs unstranded by default: `--stranded` is unset, so minimap2 is run with `-un` and IsoQuant with `--stranded none`. `--stranded forward` or `--stranded reverse` switch both to the given strand (`-uf`/`-ub`, `--stranded forward/reverse`); lr-kallisto is always unstranded (see above). Which setting is right for each 10X kit has not been established yet; see [#46](https://github.com/IntGenomicsLab/lrsinglecell/issues/46).
+
+### Deduplication
+
+cDNA and DNA are deduplicated differently, and each arm has its own switch:
+
+- **cDNA** reads are UMI-deduplicated with UMI-tools (`--dedup_tool umitools`, the only option; the Picard alternative was removed in v1.2.0). The transcriptome alignment used by oarfish is always deduplicated. Deduplication of the genome alignment (used by IsoQuant) can be turned off with `--skip_cdna_dedup`, in which case the mapped-only BAM is published and quantified instead.
+- **DNA** reads carry no UMI and are duplicate-marked by `bin/mark_dna_duplicates.py`. `--skip_dedup` turns this off; it has no effect on cDNA. On the contigs in `--dna_exact_only_contigs` (comma-separated, default `chrM,MT`, matched exactly) only the exact duplicate rules are applied, because the mitochondrial genome's dense coverage makes the position-tolerant rules merge distinct molecules. If your reference names the mitochondrial genome differently, give its name here; the pipeline logs a warning when none of the listed contigs is in the reference (`.fai`). An empty value (`dna_exact_only_contigs: ""` in a [parameter file](#parameter-files)) applies the tolerant rules everywhere. See [DNA duplicate marking](output.md#dna-duplicate-marking) for the rules.
+
+By default UMI-tools groups UMIs by feature rather than by alignment position: `--dedup_per_gene` (genome alignments) and `--dedup_per_contig` (transcriptome alignments), both `true`. This matters because `umi_tools` corrects its bundling position for soft clipping, and long reads carry variable amounts of untrimmed adapter and polyA, so reads from one PCR family end up in different position groups even when they align at an identical coordinate. Position-based grouping consequently leaves a large fraction of duplicates in place, and absolute molecule counts come out inflated.
+
+- `--dedup_per_gene` tags every alignment with the gene whose body it overlaps most (`GX`/`GN`/`GS` tags, written by `TAG_GENES`) and groups on that gene. It requires `--gtf`. Reads whose gene call is ambiguous, or that overlap no gene at all, are deduplicated by position instead and merged back in, so no reads are dropped. The `GS` distribution per contig, which includes the reads without a gene, is published under `qc/gene_assignment/`. The genome fasta and the gtf must use the same contig names: `TAG_GENES` fails if the BAM header shares no contig with the gtf (e.g. `chr1` vs `1`), and warns if fewer than half of the gtf's gene-bearing contigs are in the BAM.
+- `--dedup_per_contig` applies to transcriptome alignments only, where a contig is a transcript. It needs no gene tag and no fallback.
+- Set either to `false` to restore position-based grouping. Note that these change absolute UMI counts substantially. Relative expression is essentially unaffected, but anything quoting UMIs per cell, library complexity or saturation will differ from earlier releases.
+
+### Analysis options
+
+- `--retain_introns` (default `true`): count intronic and otherwise inconsistent reads in the IsoQuant matrices. With `true`, IsoQuant runs with `--gene_quantification all --transcript_quantification all`; with `--retain_introns=false` it uses `--gene_quantification unique_inconsistent --transcript_quantification unique_only`. Single-nucleus data usually needs the default.
+- `--save_genome_secondary_alignment` (default `false`) and `--save_transcript_secondary_alignment` (default `true`): keep minimap2's secondary alignments. oarfish uses the transcriptome secondary alignments to resolve multi-mapping reads.
+- `--kmer_size` (default `14`): the minimap2 k-mer size for the cDNA alignments.
+
+### Parameter files
 
 Note that the pipeline will create the following files in your working directory:
 
@@ -213,12 +278,12 @@ If you wish to repeatedly use the same parameters for multiple runs, rather than
 Pipeline settings can be provided in a `yaml` or `json` file via `-params-file <file>`.
 
 > [!WARNING]
-> Do not use `-c <file>` to specify parameters as this will result in errors. Custom config files specified with `-c` must only be used for [tuning process resource specifications](https://nf-co.re/docs/running/run-pipelines#configuring-pipelines), other infrastructural tweaks (such as output directories), or module arguments (args).
+> Do not use `-c <file>` to specify parameters as this will result in errors. Custom config files specified with `-c` must only be used for [tuning process resource specifications](#resource-requests), other infrastructural tweaks (such as output directories), or module arguments (args).
 
 The above pipeline run specified with a params file in yaml format:
 
 ```bash
-nextflow run IntGenomicsLab/lrsinglecell -profile <docker/singularity/institute> -params-file params.yaml
+nextflow run IntGenomicsLab/lrsinglecell -r <version> -profile <docker/singularity/apptainer/institute> -params-file params.yaml
 ```
 
 with
@@ -227,14 +292,12 @@ with
 input: "./samplesheet.csv"
 outdir: "./results/"
 genome_fasta: "/path/to/genome.fa"
-transcript_fasta: "/path/to/transcript.fa"
 gtf: "/path/to/file.gtf"
-quantifier: "isoquant|oarfish|lrkallisto|isoquant,oarfish"
+quantifier: "isoquant,oarfish"
 barcode_format: "10X_3v3"
-<...>
 ```
 
-You can also generate such `YAML`/`JSON` files via [nf-core/launch](https://nf-co.re/launch).
+`quantifier` takes one of `isoquant`, `oarfish` or `lrkallisto`, or a comma-separated combination without spaces such as `isoquant,oarfish,lrkallisto`.
 
 ### Updating the pipeline
 
@@ -248,14 +311,14 @@ nextflow pull IntGenomicsLab/lrsinglecell
 
 It is a good idea to specify the pipeline version when running the pipeline on your data. This ensures that a specific version of the pipeline code and software are used when you run your pipeline. If you keep using the same tag, you'll be running the same version of the pipeline, even if there have been changes to the code since.
 
-First, go to the [IntGenomicsLab/lrsinglecell releases page](https://github.com/IntGenomicsLab/lrsinglecell/releases) and find the latest release tag, including its leading `v` (eg. `v1.1.0`). Then specify this when running the pipeline with `-r` (one hyphen) - eg. `-r v1.1.0`. Of course, you can switch to another version by changing the tag after the `-r` flag.
+First, go to the [IntGenomicsLab/lrsinglecell releases page](https://github.com/IntGenomicsLab/lrsinglecell/releases) and find the latest pipeline version. Release tags start with a `v` (e.g. `v1.1.0`). Then specify this when running the pipeline with `-r` (one hyphen), e.g. `-r v1.1.0`. You can switch to another version by changing the tag after the `-r` flag.
 
-This version number will be logged in reports when you run the pipeline, so that you'll know what you used when you look back in the future. For example, at the bottom of the MultiQC reports.
+This version number will be logged in reports when you run the pipeline, so that you'll know what you used when you look back in the future. For example, at the bottom of the MultiQC reports, and in `pipeline_info/`.
 
-To further assist in reproducibility, you can use share and reuse [parameter files](#running-the-pipeline) to repeat pipeline runs with the same settings without having to write out a command with every single parameter.
+To further assist in reproducibility, you can share and reuse [parameter files](#parameter-files) to repeat pipeline runs with the same settings without having to write out a command with every single parameter.
 
 > [!TIP]
-> If you wish to share such profile (such as upload as supplementary material for academic publications), make sure to NOT include cluster specific paths to files, nor institutional specific profiles.
+> If you wish to share such a parameter file (for example as supplementary material for a publication), make sure it does not include cluster-specific paths to files, nor institutional profiles.
 
 ## Core Nextflow arguments
 
@@ -269,18 +332,32 @@ Use this parameter to choose a configuration profile. Profiles can give configur
 Several generic profiles are bundled with the pipeline which instruct the pipeline to use software packaged using different methods (Docker, Singularity, Podman, Shifter, Charliecloud, Apptainer, Conda) - see below.
 
 > [!IMPORTANT]
-> We highly recommend the use of Docker or Singularity containers for full pipeline reproducibility, however when this is not possible, Conda is also supported.
+> We highly recommend the use of Docker, Singularity or Apptainer containers for full pipeline reproducibility, however when this is not possible, Conda is also supported.
 
-The pipeline also dynamically loads configurations from [https://github.com/nf-core/configs](https://github.com/nf-core/configs) when it runs, making multiple config profiles for various institutional clusters available at run time. For more information and to check if your system is supported, please see the [nf-core/configs documentation](https://github.com/nf-core/configs#documentation).
+The pipeline also loads the institutional profiles of [nf-core/configs](https://github.com/nf-core/configs) at run time, so if your cluster has a profile there you can add it, e.g. `-profile singularity,<institute>`. See the [nf-core/configs documentation](https://github.com/nf-core/configs#documentation) for the available profiles. Offline, or for a cluster without one, pass your own config with [`-c`](#-c).
 
 Note that multiple profiles can be loaded, for example: `-profile test,docker` - the order of arguments is important!
 They are loaded in sequence, so later profiles can overwrite earlier profiles.
 
 If `-profile` is not specified, the pipeline will run locally and expect all software to be installed and available on the `PATH`. This is _not_ recommended, since it can lead to different results on different machines dependent on the computer environment.
 
+Test profiles. Each runs the pipeline end to end on small public data from [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell) and needs no other parameters than `--outdir`. All except `test_full` use a chr21 reference and are capped at 4 CPUs and 15 GB.
+
 - `test`
-  - A profile with a complete configuration for automated testing
-  - Includes links to test data so needs no other parameters
+  - cDNA only: subsamples of two 10X 3' v3 libraries (ERR9958133, ERR9958134; `--barcode_format 10X_3v3`), flexiplex demultiplexing, `--quantifier isoquant`.
+- `test_dna`
+  - DNA only: the DNA library of a 10X Multiome subsample (`--barcode_format 10X_multiome`), flexiplex demultiplexing and DNA duplicate marking.
+- `test_mixed`
+  - cDNA + DNA: both libraries of the same 10X Multiome subsample (`--barcode_format 10X_multiome`), `--quantifier isoquant`. This is the profile used in the [tutorial](tutorial.md).
+- `test_lrkallisto`
+  - The cDNA data of `test`, quantified with `--quantifier lrkallisto` (with `--lrkallisto_all_min_reads 0`, so the tiny all-droplet matrix is not filtered).
+- `test_oarfish`
+  - The cDNA data of `test`, quantified with `--quantifier isoquant,oarfish` and no `--transcript_fasta`, so the oarfish arm aligns to the transcriptome derived from the genome and GTF with `gffread`.
+- `test_full`
+  - A full-size cDNA run: the complete ERR9958133 and ERR9958134 FASTQs (downloaded from the ENA) against GRCh38 with the GENCODE v45 genome, transcriptome and annotation, `--barcode_format 10X_3v3`, `--split_amount 500000` and all three quantifiers. It has no resource cap and needs a cluster.
+
+Software profiles:
+
 - `docker`
   - A generic configuration profile to be used with [Docker](https://docker.com/)
 - `singularity`
@@ -294,7 +371,7 @@ If `-profile` is not specified, the pipeline will run locally and expect all sof
 - `apptainer`
   - A generic configuration profile to be used with [Apptainer](https://apptainer.org/)
 - `wave`
-  - A generic configuration profile to enable [Wave](https://seqera.io/wave/) containers. Use together with one of the above (requires Nextflow `24.03.0-edge` or later).
+  - A generic configuration profile to enable [Wave](https://seqera.io/wave/) containers. Use together with one of the above.
 - `conda`
   - A generic configuration profile to be used with [Conda](https://conda.io/docs/). Please only use Conda as a last resort i.e. when it's not possible to run the pipeline with Docker, Singularity, Podman, Shifter, Charliecloud, or Apptainer.
 
@@ -306,35 +383,48 @@ You can also supply a run name to resume a specific run: `-resume [run-name]`. U
 
 ### `-c`
 
-Specify the path to a specific config file (this is a core Nextflow command). See the [nf-core website documentation](https://nf-co.re/usage/configuration) for more information.
+Specify the path to a specific config file (this is a core Nextflow command). Use it for resource requests, executor and scheduler settings, container options and module arguments, not for pipeline parameters. See the [Nextflow configuration documentation](https://www.nextflow.io/docs/latest/config.html) for more information.
 
 ## Custom configuration
 
 ### Resource requests
 
-Whilst the default requirements set within the pipeline will hopefully work for most people and with most input data, you may find that you want to customise the compute resources that the pipeline requests. Each step in the pipeline has a default set of requirements for number of CPUs, memory and time. For most of the pipeline steps, if the job exits with any of the error codes specified [here](../conf/base.config) it will automatically be resubmitted with higher resources request (2 x original, then 3 x original). If it still fails after the third attempt then the pipeline execution is stopped.
+Whilst the default requirements set within the pipeline will hopefully work for most people and with most input data, you may find that you want to customise the compute resources that the pipeline requests. Each step in the pipeline has a default set of requirements for number of CPUs, memory and time, set by its label in [`conf/base.config`](../conf/base.config) (`process_single`, `process_low`, `process_medium`, `process_high`, ...).
 
-To change the resource requests, please see the [max resources](https://nf-co.re/docs/running/configuration/nextflow-for-your-system#set-max-resources) and [customise process resources](https://nf-co.re/docs/running/configuration/nextflow-for-your-system#customize-process-resources) section of the nf-core website.
+If a task fails with an exit code that usually means it was killed for running out of memory or time (the codes are listed in the `errorStrategy` in `conf/base.config`), it is retried automatically. The pipeline allows two retries (`maxRetries = 2`), so a task gets three attempts in total, and its resource requests are multiplied by the attempt number (`task.attempt`), so the second and third attempts ask for two and three times the resources of the first. Any other failure, or a task that still fails on its last attempt, stops the pipeline once the running tasks have finished.
 
-### Custom Containers
+To change the resource requests of a process, or to cap them at what your machine or cluster offers (`process.resourceLimits`), write a config file and pass it with `-c`. For example:
 
-In some cases, you may wish to change the container or conda environment used by a pipeline steps for a particular tool. By default, nf-core pipelines use containers and software from the [biocontainers](https://biocontainers.pro/) or [bioconda](https://bioconda.github.io/) projects. However, in some cases the pipeline specified version maybe out of date.
+```groovy title="custom.config"
+process {
+    resourceLimits = [ cpus: 32, memory: 256.GB, time: 72.h ]
 
-To use a different container from the default container or conda environment specified in a pipeline, please see the [updating tool versions](https://nf-co.re/docs/running/configuration/nextflow-for-your-system#update-tool-versions) section of the nf-core website.
+    withName: '.*:ISOQUANT' {
+        cpus   = 30
+        memory = 85.GB
+    }
+}
+```
 
-### Custom Tool Arguments
+See the Nextflow documentation on [process selectors](https://www.nextflow.io/docs/latest/config.html#process-selectors) and [`resourceLimits`](https://www.nextflow.io/docs/latest/reference/process.html#resourcelimits) for the syntax. The execution trace in `pipeline_info/` lists the peak memory (`peak_rss`) and run time of every task, which is the best guide to what needs changing.
 
-A pipeline might not always support every possible argument or option of a particular tool used in pipeline. Fortunately, nf-core pipelines provide some freedom to users to insert additional parameters that the pipeline does not include by default.
+### Custom containers
 
-To learn how to provide additional arguments to a particular tool of the pipeline, please see the [customising tool arguments](https://nf-co.re/docs/running/configuration/nextflow-for-your-system#modifying-tool-arguments) section of the nf-core website.
+Every process runs in its own container (from [BioContainers](https://biocontainers.pro/), built from [Bioconda](https://bioconda.github.io/) packages) or conda environment, pinned in the module. To use a different container or tool version for a process, override its `container` (or `conda`) directive in a config passed with `-c`:
 
-### nf-core/configs
+```groovy title="custom.config"
+process {
+    withName: '.*:OARFISH' {
+        container = 'quay.io/biocontainers/oarfish:<version>'
+    }
+}
+```
 
-In most cases, you will only need to create a custom config as a one-off but if you and others within your organisation are likely to be running nf-core pipelines regularly and need to use the same settings regularly it may be a good idea to request that your custom config file is uploaded to the `nf-core/configs` git repository. Before you do this please can you test that the config file works with your pipeline of choice using the `-c` parameter. You can then create a pull request to the `nf-core/configs` repository with the addition of your config file, associated documentation file (see examples in [`nf-core/configs/docs`](https://github.com/nf-core/configs/tree/master/docs)), and amending [`nfcore_custom.config`](https://github.com/nf-core/configs/blob/master/nfcore_custom.config) to include your custom profile.
+Results obtained with a different tool version are no longer those of the pipeline release, so record this when reporting them.
 
-See the main [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more information about creating your own configuration files.
+### Custom tool arguments
 
-If you have any questions or issues please send us a message on [Slack](https://nf-co.re/join/slack) on the [`#configs` channel](https://nfcore.slack.com/channels/configs).
+Most tools receive their arguments from `ext.args` in [`conf/modules.config`](../conf/modules.config). To add or change arguments of a tool, override `ext.args` for its process in a config passed with `-c`, as in the [lr-kallisto strandedness example](#lr-kallisto) above. Copy the existing `ext.args` of the process from `conf/modules.config` first: your value replaces it, it is not appended to it.
 
 ## Running in the background
 
@@ -356,85 +446,57 @@ NXF_OPTS='-Xms1g -Xmx4g'
 
 ## Troubleshooting
 
-If you experience any issues, please [open an issue on our GitHub repository](https://github.com/IntGenomicsLab/lrsinglecell/issues/new/choose). However, some resolutions for common issues will be noted below:
+If you experience any issues, please [open an issue on our GitHub repository](https://github.com/IntGenomicsLab/lrsinglecell/issues/new/choose). Some resolutions for common issues are noted below.
 
-- Due to the nature of the data this pipeline analyzes, some tools may experience increased runtimes. For some of the custom tools made for this pipeline (`preextract_fastq.py` and `correct_barcodes.py`), we have leveraged the splitting done via the `split_amount` parameter to decrease their overall runtimes. The `split_amount` parameter will split the input FASTQs into a number of FASTQ files, each containing a number of lines based on the value used for this parameter. As a result, it is important not to set this parameter to be too low as doing so would cause the creation of a large number of files the pipeline will be processed. While this value can be highly dependent on the data, a good starting point for an analysis would be to set this value to `500000`. If you find that `PREEXTRACT_FASTQ` and `CORRECT_BARCODES` are still taking long amounts of time to run, it would be worth reducing this parameter to `200000` or `100000`, but keeping the value on the order of hundred of thousands or tens of thousands should help with keeping the total number of processes minimal. An example of setting this parameter to be equal to 500000 is shown below:
+### Large runs and `--split_amount`
+
+`--split_amount` (default `0`, no splitting) splits each sample's FASTQ into chunks of that many **reads** (`seqkit split2 --by-size`), so that trimming (chopper) and flexiplex barcode discovery and assignment run on the chunks in parallel. The chunks are merged again before alignment, and the per-chunk flexiplex barcode counts are summed (`flexiplex/<sample>_barcode_counts.txt`). For a PromethION flow cell, `500000` is a good starting value. Do not set it much lower: every chunk is a separate job, so a small value creates a very large number of tasks.
 
 ```yml title="params.yml"
 split_amount: 500000
 ```
 
-- We have seen a recurrent node failure on slurm clusters that does seem to be related to submission of Nextflow jobs. This issue is not related to this pipeline per se, but rather to Nextflow itself. We are currently working on a resolution. But we have two methods that appear to help overcome should this issue arise:
-  1. Provide a custom config that increases the memory request for the job that failed. This may take a couple attempts to find the correct requests, but we have noted that there does appear to be a memory issue occasionally with these errors.
-  2. Request an interactive session with a decent amount of time and memory and CPUs in order to run the pipeline on the single node. Note that this will take time as there will be minimal parallelization, but this does seem to resolve the issue.
-- By default the pipeline groups UMIs by feature rather than by alignment position: `--dedup_per_gene` (genome alignments) and `--dedup_per_contig` (transcriptome alignments), both `true`. This matters because `umi_tools` corrects its bundling position for soft clipping, and long reads carry variable amounts of untrimmed adapter and polyA, so reads from one PCR family end up in different position groups even when they align at an identical coordinate. Position-based grouping consequently leaves a large fraction of duplicates in place, and absolute molecule counts come out inflated.
-  - `--dedup_per_gene` tags every alignment with the gene whose body it overlaps most (`GX`/`GN`/`GS` tags, written by `TAG_GENES`) and groups on that gene. It requires `--gtf`. Reads whose gene call is ambiguous, or that overlap no gene at all, are deduplicated by position instead and merged back in, so no reads are dropped. The `GS` distribution is published under `qc/gene_assignment/`. The genome fasta and the gtf must use the same contig names: `TAG_GENES` fails if the BAM header shares no contig with the gtf (e.g. `chr1` vs `1`), and warns if fewer than half of the gtf's gene-bearing contigs are in the BAM.
-  - `--dedup_per_contig` applies to transcriptome alignments only, where a contig is a transcript. It needs no gene tag and no fallback.
-  - Set either to `false` to restore position-based grouping. Note that these change absolute UMI counts substantially. Relative expression is essentially unaffected, but anything quoting UMIs per cell, library complexity or saturation will differ from earlier releases.
-- We note that umitools dedup can take a large amount of time in order to perform deduplication. One approach we have implemented to assist with speed is to split input files based on chromosome. However for the transcriptome aligned bams, there is some additional work required that involves grouping transcripts into appropriate chromosomes. In order to accomplish this, the pipeline needs to parse the transcript id from the transcriptome FASTA file. The transcript id is often nested in the sequence identifier with additional data and the data is delimited. We have included the delimiters used by reference files obtained from GENCODE, NCBI, and Ensembl. However in case you wish to explicitly control this or if the reference file source uses a different delimiter, you are able to manually set it via the `--fasta_delimiter` parameter.
-- We acknowledge that analyzing PromethION data is a common use case for this pipeline. Currently, the pipeline has been developed with defaults to analyze GridION and average sized PromethION data. For cases, where jobs have fail due for larger PromethION datasets, the defaults can be overwritten by a custom configuation file (provided by the `-c` Nextflow option) where resources can be increased (substantially in some cases). Below are some of the overrides we have used, and while these amounts may not work on every dataset, these will hopefully at least note which processes will need to have their resources increased:
+### Resources for large datasets
+
+The defaults are set for GridION and average-sized PromethION runs. If a task still fails after its automatic retries (see [Resource requests](#resource-requests)), raise its requests in a custom config passed with `-c`. These are overrides we have used on large PromethION datasets; they may not fit every dataset, but they show which processes are the heaviest:
 
 ```groovy title="custom.config"
-
-process
-{
-    withName: '.*:.*FASTQC.*'
-    {
+process {
+    withName: '.*:.*FASTQC.*' {
         cpus = 20
     }
-}
-
-process
-{
-    withName: '.*:BLAZE'
-    {
-        cpus = 30
-    }
-}
-
-process
-{
-    withName: '.*:TAG_BARCODES'
-    {
-        memory = '60.GB'
-    }
-}
-
-process
-{
-    withName: '.*:SAMTOOLS_SORT'
-    {
+    withName: '.*:SAMTOOLS_SORT' {
         cpus = 20
     }
-}
-
-process
-{
-    withName: '.*:MINIMAP2_ALIGN'
-    {
+    withName: '.*:MINIMAP2_ALIGN' {
         cpus = 20
     }
-}
-
-process
-{
-    withName: '.*:ISOQUANT'
-    {
-        cpus = 30
-        memory = '85.GB'
+    withName: '.*:ISOQUANT' {
+        cpus   = 30
+        memory = 85.GB
     }
 }
 ```
 
-We further note that while we encourage the use of `split_amount` as discussed above for larger datasets, the pipeline can be executed without enabling this parameter. When doing this, please consider increasing the time limit to `CORRECT_BARCODES` as it can take hours instead of minutes when `split_amount` is disabled:
+`pipeline_info/execution_trace_<timestamp>.txt` shows the peak memory and run time of each task, which tells you which process to change.
+
+We have also seen recurrent node failures on Slurm clusters that are related to how Nextflow submits jobs rather than to this pipeline. Two things that help: give the failing process more memory with a custom config, or run the whole pipeline inside one interactive session or job with enough CPUs and memory (slower, since there is less parallelisation).
+
+### Transcriptome deduplication and `--fasta_delimiter`
+
+UMI deduplication is split by chromosome for speed. For the transcriptome alignment the pipeline first has to group the transcripts by chromosome, which it does by reading the transcript id from the transcriptome FASTA headers and looking it up in the GTF. Transcript ids are often embedded in a longer, delimited FASTA header; the delimiters used by GENCODE, NCBI and Ensembl references are detected automatically. If your reference uses a different delimiter, set it with `--fasta_delimiter`. This only matters when you give `--transcript_fasta`; the transcriptome derived with `gffread` has plain transcript ids.
+
+### BLAZE
+
+With `--demux_tool_cdna blaze`, barcodes are called by BLAZE and then cut out of the reads and corrected by the pipeline's own scripts, `bin/pre_extract_barcodes.py` (process `PREEXTRACT_FASTQ`) and `bin/correct_barcodes.py` (process `CORRECT_BARCODES`). With `--split_amount` > 0 these two run on chunks of that many reads. Without splitting, `CORRECT_BARCODES` can take hours rather than minutes on a large sample; if you run without `--split_amount`, consider raising its time limit. The BLAZE-only tagging step (`TAG_BARCODES`) holds every read's barcode and UMI in memory and already requests 72 GB and 20 h per attempt; only raise those if its trace shows it running out:
 
 ```groovy title="custom.config"
-//NOTE: with split_amount disabled, consider increasing the time limit to CORRECT_BARCODES
-process
-{
-    withName: '.*:CORRECT_BARCODES'
-    {
-        time = '15.h'
+process {
+    withName: '.*:BLAZE' {
+        cpus = 30
+    }
+    withName: '.*:CORRECT_BARCODES' {
+        time = 15.h
     }
 }
 ```

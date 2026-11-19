@@ -20,7 +20,7 @@
                     "mimetype": "text/csv",
                     "pattern": "^\\S+\\.csv$",
                     "description": "Path to comma-separated file containing information about the samples in the experiment.",
-                    "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 3 columns, and a header row.",
+                    "help_text": "You will need to create a design file with information about the samples in your experiment before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with a header row and the columns `sample`, `fastq` and `cell_count`, plus an optional `type` column (`cdna`, the default, or `dna`). See the usage documentation.",
                     "fa_icon": "fas fa-file-csv"
                 },
                 "outdir": {
@@ -56,7 +56,7 @@
                     "mimetype": "text/plain",
                     "pattern": "^\\S+\\.fn?a(sta)?(\\.gz|\\.zip)?$",
                     "description": "Path to genome FASTA file.",
-                    "help_text": "This parameter is *mandatory* if you wish to use `isoquant` as a quantifier",
+                    "help_text": "Required for DNA samples, for the `isoquant` and `lrkallisto` quantifiers, and for `oarfish` when `--transcript_fasta` is not given.",
                     "fa_icon": "fas fa-book-open"
                 },
                 "transcript_fasta": {
@@ -80,7 +80,7 @@
                     "type": "string",
                     "description": "Name of iGenomes reference.",
                     "fa_icon": "fas fa-book",
-                    "help_text": "If using a reference genome configured in the pipeline using iGenomes, use this parameter to give the ID for the reference. This is then used to build the full paths for all required reference genome files e.g. `--genome GRCh38`. \n\nSee the [nf-core website docs](https://nf-co.re/usage/reference_genomes) for more details."
+                    "help_text": "Not used by default: the pipeline does not load the iGenomes config, so `--genome` only has an effect if you supply a `params.genomes` map in your own config. Give the reference files with `--genome_fasta`, `--gtf` and, optionally, `--transcript_fasta` instead."
                 },
                 "igenomes_ignore": {
                     "type": "boolean",
@@ -99,7 +99,8 @@
                 },
                 "fasta_delimiter": {
                     "type": "string",
-                    "description": "This is the delimiter the FASTA uses in the sequence identifier to separate the string."
+                    "description": "Delimiter that separates the transcript id from the rest of the transcriptome FASTA header.",
+                    "help_text": "Used to group transcripts by chromosome for transcriptome deduplication. Without it, `|` or `;` is detected from the headers (GENCODE, NCBI and Ensembl references work as is). Only relevant when `--transcript_fasta` is given."
                 }
             }
         },
@@ -112,7 +113,8 @@
             "properties": {
                 "split_amount": {
                     "type": "integer",
-                    "description": "The number of lines to split  the FASTQ into.",
+                    "description": "Split each FASTQ into chunks of this many reads for parallel processing (0: no splitting).",
+                    "help_text": "Uses `seqkit split2 --by-size`, so the value is a number of reads, not lines. Trimming and flexiplex barcode calling (or, with BLAZE, barcode extraction and correction) then run per chunk. 500000 is a good starting value for a PromethION flow cell; much smaller values create a very large number of tasks.",
                     "default": 0,
                     "fa_icon": "fas fa-cut"
                 }
@@ -127,18 +129,18 @@
                 "min_length": {
                     "type": "integer",
                     "default": 1,
-                    "description": "Choose minimum read length.",
+                    "description": "Minimum read length kept by chopper (`--minlength`).",
                     "fa_icon": "fas fa-cut"
                 },
                 "min_q_score": {
                     "type": "integer",
                     "default": 10,
-                    "description": "Choose minimum average read quality score.",
+                    "description": "Minimum average read quality kept by chopper (`--quality`).",
                     "fa_icon": "fas fa-cut"
                 },
                 "skip_trimming": {
                     "type": "boolean",
-                    "description": "Skip quality trimming step.",
+                    "description": "Skip read quality and length filtering with chopper.",
                     "fa_icon": "fas fa-forward"
                 },
                 "drop_duplex_parents": {
@@ -238,7 +240,8 @@
                 "stranded": {
                     "type": "string",
                     "enum": ["None", "reverse", "forward"],
-                    "description": "Library strandness option.",
+                    "description": "Library strandedness (`forward` or `reverse`). Unset by default, which runs minimap2 and IsoQuant unstranded.",
+                    "help_text": "Sets minimap2 `-uf`/`-ub` (default `-un`) for the cDNA alignments and IsoQuant `--stranded`. lr-kallisto is always run unstranded. See https://github.com/IntGenomicsLab/lrsinglecell/issues/46.",
                     "fa_icon": "fas fa-dna"
                 },
                 "kmer_size": {
@@ -270,7 +273,8 @@
                 "retain_introns": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Indicate whether to include introns in the count matrices",
+                    "description": "Count intronic and inconsistent reads in the IsoQuant matrices.",
+                    "help_text": "true runs IsoQuant with `--gene_quantification all --transcript_quantification all`; false with `--gene_quantification unique_inconsistent --transcript_quantification unique_only`.",
                     "fa_icon": "fas fa-filter"
                 },
                 "quantifier": {
@@ -414,7 +418,7 @@
                 },
                 "custom_config_base": {
                     "type": "string",
-                    "description": "Base directory for Institutional configs.",
+                    "description": "Base directory for the nf-core/configs institutional profiles.",
                     "default": "https://raw.githubusercontent.com/nf-core/configs/master",
                     "hidden": true,
                     "help_text": "If you're running offline, Nextflow will not be able to fetch the institutional config files from the internet. If you don't need them, then this is not a problem. If you do need them, you should download the files from the repo and tell Nextflow where to find them with this parameter.",
@@ -451,7 +455,7 @@
             "type": "object",
             "fa_icon": "fas fa-file-import",
             "description": "Less common options for the pipeline, typically set in a config file.",
-            "help_text": "These options are common to all nf-core pipelines and allow you to customise some of the core preferences for how the pipeline runs.\n\nTypically these options would be set in a Nextflow config file loaded for all pipeline runs, such as `~/.nextflow/config`.",
+            "help_text": "These options come from the nf-core template and allow you to customise some of the core preferences for how the pipeline runs.\n\nTypically these options would be set in a Nextflow config file loaded for all pipeline runs, such as `~/.nextflow/config`.",
             "properties": {
                 "version": {
                     "type": "boolean",
