@@ -425,9 +425,10 @@ workflow LRSINGLECELL {
         ch_read_counts.collect().ifEmpty([])
     )
 
-    // The genome alignment is produced whenever there are cDNA reads to align,
-    // not only when a genome quantifier asked for one: the bam is a deliverable
-    // in its own right (coverage, igv, fusions, variants). lr-kallisto
+    // The genome alignment is produced when isoquant or lrkallisto is requested;
+    // an oarfish-only run aligns to the transcriptome only and has no genome bam.
+    // With lrkallisto the bam is made although no quantifier reads it: it is a
+    // deliverable in its own right (coverage, igv, fusions, variants). lr-kallisto
     // pseudoaligns from the fastq and consumes nothing from here, so with only
     // fastq quantifiers requested this runs the aligner and the deduplication
     // and no quantifier at all -- PROCESS_LONGREAD_SCRNA guards each of those on
