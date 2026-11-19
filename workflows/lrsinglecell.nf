@@ -169,7 +169,9 @@ workflow LRSINGLECELL {
     // pass through unchanged. Runs before QC so all counts describe the reads used.
     //
 
-    if (params.drop_duplex_parents) {
+    // `--drop_duplex_parents false` on the command line arrives as the string
+    // "false", which is truthy in Groovy, so coerce it rather than testing it directly
+    if (params.drop_duplex_parents.toString().toBoolean()) {
         FILTER_DUPLEX_PARENTS ( ch_cat_fastq )
         ch_cat_fastq = FILTER_DUPLEX_PARENTS.out.reads
         ch_versions = ch_versions.mix(FILTER_DUPLEX_PARENTS.out.versions_filter_duplex_parents)
