@@ -15,13 +15,13 @@
                     "csvtk": "0.37.0"
                 },
                 "FLEXIPLEX_ASSIGN": {
-                    "flexiplex": "1.02.6.1"
+                    "flexiplex": "1.02.7"
                 },
                 "FLEXIPLEX_DISCOVERY": {
-                    "flexiplex": "1.02.6.1"
+                    "flexiplex": "1.02.7"
                 },
                 "FLEXIPLEX_FILTER": {
-                    "flexiplex": "1.02.6.1"
+                    "flexiplex": "1.02.7"
                 },
                 "GENOME_FAIDX": {
                     "samtools": "1.22.1"

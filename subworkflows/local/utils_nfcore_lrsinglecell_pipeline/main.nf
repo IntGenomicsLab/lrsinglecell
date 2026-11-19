@@ -231,8 +231,10 @@ def validateInputParameters() {
     }
 
     if (quantifiers.contains('oarfish')) {
-        if (!params.transcript_fasta) {
-            error("In order to quantify with oarfish, a transcript fasta must be provided")
+        // Without --transcript_fasta the transcriptome is extracted from the
+        // genome and the gtf with gffread (see PREPARE_REFERENCE_FILES)
+        if (!params.transcript_fasta && !params.genome_fasta) {
+            error("In order to quantify with oarfish, either a transcript fasta (--transcript_fasta) or a genome fasta (--genome_fasta) to extract the transcripts from must be provided")
         }
 
         // GROUP_TRANSCRIPTS reads the GTF to split the transcriptome by chromosome

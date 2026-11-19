@@ -18,11 +18,35 @@ nextflow_pipeline {
             def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
             // stable_path: All files in ${params.outdir}/ with stable content
             def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+
+            def sample = 'RPMI8402'
+            // Two-column metric/value tsv as a map
+            def metrics = { f -> f.readLines().drop(1)*.tokenize('\t').findAll { r -> r.size() == 2 }.collectEntries() }
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+
             // chr21 has no chrM/MT, so the --dna_exact_only_contigs warning must be logged
             def nf_log = file("$outputDir/../meta/nextflow.log").text
+
             assertAll(
                 { assert workflow.success},
                 { assert nf_log.contains("None of the --dna_exact_only_contigs (chrM,MT) is in the reference") },
+                // The duplicate-marked bam is published and not empty
+                { assert file("$outputDir/${sample}/dna/bam/dedup/${sample}.bam").size() > 0 },
+                { assert file("$outputDir/${sample}/dna/bam/dedup/${sample}.bam.bai").exists() },
+                // Its summary saw reads and marked some of them as duplicates
+                { def m = metrics(file("$outputDir/${sample}/dna/qc/dedup/${sample}.dna.dedup.dedup_summary.tsv"))
+                  assert m.primary_reads.toLong() > 0
+                  assert m.duplicates.toLong() > 0
+                  assert m.duplicate_rate.toDouble() > 0
+                },
+                // DNA-only: no cDNA arm and no quantifier ran
+                { assert !file("$outputDir/${sample}/cdna").exists() },
+                { ['MARK_DUPLICATES_DNA', 'MINIMAP2_ALIGN', 'FLEXIPLEX_ASSIGN'].each { proc ->
+                    assert versions.contains("${proc}:") : "${proc} is missing from the versions"
+                } },
+                { ['ISOQUANT', 'OARFISH', 'KALLISTO_BUS', 'UMITOOLS_DEDUP_MAIN'].each { proc ->
+                    assert !versions.contains("${proc}:") : "${proc} ran in a DNA-only run"
+                } },
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml"),

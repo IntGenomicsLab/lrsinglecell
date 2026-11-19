@@ -20,6 +20,12 @@ batch_qcs/multiqc/final_qc/multiqc_data/llms-full.txt
 **/genome/bam/original/*.sorted.bam.bai
 **/genome/bam/dedup/*.dedup.bam
 **/genome/bam/dedup/*.dedup.bam.bai
+**/transcriptome/bam/mapped_only/*.sorted.bam
+**/transcriptome/bam/mapped_only/*.sorted.bam.bai
+**/transcriptome/bam/original/*.sorted.bam
+**/transcriptome/bam/original/*.sorted.bam.bai
+**/transcriptome/bam/dedup/*.dedup.bam
+**/transcriptome/bam/dedup/*.dedup.bam.bai
 **/dna/bam/dedup/*.bam
 **/dna/bam/dedup/*.bam.bai
 **/dna/qc/dedup/*.metrics.txt
@@ -27,6 +33,10 @@ batch_qcs/multiqc/final_qc/multiqc_data/llms-full.txt
 **/genome/isoquant_all_droplets/**/*.mtx
 **/qc/seurat_isoquant/*/*.png
 **/qc/seurat_isoquant/*/*.rds
+**/transcriptome/oarfish/barcodes.tsv.gz
+**/transcriptome/oarfish/matrix.mtx.gz
+**/qc/seurat_oarfish/*.png
+**/qc/seurat_oarfish/*.rds
 references/lrkallisto/*.idx
 **/lrkallisto*/bus/output.bus
 **/lrkallisto*/bus/run_info.json
