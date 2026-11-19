@@ -238,7 +238,7 @@ _cDNA only._
   - `qc/samtools/`
     - `minimap/<sample>.cdna.genome.minimap.{flagstat,idxstats,stats}`: `samtools flagstat`, `idxstats` and `stats` of the alignment as minimap2 wrote it.
     - `mapped_only/<sample>.cdna.genome.mapped_only.{flagstat,idxstats,stats}`: The same for the mapped-only BAM.
-    - `dedup/<sample>.cdna.genome.umitools_dedup.{flagstat,idxstats,stats}`: The same for the deduplicated BAM (`picard_dedup` instead of `umitools_dedup` with the deprecated `--dedup_tool picard`). Not produced with `--skip_cdna_dedup`.
+    - `dedup/<sample>.cdna.genome.umitools_dedup.{flagstat,idxstats,stats}`: The same for the deduplicated BAM. Not produced with `--skip_cdna_dedup`.
 - `<sample>/cdna/transcriptome/`
   - `bam/mapped_only/`
     - `<sample>.cdna.transcript_mapped_only.sorted.bam`, `.bai`: The transcriptome alignment with unmapped reads removed.
@@ -297,7 +297,7 @@ _cDNA only, BLAZE only._
 
 - `<sample>/cdna/`
   - `genome/bam/barcode_tagged/`
-    - `*.tagged.bam`: The genome alignment with the barcode and UMI tags added. Its index (`*.tagged.bam.bai`) is currently published to `<outdir>/samtools/` instead of next to it ([#28](https://github.com/IntGenomicsLab/lrsinglecell/issues/28)).
+    - `*.tagged.bam`, `*.tagged.bam.bai`: The genome alignment with the barcode and UMI tags added, and its index.
   - `transcriptome/bam/barcode_tagged/`
     - `*.tagged.bam`, `*.tagged.bam.bai`: The transcriptome alignment with the barcode and UMI tags added, and its index.
 
@@ -357,7 +357,7 @@ _cDNA only._
 
 </details>
 
-[UMI-tools](https://umi-tools.readthedocs.io/en/latest/reference/dedup.html) deduplicates reads based on the mapping coordinate and the UMI attached to the read. The identification of duplicate reads is performed in an error-aware manner by building networks of related UMIs. It is the default cDNA deduplication tool (`--dedup_tool umitools`). The deprecated alternative, `--dedup_tool picard`, runs Picard MarkDuplicates grouped on `CB`: it ignores the UMI, only marks duplicates, and writes no `*.umi_dedup_summary.tsv`; it will be removed in a future release. By default reads are grouped by gene on the genome alignment (`--dedup_per_gene`) and by transcript on the transcriptome alignment (`--dedup_per_contig`) rather than by position; see the [usage documentation](usage.md#deduplication) for why.
+[UMI-tools](https://umi-tools.readthedocs.io/en/latest/reference/dedup.html) deduplicates reads based on the mapping coordinate and the UMI attached to the read. The identification of duplicate reads is performed in an error-aware manner by building networks of related UMIs. It is the only cDNA deduplication tool (`--dedup_tool umitools`). By default reads are grouped by gene on the genome alignment (`--dedup_per_gene`) and by transcript on the transcriptome alignment (`--dedup_per_contig`) rather than by position; see the [usage documentation](usage.md#deduplication) for why.
 
 Deduplication is run in parallel on one chunk per chromosome (genome alignment) or per transcript group (transcriptome alignment), and with `--dedup_per_gene` each genome chunk is additionally split into a gene-grouped and a positional run. The per-chunk `umi_tools dedup` logs therefore only hold chunk-level counts and are not published. Instead their `Input Reads` and `Number of reads out` figures are summed into the `*.umi_dedup_summary.tsv` file, which is also shown as the "UMI-tools Deduplication" table in the MultiQC report. The `duplication_rate` column is `duplicate_reads / input_reads`.
 
@@ -384,7 +384,7 @@ _DNA only._
 
 DNA samples (Tn5 tagmentation, no UMI) are deduplicated by `bin/mark_dna_duplicates.py`. Within one barcode (`XB`), two primary alignments are one molecule when they share the 5' unclipped anchor and strand (Picard's key), when their 5' anchors are within 10 bp and the far ends within 20 bp of reads that read through into the far adapter, when they are two records of one raw read (flexiplex writes a read out once per barcode it finds, so a read with the barcode pattern at both ends appears twice, on opposite strands), or when one is an A-A fragment read from the other end. One read per molecule stays unflagged, and the duplicate flag is propagated to the secondary and supplementary alignments of every duplicate, so `samtools view -F 0x400` alone gives a deduplicated BAM. Members of a duplicate set carry `DS` (set size) and `DI` (set index, unique across the BAM).
 
-On the mitochondrial contigs `chrM` and `MT` (the mitochondrial genome under both common names; matched exactly, and set in the `MARK_DUPLICATES_DNA` arguments in `conf/modules.config`) only the exact relations apply: the shared 5' anchor and strand, and the two records of one raw read. Mitochondrial coverage is dense enough that the 10/20 bp tolerances merge distinct molecules by chance (on one library they took the chrM duplicate rate from 42% to 63%), and mtDNA has no heterozygous sites to check them against. If your reference names the mitochondrial genome differently, see [Deduplication](usage.md#deduplication) in the usage documentation. Because these contigs can hold a large share of the reads, the summary also reports the duplicate rate without them as `nuclear_duplicate_rate`; the Picard-format metrics, and so the MultiQC Picard section, keep the whole-genome rate.
+On the contigs listed in `--dna_exact_only_contigs` (default `chrM,MT`, the mitochondrial genome under both common names; matched exactly) only the exact relations apply: the shared 5' anchor and strand, and the two records of one raw read. Mitochondrial coverage is dense enough that the 10/20 bp tolerances merge distinct molecules by chance (on one library they took the chrM duplicate rate from 42% to 63%), and mtDNA has no heterozygous sites to check them against. If your reference names the mitochondrial genome differently, add its name to `--dna_exact_only_contigs`; the pipeline logs a warning when none of the listed contigs is in the reference. Because these contigs can hold a large share of the reads, the summary also reports the duplicate rate on all other contigs as `nuclear_duplicate_rate` (and the reads and duplicates on the listed contigs as `exact_only_contigs_primary_reads` and `exact_only_contigs_duplicates`); the Picard-format metrics, and so the MultiQC Picard section, keep the whole-genome rate.
 
 These rules were chosen against a heterozygous-SNP ground truth: reads of one molecule share an allele at every het site they both cover. On three libraries, 5'-identical reads remain one molecule even when their far ends are more than 1 kb apart, 1-10 bp of 5' jitter is at most 4% distinct molecules while 11-20 bp is 12-52%, and the two records of one raw read are always the same molecule.
 

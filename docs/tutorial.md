@@ -100,7 +100,7 @@ The settings to change for your data:
 | Several quantifiers             | `--quantifier isoquant,oarfish,lrkallisto`                                                                              |
 | DNA only                        | omit `--gtf` and `--quantifier`                                                                                         |
 
-To keep the command short and reproducible, put the parameters in a YAML file and pass it with `-params-file params.yml`. Add `-resume` to restart a failed or interrupted run without redoing finished steps. For large PromethION runs, see [`--split_amount`](usage.md#large-runs-and---split_amount) and the [resource notes](usage.md#resources-for-large-datasets) in the usage documentation. Failed tasks that ran out of memory or time are retried automatically once, with twice the resources.
+To keep the command short and reproducible, put the parameters in a YAML file and pass it with `-params-file params.yml`. Add `-resume` to restart a failed or interrupted run without redoing finished steps. For large PromethION runs, see [`--split_amount`](usage.md#large-runs-and---split_amount) and the [resource notes](usage.md#resources-for-large-datasets) in the usage documentation. Failed tasks that ran out of memory or time are retried automatically, up to twice, with two and then three times the resources.
 
 All parameters are listed with `nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 --help_full` and documented in the [usage docs](usage.md).
 
