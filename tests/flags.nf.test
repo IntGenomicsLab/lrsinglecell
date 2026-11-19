@@ -328,8 +328,10 @@ nextflow_pipeline {
         }
     }
 
-    // A params file (and the command line) can hand over the string "false",
-    // which is truthy in Groovy; the filter must stay off
+    // A params file or the command line can hand over the string "false", which
+    // is truthy in Groovy. Whether parameter validation rejects it depends on the
+    // Nextflow version (rejected on 25.10.4 in CI, accepted on 26.04 locally).
+    // Either way FILTER_DUPLEX_PARENTS must not run.
     test("-profile test --drop_duplex_parents 'false' -stub") {
 
         when {
@@ -340,14 +342,18 @@ nextflow_pipeline {
         }
 
         then {
-            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
-            assertAll(
-                { assert workflow.success },
-                { assert !versions.contains('FILTER_DUPLEX_PARENTS:') },
-                { ['ERR9958133', 'ERR9958134'].each { sample ->
-                    assert !file("$outputDir/${sample}/cdna/qc/duplex_filter").exists()
-                } }
-            )
+            if (workflow.success) {
+                def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+                assertAll(
+                    { assert !versions.contains('FILTER_DUPLEX_PARENTS:') },
+                    { ['ERR9958133', 'ERR9958134'].each { sample ->
+                        assert !file("$outputDir/${sample}/cdna/qc/duplex_filter").exists()
+                    } }
+                )
+            } else {
+                def out = (workflow.stdout + workflow.stderr).join('\n')
+                assert out.contains('--drop_duplex_parents (false): Value is [string] but should be [boolean]')
+            }
         }
     }
 
