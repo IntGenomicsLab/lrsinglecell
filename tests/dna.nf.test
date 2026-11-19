@@ -18,8 +18,11 @@ nextflow_pipeline {
             def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
             // stable_path: All files in ${params.outdir}/ with stable content
             def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+            // chr21 has no chrM/MT, so the --dna_exact_only_contigs warning must be logged
+            def nf_log = file("$outputDir/../meta/nextflow.log").text
             assertAll(
                 { assert workflow.success},
+                { assert nf_log.contains("None of the --dna_exact_only_contigs (chrM,MT) is in the reference") },
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml"),

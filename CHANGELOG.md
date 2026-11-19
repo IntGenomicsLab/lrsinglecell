@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- ([#29](https://github.com/IntGenomicsLab/lrsinglecell/issues/29)) `--dna_exact_only_contigs` (default `chrM,MT`): the comma-separated contigs on which DNA duplicate marking applies only the exact rules (same 5' key, same raw read). Before, `chrM` and `MT` were hard-coded in the `MARK_DUPLICATES_DNA` arguments, so a genome naming its mitochondrion differently (e.g. `chrMT`, `M`) silently got the tolerance rules on it. An empty value turns the exact-only set off (new `mark_dna_duplicates.py --no-exact-only-contig`). `mark_dna_duplicates.py` now warns on stderr when none of the given names is in the BAM header. Added both cases to `tests/bin/test_mark_dna_duplicates.py`
+- ([#29](https://github.com/IntGenomicsLab/lrsinglecell/issues/29)) `--dna_exact_only_contigs` (default `chrM,MT`): the comma-separated contigs on which DNA duplicate marking applies only the exact rules (same 5' key, same raw read). Before, `chrM` and `MT` were hard-coded in the `MARK_DUPLICATES_DNA` arguments, so a genome naming its mitochondrion differently (e.g. `chrMT`, `M`) silently got the tolerance rules on it. An empty value turns the exact-only set off (new `mark_dna_duplicates.py --no-exact-only-contig`). The pipeline now logs a warning when none of the given names is in the reference `.fai` (`mark_dna_duplicates.py` also prints one to stderr when none is in the BAM header). Added both cases to `tests/bin/test_mark_dna_duplicates.py`, and a check for the warning to the `test_dna` nf-test (its chr21 reference has no mitochondrial contig)
 
 ## v1.1.0 - [2026-11-09]
 
