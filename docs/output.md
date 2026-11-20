@@ -600,7 +600,7 @@ The pipeline writes two reports:
   - the software versions and run parameters;
   - a methods description: a paragraph describing the steps this run performed, with in-text citations of the tools and their references, ready to adapt for a publication. It names only the tools of the steps that ran, for the data types in the samplesheet. The references match [`CITATIONS.md`](../CITATIONS.md). Use `--multiqc_methods_description` to replace the template.
 
-Both reports carry a comment at the top linking to the pipeline version that ran: the release tag (e.g. `v1.1.0`) for a release, the `dev` branch for a development version.
+Both reports carry a comment at the top linking to the pipeline version that ran: the release tag (e.g. `v1.2.0`) for a release, the `dev` branch for a development version.
 
 For more information about how to use MultiQC reports, see <http://multiqc.info>.
 
