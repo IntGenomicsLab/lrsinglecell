@@ -1,5 +1,9 @@
 # IntGenomicsLab/lrsinglecell: Citations
 
+## [LRSinglecell](https://doi.org/10.1101/2025.09.08.674950)
+
+> Pančíková A, Cools R, Eftychiou M, Aertgeerts M, Vande Velde J, Segers H, Cools J, Harbers L, Demeulemeester J. Long-read single-cell genome, transcriptome and open chromatin profiling links genotype to phenotypes. bioRxiv. 2025. doi: 10.1101/2025.09.08.674950.
+
 ## [nf-core](https://pubmed.ncbi.nlm.nih.gov/32055031/)
 
 > Ewels PA, Peltzer A, Fillinger S, Patel H, Alneberg J, Wilm A, Garcia MU, Di Tommaso P, Nahnsen S. The nf-core framework for community-curated bioinformatics pipelines. Nat Biotechnol. 2020 Mar;38(3):276-278. doi: 10.1038/s41587-020-0439-x. PubMed PMID: 32055031.
