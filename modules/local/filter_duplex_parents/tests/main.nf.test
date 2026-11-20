@@ -1,0 +1,313 @@
+nextflow_process {
+
+    name "Test Process FILTER_DUPLEX_PARENTS"
+    script "../main.nf"
+    process "FILTER_DUPLEX_PARENTS"
+    tag "modules"
+    tag "modules_local"
+    tag "filter_duplex_parents"
+
+    // dorado duplex writes dx:i:1 (consensus), dx:i:0 (unpaired simplex) and
+    // dx:i:-1 (simplex parent of a consensus read) records into one FASTQ. Only
+    // the dx:i:-1 records may be dropped; everything else must come through
+    // unchanged and in order.
+
+    test("tab-separated tags - parents dropped") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/duplex_tab.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@t1;c1\\tqs:f:20.1\\tdx:i:1\\nACGTACGT\\n+\\nIIIIIIII\\n'
+                    w << '@t1\\tqs:f:12.0\\tdx:i:-1\\nACGTACGA\\n+\\nIIIIIIII\\n'
+                    w << '@c1\\tqs:f:11.0\\tdx:i:-1\\nACGTACGC\\n+\\nIIIIIIII\\n'
+                    w << '@s1\\tqs:f:9.5\\tdx:i:0\\nTTTTGGGG\\n+\\nIIIIIIII\\n'
+                    w << '@s2\\tdx:i:0\\tqs:f:9.5\\nGGGGTTTT\\n+\\nIIIIIIII\\n'
+                }
+                input[0] = [ [ id:'S1', type:'dna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def expected = [
+                '@t1;c1\tqs:f:20.1\tdx:i:1', 'ACGTACGT', '+', 'IIIIIIII',
+                '@s1\tqs:f:9.5\tdx:i:0',     'TTTTGGGG', '+', 'IIIIIIII',
+                '@s2\tdx:i:0\tqs:f:9.5',     'GGGGTTTT', '+', 'IIIIIIII'
+            ]
+            assertAll(
+                { assert process.success },
+                { assert file(process.out.reads[0][1]).name == 'S1.duplex_filtered.fastq.gz' },
+                { assert path(process.out.reads[0][1]).linesGzip == expected },
+                { assert path(process.out.stats[0][1]).readLines().contains('mode\tfiltered') },
+                { assert path(process.out.stats[0][1]).readLines().contains('dropped\t2') },
+                { assert snapshot(process.out.stats, process.out.versions_filter_duplex_parents).match() }
+            )
+        }
+    }
+
+    test("space-separated tags - parents dropped") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/duplex_space.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@t1;c1 qs:f:20.1 dx:i:1\\nACGTACGT\\n+\\nIIIIIIII\\n'
+                    w << '@t1 qs:f:12.0 dx:i:-1\\nACGTACGA\\n+\\nIIIIIIII\\n'
+                    w << '@s1 dx:i:0 qs:f:9.5\\nTTTTGGGG\\n+\\nIIIIIIII\\n'
+                    w << '@c1 dx:i:-1\\nACGTACGC\\n+\\nIIIIIIII\\n'
+                }
+                input[0] = [ [ id:'S1', type:'dna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def expected = [
+                '@t1;c1 qs:f:20.1 dx:i:1', 'ACGTACGT', '+', 'IIIIIIII',
+                '@s1 dx:i:0 qs:f:9.5',     'TTTTGGGG', '+', 'IIIIIIII'
+            ]
+            assertAll(
+                { assert process.success },
+                { assert path(process.out.reads[0][1]).linesGzip == expected },
+                { assert path(process.out.stats[0][1]).readLines().contains('dropped\t2') },
+                { assert snapshot(process.out.stats).match() }
+            )
+        }
+    }
+
+    // More than the 1000 probed records, so head closes the pipe early and
+    // zcat gets SIGPIPE; the task must still succeed under pipefail.
+    test("no dx tags - passed through untouched") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/simplex.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    (1..20000).each { i ->
+                        w << "@r\${i}\\tqs:f:5.8\\tch:i:607\\n" + 'ACGT' * 25 + '\\n+\\n' + 'I' * 100 + '\\n'
+                    }
+                }
+                input[0] = [ [ id:'S1', type:'cdna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def out = process.out.reads[0][1]
+            def lines = path(out).linesGzip
+            assertAll(
+                { assert process.success },
+                { assert java.nio.file.Files.isSymbolicLink(java.nio.file.Paths.get(out)) },
+                { assert lines.size() == 80000 },
+                { assert lines[0] == '@r1\tqs:f:5.8\tch:i:607' },
+                { assert lines[-4] == '@r20000\tqs:f:5.8\tch:i:607' },
+                { assert path(process.out.stats[0][1]).readLines().contains('mode\tpassthrough_no_dx') },
+                { assert process.out.mode[0][1] == 'passthrough_no_dx' },
+                { assert snapshot(process.out.stats).match() }
+            )
+        }
+    }
+
+    // dorado duplex --emit-fastq: consensus reads named <template>;<complement>
+    // and their parents in one file, but no dx tags to tell them apart
+    test("duplex FASTQ without dx tags - fails") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/emit_fastq.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@t1;c1\\tqs:f:31.0\\tch:i:1311\\nACGTACGT\\n+\\nIIIIIIII\\n'
+                    w << '@t1\\tqs:f:20.7\\tch:i:1311\\nACGTACGA\\n+\\nIIIIIIII\\n'
+                    w << '@c1\\tqs:f:18.7\\tch:i:1311\\nACGTACGC\\n+\\nIIIIIIII\\n'
+                }
+                input[0] = [ [ id:'S1', type:'dna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def log = (process.stdout + process.stderr).join('\n')
+            assertAll(
+                { assert process.failed },
+                { assert log.contains('no dx tags') },
+                { assert log.contains("samtools fastq -T '*'") }
+            )
+        }
+    }
+
+    test("parents but no consensus reads - nothing dropped, warning") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/no_consensus.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@t1\\tdx:i:-1\\nACGTACGA\\n+\\nIIIIIIII\\n'
+                    w << '@c1\\tdx:i:-1\\nACGTACGC\\n+\\nIIIIIIII\\n'
+                    w << '@s1\\tdx:i:0\\nTTTTGGGG\\n+\\nIIIIIIII\\n'
+                }
+                input[0] = [ [ id:'S1', type:'dna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def out = process.out.reads[0][1]
+            assertAll(
+                { assert process.success },
+                { assert java.nio.file.Files.isSymbolicLink(java.nio.file.Paths.get(out)) },
+                { assert path(out).linesGzip.size() == 12 },
+                { assert path(process.out.stats[0][1]).readLines().contains('mode\tkept_all_no_consensus') },
+                { assert path(process.out.stats[0][1]).readLines().contains('dropped\t0') },
+                { assert java.nio.file.Paths.get(out).parent.resolve('.command.err').text.contains('WARNING') },
+                { assert snapshot(process.out.stats).match() }
+            )
+        }
+    }
+
+    test("dx values that only start with -1 are kept") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/odd_dx.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@t1;c1\\tdx:i:1\\nACGTACGT\\n+\\nIIIIIIII\\n'
+                    w << '@t1\\tdx:i:-1\\nACGTACGA\\n+\\nIIIIIIII\\n'
+                    w << '@x1\\tdx:i:-10\\nAAAAAAAA\\n+\\nIIIIIIII\\n'
+                    w << '@x2\\tdx:i:-1x\\nCCCCCCCC\\n+\\nIIIIIIII\\n'
+                    w << '@x3\\tqs:f:-1\\tdx:i:0\\nGGGGGGGG\\n+\\nIIIIIIII\\n'
+                }
+                input[0] = [ [ id:'S1', type:'dna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def headers = path(process.out.reads[0][1]).linesGzip.findAll { it.startsWith('@') }
+            assertAll(
+                { assert process.success },
+                { assert headers == [ '@t1;c1\tdx:i:1', '@x1\tdx:i:-10', '@x2\tdx:i:-1x', '@x3\tqs:f:-1\tdx:i:0' ] },
+                { assert path(process.out.stats[0][1]).readLines().contains('dropped\t1') },
+                { assert path(process.out.stats[0][1]).readLines().contains('no_dx_tag\t2') },
+                { assert snapshot(process.out.stats).match() }
+            )
+        }
+    }
+
+    // CAT_FASTQ concatenates a sample's fastq.gz files, so the input is often a
+    // multi-member gzip. The probe and the filter must read past the first member.
+    test("multi-member gzip - parents dropped in every member") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/multi_member.fastq.gz")
+                def os = fq.newOutputStream()
+                [
+                    '@t1;c1\\tdx:i:1\\nACGTACGT\\n+\\nIIIIIIII\\n@t1\\tdx:i:-1\\nACGTACGA\\n+\\nIIIIIIII\\n',
+                    '@c1\\tdx:i:-1\\nACGTACGC\\n+\\nIIIIIIII\\n@s1\\tdx:i:0\\nTTTTGGGG\\n+\\nIIIIIIII\\n'
+                ].each { member ->
+                    def gz = new java.util.zip.GZIPOutputStream(os)
+                    gz.write(member.getBytes('UTF-8'))
+                    gz.finish()
+                }
+                os.close()
+                input[0] = [ [ id:'S1', type:'dna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def headers = path(process.out.reads[0][1]).linesGzip.findAll { it.startsWith('@') }
+            assertAll(
+                { assert process.success },
+                { assert headers == [ '@t1;c1\tdx:i:1', '@s1\tdx:i:0' ] },
+                { assert path(process.out.stats[0][1]).readLines().contains('records_in\t4') },
+                { assert path(process.out.stats[0][1]).readLines().contains('dropped\t2') },
+                { assert snapshot(process.out.stats).match() }
+            )
+        }
+    }
+
+    test("only dx:i:0 reads - nothing to drop, input linked") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/simplex_dx0.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@s1\\tdx:i:0\\nTTTTGGGG\\n+\\nIIIIIIII\\n'
+                    w << '@s2\\tdx:i:0\\nGGGGTTTT\\n+\\nIIIIIIII\\n'
+                }
+                input[0] = [ [ id:'S1', type:'cdna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def out = process.out.reads[0][1]
+            assertAll(
+                { assert process.success },
+                { assert java.nio.file.Files.isSymbolicLink(java.nio.file.Paths.get(out)) },
+                { assert path(out).linesGzip.size() == 8 },
+                { assert path(process.out.stats[0][1]).readLines().contains('mode\tnothing_to_drop') },
+                { assert process.out.mode[0][1] == 'nothing_to_drop' },
+                { assert snapshot(process.out.stats).match() }
+            )
+        }
+    }
+
+    test("empty input - passed through") {
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/empty.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).close()
+                input[0] = [ [ id:'S1', type:'dna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            def out = process.out.reads[0][1]
+            assertAll(
+                { assert process.success },
+                { assert path(out).linesGzip.size() == 0 },
+                { assert path(process.out.stats[0][1]).readLines().contains('mode\tpassthrough_no_dx') },
+                { assert snapshot(process.out.stats).match() }
+            )
+        }
+    }
+
+    test("stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                def fq = file("${launchDir}/stub.fastq.gz")
+                new java.util.zip.GZIPOutputStream(fq.newOutputStream()).withWriter { w ->
+                    w << '@r1\\nACGT\\n+\\nIIII\\n'
+                }
+                input[0] = [ [ id:'S1', type:'dna' ], fq ]
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert file(process.out.reads[0][1]).name == 'S1.duplex_filtered.fastq.gz' },
+                { assert file(process.out.stats[0][1]).name == 'S1.duplex_filter.tsv' }
+            )
+        }
+    }
+}

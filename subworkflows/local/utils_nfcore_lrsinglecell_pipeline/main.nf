@@ -498,6 +498,10 @@ def methodsSteps(sample_types) {
     }
 
     // Pre-processing
+    // FILTER_DUPLEX_PARENTS is the pipeline's own awk filter, so there is no tool to cite
+    if (params.drop_duplex_parents.toString().toBoolean()) {
+        steps << [ "The simplex parent reads (dx:i:-1) of dorado duplex reads were removed, so that each duplex molecule was used once, as its consensus read.", [] ]
+    }
     // SEQKIT_SPLIT2 only runs as part of trimming (workflows/lrsinglecell.nf)
     if (!params.skip_trimming && (params.split_amount as Integer) > 0) {
         steps << [ "Reads were split into chunks for parallel processing with ${citeTools(refs, ['seqkit'])}.", [ 'seqkit' ] ]

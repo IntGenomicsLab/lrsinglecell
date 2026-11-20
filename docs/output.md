@@ -32,6 +32,7 @@ The top level of a results directory looks like this (which directories exist de
 The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes data using the following steps. Sections are tagged with the arm they belong to (**cDNA only**, **DNA only**) and, where it matters, the demultiplexer that produces them (**flexiplex only**, **BLAZE only**); untagged sections apply to both arms.
 
 - [Read QC](#read-qc)
+  - [Duplex filter](#duplex-filter) - Dorado duplex parent reads dropped (`--drop_duplex_parents`, off by default)
   - [NanoPlot](#nanoplot) - Long-read FASTQ QC
   - [FastQC](#fastqc) - FASTQ QC (off by default)
   - [ToulligQC](#toulligqc) - Long-read FASTQ QC (off by default)
@@ -65,11 +66,35 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes d
 
 Read QC runs on the reads at up to three points, each in its own subdirectory:
 
-- `pre_trim/`: the raw reads (after concatenating the FASTQs of one sample and type). File names carry `<sample>.<type>.raw`.
+- `pre_trim/`: the raw reads (after concatenating the FASTQs of one sample and type and, with `--drop_duplex_parents`, dropping the dorado duplex parent reads). File names carry `<sample>.<type>.raw`.
 - `post_trim/`: after quality and length filtering with chopper (`--min_q_score`, `--min_length`). File names carry `<sample>.<type>.trimmed`. Not produced with `--skip_trimming`.
 - `post_extract/`: after barcode and UMI extraction, i.e. the reads that go into alignment. File names carry `<sample>.<type>.extracted`.
 
 `--skip_qc` turns all of it off.
+
+### Duplex filter
+
+<details markdown="1">
+<summary>Output files</summary>
+
+- `<sample>/<type>/qc/duplex_filter/`
+  - `<sample>.<type>.duplex_filter.tsv`: number of reads kept and dropped by `--drop_duplex_parents`.
+
+</details>
+
+Only written with `--drop_duplex_parents`, which is off by default; `--skip_qc` does not turn it off. A two-column `metric`/`value` table:
+
+| metric       | meaning                                                                                                                                                                                |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mode`       | `filtered`; `passthrough_no_dx` (no `dx` tags, file used unchanged); `nothing_to_drop` (no `dx:i:-1` reads); `kept_all_no_consensus` (`dx:i:-1` reads but no `dx:i:1` reads, all kept) |
+| `records_in` | reads in the input FASTQ                                                                                                                                                               |
+| `dx_1`       | duplex consensus reads                                                                                                                                                                 |
+| `dx_0`       | simplex reads without a duplex partner                                                                                                                                                 |
+| `dx_minus1`  | simplex parents of a duplex consensus read                                                                                                                                             |
+| `no_dx_tag`  | reads without a `dx` tag, or with a value other than -1, 0 or 1                                                                                                                        |
+| `dropped`    | reads removed; equals `dx_minus1` when `mode` is `filtered`, else 0                                                                                                                    |
+
+For `passthrough_no_dx` the file is not read in full, so the counts are `NA`. In a normal duplex run, `dropped` is about twice `dx_1`. The filter runs before the pre-trim QC, so NanoPlot, FastQC, ToulligQC, NanoComp and the read counts all describe the filtered reads. See the [usage docs](usage.md#dorado-duplex-reads) for the input requirements.
 
 ### NanoPlot
 
@@ -600,7 +625,7 @@ Several steps write files that are only used inside the pipeline and are not cop
 
 - The decompressed and indexed references (`--genome_fasta`, `--transcript_fasta`, `--gtf`).
 - The UCSC `genePred` and BED conversions of the GTF (`ucsc-gtftogenepred`, `ucsc-genepredtobed`), which only serve as the RSeQC annotation.
-- The trimmed, demultiplexed and split FASTQs, and the BLAZE per-read barcode corrections.
+- The duplex-filtered (`--drop_duplex_parents`), trimmed, demultiplexed and split FASTQs, and the BLAZE per-read barcode corrections.
 - The per-chunk BAMs and `umi_tools dedup` logs of the deduplication step.
 - The FASTQs with the synthetic barcode read given to `kallisto bus`, and the barcode-sorted BAM given to oarfish.
 
