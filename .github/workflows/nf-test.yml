@@ -1,6 +1,18 @@
 name: Run nf-test
+# Pull requests into dev run only the tests affected by the change (see the get-shards
+# and nf-test actions). Every other event runs the full suite: PRs into main, each
+# merge to dev, releases and manual dispatch.
 on:
   pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "**/meta.yml"
+      - "**/*.md"
+      - "**/*.png"
+      - "**/*.svg"
+  push:
+    branches: [dev]
+    # Same list as pull_request: a docs-only merge skips the run, as its PR did.
     paths-ignore:
       - "docs/**"
       - "**/meta.yml"
@@ -11,7 +23,8 @@ on:
     types: [published]
   workflow_dispatch: null
 
-# Cancel if a newer run is started
+# Cancel if a newer run is started. Pushes to dev share one group, so a newer merge
+# cancels the full run of the previous one.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -70,11 +83,13 @@ jobs:
         # (e.g. plotly>=6 breaks NanoPlot 1.46.1), so it fails on drift
         # unrelated to the pipeline.
         profile: [docker, singularity]
-        isMain:
-          - ${{ github.base_ref == 'master' || github.base_ref == 'main' }}
-        # Exclude singularity on dev
+        # Singularity/apptainer is the cluster runtime, but doubles the matrix, so
+        # PRs to dev run docker only. PRs to main and every non-PR run (push to dev,
+        # release, dispatch) also run singularity.
+        fullMatrix:
+          - ${{ github.event_name != 'pull_request' || github.base_ref == 'master' || github.base_ref == 'main' }}
         exclude:
-          - isMain: false
+          - fullMatrix: false
             profile: "singularity"
         NXF_VER:
           - "25.10.4"
@@ -109,8 +124,7 @@ jobs:
             echo "## ❌ Test failed: ${{ matrix.profile }} | ${{ matrix.NXF_VER }} | Shard ${{ matrix.shard }}/${{ env.TOTAL_SHARDS }}" >> $GITHUB_STEP_SUMMARY
             if [[ "${{ matrix.NXF_VER }}" == "latest-everything" ]]; then
               echo "::warning::Test with latest-everything failed but will not cause workflow failure. Please check if the error is expected or if it needs fixing."
-            fi
-            if [[ "${{ matrix.NXF_VER }}" != "latest-everything" ]]; then
+            else
               exit 1
             fi
           fi
@@ -132,7 +146,9 @@ jobs:
           path: pr-comment-fragment/
 
   confirm-pass:
-    needs: [nf-test]
+    # nf-test-changes is listed too: if it fails, nf-test is skipped, and a skipped
+    # nf-test on its own would let this job pass.
+    needs: [nf-test-changes, nf-test]
     if: always()
     runs-on: # use GitHub runners
       - "ubuntu-latest"

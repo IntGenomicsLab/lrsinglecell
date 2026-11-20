@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ro-crate-metadata.json`: GitHub URL and publisher instead of nf-co.re, real keywords and `dateCreated`. `docs/CONTRIBUTING.md`: `nf-test test --tag pipeline`, with `+singularity` as well as `+docker`. `assets/samplesheet.csv` has `dna` rows. Schema help text corrected for `genome_fasta`, `split_amount`, `stranded`, `retain_introns` and others
 - Manuscript polish: `docs/output.md` and `docs/usage.md` document the #49 outputs (`*.gene_tag_summary.tsv`, `raw_qc/` in default runs, the new `final_qc/` sections, methods text and report comment, `--multiqc_config` applied after the pipeline's config); `CITATIONS.md` and the generated methods text now cite the same references (SeqKit2, SAMtools 2021, HTSlib, NumPy, Biopython, csvtk, GNU Awk, pigz, p7zip and nf-core/scnanoseq added to the methods; ToulligQC and FastQC as software in both; oarfish first author is Zare Jousheghani; Pandas, which no pipeline code imports, removed) and the mixed-run alignment sentence reads correctly; added `CITATION.cff` (read by GitHub and Zenodo)
 
+### CI
+
+- nf-test now runs the full suite, with Docker and Singularity, after every merge into `dev`, on release and on manual dispatch. Pull requests still test only what changed, and changes under `conf/`, `assets/`, `modules/local/` or `subworkflows/local/` now trigger the full suite. A PR that only touched `conf/modules.config` used to run no tests. The bin script unit tests run for any change under `bin/` or `tests/bin/`, and on merges into `dev`. Removed the unused `fix-linting.yml` and `linting_comment.yml` workflows. `linting_comment.yml` could post another PR's lint results. Added a release checklist to `docs/CONTRIBUTING.md`
+
 ## v1.1.0 - [2026-11-09]
 
 ### Changes

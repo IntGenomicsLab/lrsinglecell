@@ -81,7 +81,7 @@ For more information about linting tests, see [nf-core/tools API documentation](
 #### Pipeline tests
 
 The test profiles (`test`, `test_dna`, `test_mixed`, `test_lrkallisto`, `test_oarfish`, ...) run the pipeline on small datasets from [IntGenomicsLab/test-datasets](https://github.com/IntGenomicsLab/test-datasets/tree/main/lrsinglecell).
-GitHub Actions runs the nf-tests on them, with Docker and Singularity, to ensure the pipeline runs through and its outputs match the snapshots.
+GitHub Actions runs the nf-tests on them to ensure the pipeline runs through and its outputs match the snapshots; see [Continuous integration](#continuous-integration) for which tests run when, and with which container engine.
 If there are any failures then the automated tests fail.
 These tests are run with the latest available version of Nextflow and the minimum required version specified in the pipeline code.
 
@@ -169,3 +169,20 @@ If you update images or graphics, the nf-core [style guidelines](https://nf-co.r
 - Run the pipeline tests with a container profile, e.g. `nf-test test tests/ --profile +singularity` (or `+docker`).
 - Changes to scripts in `bin/` that have a unit test suite under `tests/bin/` should keep it passing; those suites run in the `bin-tests.yml` workflow.
 - Add a line to the top section of `CHANGELOG.md` for any user-facing change.
+
+## Continuous integration
+
+- Pull requests into `dev` run only the nf-test tests affected by the change, with Docker. Changes under `conf/`, `assets/`, `bin/`, `modules/local/` or `subworkflows/local/` (and the other `triggers` in `nf-test.config`) run the whole suite.
+- Pull requests into `main`, every merge into `dev`, releases and manual dispatches run the whole suite with both Docker and Singularity/Apptainer.
+- Failures with the `latest-everything` Nextflow version do not fail CI. They show up as a warning in the run, and on pull requests as a PR comment.
+- `test_full` is not run by CI; see the release checklist below.
+
+## Release checklist
+
+- [ ] Bump the version on `dev` with `nf-core pipelines bump-version <version>`, and give the `CHANGELOG.md` section its version and date.
+- [ ] Regenerate the nf-test snapshots (`nf-test test --profile +docker --update-snapshots`, or `+singularity`) and check that every change in the `.snap` files is expected.
+- [ ] Run `test_full` on the cluster through Slurm, with the Singularity profile: `nextflow run IntGenomicsLab/lrsinglecell -r dev -profile test_full,singularity --outdir <outdir>`. Keep the work directory and the output on scratch.
+- [ ] Run the pipeline on a real dataset and check the results against the previous release.
+- [ ] Open the release PR into `main` from `dev`, or from `patch` for a patch release. The branch protection workflow fails a PR into `main` from any other branch.
+- [ ] Before `gh release create`, list the existing tags (`git fetch --tags && git tag -l`, or `gh release list`) so that you do not reuse a version or tag the wrong commit.
+- [ ] After the release, bump `dev` to the next `dev` version.
