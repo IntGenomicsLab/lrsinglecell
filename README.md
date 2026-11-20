@@ -123,7 +123,7 @@ Solutions to common problems (long run times and `--split_amount`, resources for
 
 ## Credits
 
-LRSinglecell is written and maintained by [Luuk Harbers](https://github.com/ljwharbers) at the [Integrative Cancer Genomics Lab](https://github.com/IntGenomicsLab) (VIB-KU Leuven).
+LRSinglecell is written and maintained by [Luuk Harbers](https://github.com/ljwharbers) at the [Integrative Cancer Genomics Lab](https://github.com/IntGenomicsLab) (VIB-KU Leuven Center for Cancer Biology).
 
 It is derived from [nf-core/scnanoseq](https://github.com/nf-core/scnanoseq), originally written by [Austyn Trull](https://github.com/atrull314) and [Dr. Lara Ianov](https://github.com/lianov) at the University of Alabama at Birmingham Biological Data Science Core (U-BDS). We thank them and the nf-core/scnanoseq contributors for the foundation this pipeline builds on.
 
@@ -135,15 +135,13 @@ If you would like to contribute to this pipeline, please see the [contributing g
 
 ## Citing LRSinglecell
 
-<!-- TODO (authors): replace the manuscript placeholder below once the manuscript/preprint exists. -->
-
 If you use LRSinglecell for your analysis, please cite:
 
-> **TODO: manuscript or preprint title**
+> **Long-read single-cell genome, transcriptome and open chromatin profiling links genotype to phenotypes**
 >
-> TODO: authors
+> Alexandra Pančíková, Ruben Cools, Marios Eftychiou, Margo Aertgeerts, Joris Vande Velde, Heidi Segers, Jan Cools, Luuk Harbers, Jonas Demeulemeester
 >
-> TODO: journal or preprint server, year. doi: TODO
+> _bioRxiv_ 2025. doi: [10.1101/2025.09.08.674950](https://doi.org/10.1101/2025.09.08.674950)
 
 and the version of the pipeline you used, archived on Zenodo: [10.5281/zenodo.24341090](https://doi.org/10.5281/zenodo.24341090) (this concept DOI always resolves to the latest release; each release has its own version DOI on the Zenodo record, e.g. [10.5281/zenodo.24341091](https://doi.org/10.5281/zenodo.24341091) for v1.1.0).
 
