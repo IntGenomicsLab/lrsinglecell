@@ -53,7 +53,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io) and the [nf-core
 All you need is Nextflow (≥ 25.10.4) and Docker, Singularity/Apptainer or Conda. The bundled test profiles download small public datasets against a chr21 reference and finish in minutes. `test_mixed` uses a subsample of one 10X Multiome cell line (cDNA + DNA):
 
 ```bash
-nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 -profile test_mixed,singularity --outdir test_results
+nextflow run IntGenomicsLab/lrsinglecell -r v1.2.0 -profile test_mixed,singularity --outdir test_results
 ```
 
 Use `test` for cDNA only (two 10X 3' v3 samples), `test_dna` for DNA only (the DNA half of the Multiome subsample), or `test_mixed` for both; `test_lrkallisto` and `test_oarfish` run the `test` data through lr-kallisto and through IsoQuant + oarfish (without a transcript FASTA). All profiles are described in the [usage documentation](docs/usage.md#-profile). Replace `singularity` with `docker`, `apptainer` or `conda` to match your system.
@@ -83,7 +83,7 @@ A ready-made example (two 10X Multiome samples, one with its cDNA library sequen
 cDNA only (e.g. 10X 3' v3):
 
 ```bash
-nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 \
+nextflow run IntGenomicsLab/lrsinglecell -r v1.2.0 \
    -profile <docker/singularity/.../institute> \
    --input samplesheet.csv \
    --genome_fasta genome.fa \
@@ -96,7 +96,7 @@ nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 \
 DNA, or DNA + cDNA together (10X Multiome):
 
 ```bash
-nextflow run IntGenomicsLab/lrsinglecell -r v1.1.0 \
+nextflow run IntGenomicsLab/lrsinglecell -r v1.2.0 \
    -profile <docker/singularity/.../institute> \
    --input samplesheet.csv \
    --genome_fasta genome.fa \

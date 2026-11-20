@@ -128,7 +128,7 @@ nextflow run IntGenomicsLab/lrsinglecell -r <version> \
   -profile <docker/singularity/apptainer/institute>
 ```
 
-Replace `<version>` with a release tag, e.g. `-r v1.1.0` (see [Reproducibility](#reproducibility)).
+Replace `<version>` with a release tag, e.g. `-r v1.2.0` (see [Reproducibility](#reproducibility)).
 
 For a cDNA-only run, set `--barcode_format` to the 10X chemistry of the library (`10X_3v3`, `10X_3v4`, `10X_5v2` or `10X_5v3`); this also selects the matching bundled cDNA whitelist, which you can override with `--cdna_whitelist`. See [Barcode formats](#barcode-formats).
 
@@ -313,7 +313,7 @@ nextflow pull IntGenomicsLab/lrsinglecell
 
 It is a good idea to specify the pipeline version when running the pipeline on your data. This ensures that a specific version of the pipeline code and software are used when you run your pipeline. If you keep using the same tag, you'll be running the same version of the pipeline, even if there have been changes to the code since.
 
-First, go to the [IntGenomicsLab/lrsinglecell releases page](https://github.com/IntGenomicsLab/lrsinglecell/releases) and find the latest pipeline version. Release tags start with a `v` (e.g. `v1.1.0`). Then specify this when running the pipeline with `-r` (one hyphen), e.g. `-r v1.1.0`. You can switch to another version by changing the tag after the `-r` flag.
+First, go to the [IntGenomicsLab/lrsinglecell releases page](https://github.com/IntGenomicsLab/lrsinglecell/releases) and find the latest pipeline version. Release tags start with a `v` (e.g. `v1.2.0`). Then specify this when running the pipeline with `-r` (one hyphen), e.g. `-r v1.2.0`. You can switch to another version by changing the tag after the `-r` flag.
 
 This version number will be logged in reports when you run the pipeline, so that you'll know what you used when you look back in the future. For example, at the bottom of the MultiQC reports, and in `pipeline_info/`.
 
