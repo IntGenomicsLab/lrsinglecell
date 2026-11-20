@@ -53,11 +53,14 @@ workflow LRKALLISTO_COUNT {
         // Integer, so this only ever bit a run that passed the flag explicitly.
         def min_reads = (val_min_reads ?: 0) as Integer
 
+        // A keyed join rather than combine + filter: it pairs each sample with
+        // its own file only, and fails the run instead of silently dropping a
+        // sample whose partner is missing.
         ch_split_input = min_reads > 0
             ? in_fastq
-                .combine( in_barcode_counts )
-                .filter { meta, _reads, meta2, _counts -> meta.id == meta2.id }
-                .map { meta, reads, _meta2, counts -> [ meta, reads, counts ] }
+                .map { meta, reads -> [ meta.id, meta, reads ] }
+                .join( in_barcode_counts.map { meta, counts -> [ meta.id, counts ] }, failOnMismatch: true, failOnDuplicate: true )
+                .map { _id, meta, reads, counts -> [ meta, reads, counts ] }
             : in_fastq.map { meta, reads -> [ meta, reads, [] ] }
 
         SPLIT_BC_UMI ( ch_split_input, val_bc_length, val_umi_length, val_barcode_tag, min_reads )
@@ -71,13 +74,13 @@ workflow LRKALLISTO_COUNT {
 
         // The demultiplexing subworkflow tags the reads and the known-barcode
         // list with different metadata, so match on the sample id rather than
-        // joining on the whole map.
+        // joining on the whole map. A missing list fails the run.
         ch_tcc_input = KALLISTO_BUS.out.bus
             .join( KALLISTO_BUS.out.ecmap, by: [0] )
             .join( KALLISTO_BUS.out.txnames, by: [0] )
-            .combine( in_known_barcodes )
-            .filter { meta, _bus, _ec, _tx, meta2, _barcodes -> meta.id == meta2.id }
-            .map { meta, bus, ec, tx, _meta2, barcodes -> [ meta, bus, ec, tx, barcodes ] }
+            .map { meta, bus, ec, tx -> [ meta.id, meta, bus, ec, tx ] }
+            .join( in_known_barcodes.map { meta, barcodes -> [ meta.id, barcodes ] }, failOnMismatch: true, failOnDuplicate: true )
+            .map { _id, meta, bus, ec, tx, barcodes -> [ meta, bus, ec, tx, barcodes ] }
 
         //
         // MODULE: Correct barcodes, deduplicate umis and count equivalence classes

@@ -16,7 +16,6 @@ include { SPLIT_BAM                               } from '../../../modules/local
 include { GROUP_TRANSCRIPTS                       } from '../../../modules/local/group_transcripts'
 include { TAG_GENES                               } from '../../../modules/local/tag_genes'
 include { SPLIT_GENE_STATUS                       } from '../../../modules/local/split_gene_status'
-include { PICARD_MARKDUPLICATES                   } from '../../../modules/nf-core/picard/markduplicates/main'
 
 //
 // SUBWORKFLOWS
@@ -54,7 +53,7 @@ workflow DEDUP_UMIS {
 
         val_split_bam       // bool: Split the bam
         val_genome_aligned  // bool: If the bam is aligned to the genome or not
-        val_dedup_tool      // str: Name of deduplication tool to use
+        val_dedup_tool      // str: Name of deduplication tool to use (only 'umitools' is supported)
         val_fasta_delimiter // str: Delimiter character used in the sequence id in fasta
 
     main:
@@ -64,12 +63,11 @@ workflow DEDUP_UMIS {
         ch_undedup_bai = channel.empty()
 
         //
-        // Per-gene grouping only makes sense on a genome alignment, and only
-        // umi_tools can do it. On a transcriptome alignment the equivalent is
-        // --per-gene --per-contig, which is applied through ext.args and needs
-        // no gene tag.
+        // Per-gene grouping only makes sense on a genome alignment. On a
+        // transcriptome alignment the equivalent is --per-gene --per-contig,
+        // which is applied through ext.args and needs no gene tag.
         //
-        def val_per_gene = val_genome_aligned && val_dedup_tool == 'umitools' && params.dedup_per_gene
+        def val_per_gene = val_genome_aligned && params.dedup_per_gene
 
         // Only alignments with an unambiguous gene call are grouped by gene.
         // Reads overlapping two gene bodies, or none, keep the positional
@@ -82,6 +80,7 @@ workflow DEDUP_UMIS {
         }
 
         ch_dedup_input_bam = ch_bam
+        ch_gene_tag_summary = channel.empty()
 
         if (val_per_gene) {
             //
@@ -96,6 +95,7 @@ workflow DEDUP_UMIS {
                     .combine(ch_gtf.map{ meta, gtf -> gtf }.first())
             )
             ch_dedup_input_bam = TAG_GENES.out.gene_tagged_bam
+            ch_gene_tag_summary = TAG_GENES.out.tag_summary
         }
 
         if (val_split_bam) {
@@ -197,73 +197,60 @@ workflow DEDUP_UMIS {
         ch_dedup_log = channel.empty()
         ch_dedup_summary = channel.empty()
 
-        if (val_dedup_tool == 'umitools'){
-            if (val_per_gene) {
-                //
-                // MODULE: Split off the alignments per-gene grouping can act on
-                //
-                // umi_tools --per-gene drops every read it cannot place on a
-                // gene, so the remainder is deduplicated positionally and merged
-                // back in below. Without that fallback the run would silently
-                // lose around a fifth of its reads.
-                //
-                SPLIT_GENE_STATUS (
-                    ch_undedup_bam.join(ch_undedup_bai, by: [0]),
-                    gene_status_filter
-                )
-
-                //
-                // MODULE: Umitools Dedup, grouping by gene
-                //
-                UMITOOLS_DEDUP_GENE (
-                    SPLIT_GENE_STATUS.out.gene_bam,
-                    true )
-
-                //
-                // MODULE: Umitools Dedup, positional fallback for the rest
-                //
-                UMITOOLS_DEDUP_MAIN (
-                    SPLIT_GENE_STATUS.out.pos_bam,
-                    true )
-
-                ch_dedup_bam = UMITOOLS_DEDUP_GENE.out.bam.mix( UMITOOLS_DEDUP_MAIN.out.bam )
-                ch_dedup_log = UMITOOLS_DEDUP_GENE.out.log.mix( UMITOOLS_DEDUP_MAIN.out.log )
-
-            } else {
-                //
-                // MODULE: Umitools Dedup
-                //
-                UMITOOLS_DEDUP_MAIN (
-                    ch_undedup_bam.join(ch_undedup_bai, by: [0]),
-                    true )
-                ch_dedup_bam = UMITOOLS_DEDUP_MAIN.out.bam
-                ch_dedup_log = UMITOOLS_DEDUP_MAIN.out.log
-            }
-
+        if (val_per_gene) {
             //
-            // MODULE: Sum the per-chunk dedup logs into one sample-level summary
+            // MODULE: Split off the alignments per-gene grouping can act on
             //
-            // Every log is from a chunk of the same sample, so the chunk meta is
-            // folded back to the sample meta the same way SAMTOOLS_MERGE does below.
+            // umi_tools --per-gene drops every read it cannot place on a
+            // gene, so the remainder is deduplicated positionally and merged
+            // back in below. Without that fallback the run would silently
+            // lose around a fifth of its reads.
             //
-            UMITOOLS_DEDUP_SUMMARY (
-                ch_dedup_log
-                    .map{ meta, logfile -> [ sampleMeta(meta), logfile ] }
-                    .groupTuple()
+            SPLIT_GENE_STATUS (
+                ch_undedup_bam.join(ch_undedup_bai, by: [0]),
+                gene_status_filter
             )
-            ch_dedup_summary = UMITOOLS_DEDUP_SUMMARY.out.summary
+
+            //
+            // MODULE: Umitools Dedup, grouping by gene
+            //
+            UMITOOLS_DEDUP_GENE (
+                SPLIT_GENE_STATUS.out.gene_bam,
+                true )
+
+            //
+            // MODULE: Umitools Dedup, positional fallback for the rest
+            //
+            UMITOOLS_DEDUP_MAIN (
+                SPLIT_GENE_STATUS.out.pos_bam,
+                true )
+
+            ch_dedup_bam = UMITOOLS_DEDUP_GENE.out.bam.mix( UMITOOLS_DEDUP_MAIN.out.bam )
+            ch_dedup_log = UMITOOLS_DEDUP_GENE.out.log.mix( UMITOOLS_DEDUP_MAIN.out.log )
 
         } else {
             //
-            // MODULE: Picard Mark Duplicates
+            // MODULE: Umitools Dedup
             //
-            PICARD_MARKDUPLICATES (
-                ch_undedup_bam,
-                ch_fasta.first(),
-                ch_fai.first()
-            )
-            ch_dedup_bam = PICARD_MARKDUPLICATES.out.bam
+            UMITOOLS_DEDUP_MAIN (
+                ch_undedup_bam.join(ch_undedup_bai, by: [0]),
+                true )
+            ch_dedup_bam = UMITOOLS_DEDUP_MAIN.out.bam
+            ch_dedup_log = UMITOOLS_DEDUP_MAIN.out.log
         }
+
+        //
+        // MODULE: Sum the per-chunk dedup logs into one sample-level summary
+        //
+        // Every log is from a chunk of the same sample, so the chunk meta is
+        // folded back to the sample meta the same way SAMTOOLS_MERGE does below.
+        //
+        UMITOOLS_DEDUP_SUMMARY (
+            ch_dedup_log
+                .map{ meta, logfile -> [ sampleMeta(meta), logfile ] }
+                .groupTuple()
+        )
+        ch_dedup_summary = UMITOOLS_DEDUP_SUMMARY.out.summary
 
         //
         // MODULE: Samtools Index
@@ -315,4 +302,5 @@ workflow DEDUP_UMIS {
         dedup_bai      = ch_dedup_bai                    // channel: [ val(meta), path(bai) ]
         dedup_flagstat = BAM_STATS_SAMTOOLS.out.flagstat // channel: [ val(meta), path(flagstat) ]
         dedup_summary  = ch_dedup_summary                // channel: [ val(meta), path(summary_tsv) ], umitools only
+        gene_tag_summary = ch_gene_tag_summary           // channel: [ val(meta), path(gene_tag_summary_tsv) ], per-gene dedup only
 }

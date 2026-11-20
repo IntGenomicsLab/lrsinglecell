@@ -25,11 +25,19 @@
     --assigned-status-tag matches --skip-tags-regex, so the GS distribution
     written to the summary is the hard ceiling on what per-gene grouping can act
     on. The remainder has to be deduplicated positionally and merged back.
+
+    With --tag_summary the GS=none share is also written to a one-row tsv
+    (sample, reads, gs_none_reads, gs_none_fraction) for MultiQC. "reads" counts
+    every alignment record written, as the GS columns of the summary do, so
+    secondary and supplementary alignments are included. A jump in this fraction
+    between runs on the same kind of library points at a gtf that does not match
+    the reference, which the contig-name check does not catch.
 """
 
 import argparse
 import collections
 import gzip
+import os
 import re
 import sys
 
@@ -66,6 +74,14 @@ def parse_args():
     arg_parser.add_argument("-o", "--out_bam", required=True, type=str, help="The output tagged bam file")
     arg_parser.add_argument("-s", "--summary", required=True, type=str, help="The output tsv summarising GS")
     arg_parser.add_argument("-t", "--threads", default=4, type=int, help="Threads for bam (de)compression")
+    arg_parser.add_argument(
+        "-q", "--tag_summary", default=None, type=str,
+        help="Optional output tsv with the per-sample GS=none share (sample, reads, gs_none_reads, gs_none_fraction)",
+    )
+    arg_parser.add_argument(
+        "-n", "--sample", default=None, type=str,
+        help="Sample name for --tag_summary (default: its file name without .gene_tag_summary.tsv)",
+    )
 
     return arg_parser.parse_args()
 
@@ -236,7 +252,24 @@ def check_contig_overlap(bam_contigs, gtf_contigs):
     return fraction
 
 
-def tag_genes(in_bam, gtf, out_bam, summary, threads):
+TAG_SUMMARY_SUFFIX = ".gene_tag_summary.tsv"
+
+
+def default_sample_name(path):
+    """The --tag_summary file name without its suffix, used when no --sample is given"""
+    name = os.path.basename(path)
+    return name[: -len(TAG_SUMMARY_SUFFIX)] if name.endswith(TAG_SUMMARY_SUFFIX) else name
+
+
+def write_tag_summary(path, sample, total, none_count):
+    """Write the one-row GS=none summary that MultiQC shows as '% reads without gene'"""
+    fraction = none_count / total if total else 0.0
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write("sample\treads\tgs_none_reads\tgs_none_fraction\n")
+        fh.write(f"{sample}\t{total}\t{none_count}\t{fraction:.6f}\n")
+
+
+def tag_genes(in_bam, gtf, out_bam, summary, threads, tag_summary=None, sample=None):
     """Write a copy of the bam with every alignment carrying GX, GN and GS"""
 
     gene_tables = load_genes(gtf)
@@ -292,12 +325,15 @@ def tag_genes(in_bam, gtf, out_bam, summary, threads):
     none_fraction = by_status["none"] / total if total else 0.0
     print(f"GS=none fraction: {none_fraction:.4f}", file=sys.stderr)
 
+    if tag_summary:
+        write_tag_summary(tag_summary, sample or default_sample_name(tag_summary), total, by_status["none"])
+
 
 def main():
     """Main subroutine"""
 
     args = parse_args()
-    tag_genes(args.in_bam, args.gtf, args.out_bam, args.summary, args.threads)
+    tag_genes(args.in_bam, args.gtf, args.out_bam, args.summary, args.threads, args.tag_summary, args.sample)
 
 
 if __name__ == "__main__":

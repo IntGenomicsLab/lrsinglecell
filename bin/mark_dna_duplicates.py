@@ -49,7 +49,9 @@
     Records are matched between the two passes by a 64-bit hash of the read name. On a
     library of ~10^9 primaries there is a ~2% chance that two names collide at all, and a
     collision can only mis-flag the records of one read, so the hash is not checked.
-    --exact-only-contig names are matched exactly, as they appear in the bam header.
+    --exact-only-contig names are matched exactly, as they appear in the bam header. If
+    none of them is in the header a warning is printed, since the mitochondrial reads then
+    get the tolerance rules. --no-exact-only-contig applies all rules on every contig.
 
     Primary reads without the barcode tag are counted as `no_barcode` in the summary and
     left unflagged, rather than deduplicated together as one cell. They are not counted
@@ -550,10 +552,14 @@ def main():
     ap.add_argument("--exact-only-contig", action="append", metavar="NAME",
                     help="reference sequence on which only R1 and R3 apply (repeatable; "
                          "default: chrM and MT)")
+    ap.add_argument("--no-exact-only-contig", action="store_true",
+                    help="apply all rules on every reference sequence (overrides --exact-only-contig)")
     ap.add_argument("-t", "--threads", type=int, default=1)
     ap.add_argument("--tmpdir", default=".")
     args = ap.parse_args()
-    if args.exact_only_contig is None:
+    if args.no_exact_only_contig:
+        args.exact_only_contig = []
+    elif args.exact_only_contig is None:
         args.exact_only_contig = ["chrM", "MT"]
 
     tmp = tempfile.mkdtemp(prefix="markdup_dna.", dir=args.tmpdir)
@@ -564,6 +570,10 @@ def main():
         if hdr.get("HD", {}).get("SO") != "coordinate":
             sys.exit(f"{args.input} is not coordinate-sorted")
         refs = list(bam.references)
+        if args.exact_only_contig and not set(args.exact_only_contig) & set(refs):
+            print(f"WARNING: none of {','.join(args.exact_only_contig)} found in the bam header "
+                  "(--exact-only-contig); mitochondrial reads get the tolerant rules",
+                  file=sys.stderr, flush=True)
         # all records placed on a contig, so a placed unmapped read is never dropped
         n_records = {s.contig: s.total for s in bam.get_index_statistics()}
     work = [c for c in refs if n_records.get(c, 0) > 0]

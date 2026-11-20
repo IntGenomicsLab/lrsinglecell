@@ -1,0 +1,149 @@
+{
+    "empty input - passed through": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "dna"
+                    },
+                    "S1.duplex_filter.tsv:md5,76b6cec00d777fbbd2416711e373446e"
+                ]
+            ]
+        ],
+        "timestamp": "2026-11-19T18:23:31.967282755",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    },
+    "only dx:i:0 reads - nothing to drop, input linked": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "cdna"
+                    },
+                    "S1.duplex_filter.tsv:md5,783f21f1fb2a157f0d4c86fadda5c154"
+                ]
+            ]
+        ],
+        "timestamp": "2026-11-19T18:23:27.322768876",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    },
+    "space-separated tags - parents dropped": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "dna"
+                    },
+                    "S1.duplex_filter.tsv:md5,2c796a576204e42038b2be23a85d5b04"
+                ]
+            ]
+        ],
+        "timestamp": "2026-11-19T15:19:48.75893671",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    },
+    "dx values that only start with -1 are kept": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "dna"
+                    },
+                    "S1.duplex_filter.tsv:md5,b9376252fde306849214ff9cef5b93e1"
+                ]
+            ]
+        ],
+        "timestamp": "2026-11-19T15:20:03.27218557",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    },
+    "parents but no consensus reads - nothing dropped, warning": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "dna"
+                    },
+                    "S1.duplex_filter.tsv:md5,0caa2aade859522cfad3cea8b05aad64"
+                ]
+            ]
+        ],
+        "timestamp": "2026-11-19T15:19:58.542192218",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    },
+    "multi-member gzip - parents dropped in every member": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "dna"
+                    },
+                    "S1.duplex_filter.tsv:md5,2c796a576204e42038b2be23a85d5b04"
+                ]
+            ]
+        ],
+        "timestamp": "2026-11-19T18:23:22.773919867",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    },
+    "tab-separated tags - parents dropped": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "dna"
+                    },
+                    "S1.duplex_filter.tsv:md5,a45e38677c7ce654db7565a743134254"
+                ]
+            ],
+            [
+                "versions.yml:md5,1d2088c449e7afd926f248bc5b092e8c"
+            ]
+        ],
+        "timestamp": "2026-11-19T15:19:43.878214834",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    },
+    "no dx tags - passed through untouched": {
+        "content": [
+            [
+                [
+                    {
+                        "id": "S1",
+                        "type": "cdna"
+                    },
+                    "S1.duplex_filter.tsv:md5,76b6cec00d777fbbd2416711e373446e"
+                ]
+            ]
+        ],
+        "timestamp": "2026-11-19T15:19:53.684952621",
+        "meta": {
+            "nf-test": "0.9.4",
+            "nextflow": "26.04.3"
+        }
+    }
+}

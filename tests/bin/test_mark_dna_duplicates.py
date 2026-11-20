@@ -169,6 +169,7 @@ class MarkDnaDuplicatesTest(unittest.TestCase):
         build_bam(cls.inp)
         cls.default = cls.run_tool("default")
         cls.no_exact_only = cls.run_tool("noexact", "--exact-only-contig", "chrX")
+        cls.none_exact_only = cls.run_tool("noneexact", "--no-exact-only-contig")
 
     @classmethod
     def tearDownClass(cls):
@@ -178,9 +179,10 @@ class MarkDnaDuplicatesTest(unittest.TestCase):
     def run_tool(cls, tag, *extra):
         d = cls.tmp.name
         out = {k: os.path.join(d, f"{tag}.{k}") for k in ("bam", "metrics", "summary")}
-        subprocess.run([sys.executable, SCRIPT, "-i", cls.inp, "-o", out["bam"], "-m", out["metrics"],
-                        "-s", out["summary"], "--barcode-tag", "XB", "--d5", "10", "--d3", "20",
-                        "-t", "2", "--tmpdir", d, *extra], check=True, capture_output=True)
+        res = subprocess.run([sys.executable, SCRIPT, "-i", cls.inp, "-o", out["bam"], "-m", out["metrics"],
+                              "-s", out["summary"], "--barcode-tag", "XB", "--d5", "10", "--d3", "20",
+                              "-t", "2", "--tmpdir", d, *extra], check=True, capture_output=True, text=True)
+        out["stderr"] = res.stderr
         return out
 
     def records(self, bam):
@@ -197,6 +199,18 @@ class MarkDnaDuplicatesTest(unittest.TestCase):
     def test_exact_only_contig_flag(self):
         # with chrM not in the exact-only set, R2 and R4 merge its pairs too
         self.assertEqual(self.flagged_primaries(self.no_exact_only["bam"]), DUPS_NO_EXACT_ONLY)
+
+    def test_warning_when_no_exact_only_contig_in_header(self):
+        # chrM is in the header by default; chrX alone is not, so mitochondrial reads
+        # silently getting the tolerance rules would go unnoticed without the warning
+        self.assertNotIn("WARNING: none of", self.default["stderr"])
+        self.assertIn("WARNING: none of chrX found in the bam header", self.no_exact_only["stderr"])
+
+    def test_no_exact_only_contig_flag(self):
+        # an empty set applies every rule everywhere, and is not warned about
+        self.assertEqual(self.flagged_primaries(self.none_exact_only["bam"]), DUPS_NO_EXACT_ONLY)
+        self.assertNotIn("WARNING: none of", self.none_exact_only["stderr"])
+        self.assertEqual(read_summary(self.none_exact_only["summary"])["param_exact_only_contigs"], "")
 
     def test_propagation_to_secondary_and_supplementary(self):
         others = {(r.reference_start, r.flag & 0x900): r.is_duplicate

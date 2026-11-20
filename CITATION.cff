@@ -1,0 +1,103 @@
+cff-version: 1.2.0
+message: >-
+  If you use LRSinglecell, please cite the LRSinglecell preprint
+  (preferred-citation below) and the version of the pipeline you used (the
+  Zenodo concept DOI below resolves to the latest release; each release has
+  its own version DOI), together with nf-core/scnanoseq and the tools listed
+  in CITATIONS.md.
+title: "IntGenomicsLab/lrsinglecell"
+abstract: >-
+  LRSinglecell is a Nextflow pipeline for single-cell/nuclei long-read
+  sequencing data from Oxford Nanopore. It processes 10X Genomics cDNA
+  libraries (gene and isoform quantification) and single-cell DNA libraries,
+  separately or together in one run (e.g. 10X Multiome), from raw FASTQ to
+  cell-barcode-tagged, deduplicated BAMs, feature-barcode matrices and QC
+  reports. It is derived from nf-core/scnanoseq.
+type: software
+# Authors follow the nextflow.config manifest and the README credits. Austyn
+# Trull and Lara Ianov wrote nf-core/scnanoseq, from which this pipeline is
+# derived.
+authors:
+  - family-names: Harbers
+    given-names: Luuk
+    orcid: "https://orcid.org/0000-0003-3910-6497"
+    affiliation: "VIB-KU Leuven Center for Cancer Biology, Leuven, Belgium"
+  - family-names: Trull
+    given-names: Austyn
+    affiliation: "University of Alabama at Birmingham, Birmingham, AL, USA"
+  - family-names: Ianov
+    given-names: Lara
+    affiliation: "University of Alabama at Birmingham, Birmingham, AL, USA"
+repository-code: "https://github.com/IntGenomicsLab/lrsinglecell"
+url: "https://github.com/IntGenomicsLab/lrsinglecell"
+license: MIT
+version: "1.2.0"
+date-released: "2026-11-20"
+doi: "10.5281/zenodo.24341090"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.24341090"
+    description: "Concept DOI: all versions, resolves to the latest release"
+  - type: doi
+    value: "10.5281/zenodo.24341091"
+    description: "Version DOI of v1.1.0"
+keywords:
+  - nextflow
+  - nf-core
+  - single-cell
+  - long-read sequencing
+  - oxford nanopore
+  - scRNA-seq
+  - scDNA-seq
+preferred-citation:
+  type: article
+  title: "Long-read single-cell genome, transcriptome and open chromatin profiling links genotype to phenotypes"
+  authors:
+    - family-names: "Pančíková"
+      given-names: "Alexandra"
+      orcid: "https://orcid.org/0000-0002-0693-132X"
+    - family-names: "Cools"
+      given-names: "Ruben"
+      orcid: "https://orcid.org/0009-0004-7484-5564"
+    - family-names: "Eftychiou"
+      given-names: "Marios"
+      orcid: "https://orcid.org/0000-0002-5929-6956"
+    - family-names: "Aertgeerts"
+      given-names: "Margo"
+      orcid: "https://orcid.org/0000-0003-0734-380X"
+    - family-names: "Vande Velde"
+      given-names: "Joris"
+      orcid: "https://orcid.org/0009-0007-4702-4148"
+    - family-names: "Segers"
+      given-names: "Heidi"
+      orcid: "https://orcid.org/0000-0002-3604-7850"
+    - family-names: "Cools"
+      given-names: "Jan"
+      orcid: "https://orcid.org/0000-0001-6626-5843"
+    - family-names: "Harbers"
+      given-names: "Luuk"
+      orcid: "https://orcid.org/0000-0003-3910-6497"
+    - family-names: "Demeulemeester"
+      given-names: "Jonas"
+      orcid: "https://orcid.org/0000-0002-2660-2478"
+  journal: bioRxiv
+  year: 2025
+  month: 9
+  doi: "10.1101/2025.09.08.674950"
+  url: "https://www.biorxiv.org/content/10.1101/2025.09.08.674950v1"
+references:
+  - type: article
+    title: "scnanoseq: an nf-core pipeline for Oxford Nanopore single-cell RNA-sequencing"
+    authors:
+      - family-names: Trull
+        given-names: Austyn
+      - family-names: Worthey
+        given-names: Elizabeth A.
+      - family-names: Ianov
+        given-names: Lara
+    journal: Bioinformatics
+    volume: 41
+    issue: 9
+    start: btaf487
+    year: 2025
+    doi: "10.1093/bioinformatics/btaf487"

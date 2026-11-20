@@ -1,5 +1,9 @@
 # IntGenomicsLab/lrsinglecell: Citations
 
+## [LRSinglecell](https://doi.org/10.1101/2025.09.08.674950)
+
+> Pančíková A, Cools R, Eftychiou M, Aertgeerts M, Vande Velde J, Segers H, Cools J, Harbers L, Demeulemeester J. Long-read single-cell genome, transcriptome and open chromatin profiling links genotype to phenotypes. bioRxiv. 2025. doi: 10.1101/2025.09.08.674950.
+
 ## [nf-core](https://pubmed.ncbi.nlm.nih.gov/32055031/)
 
 > Ewels PA, Peltzer A, Fillinger S, Patel H, Alneberg J, Wilm A, Garcia MU, Di Tommaso P, Nahnsen S. The nf-core framework for community-curated bioinformatics pipelines. Nat Biotechnol. 2020 Mar;38(3):276-278. doi: 10.1038/s41587-020-0439-x. PubMed PMID: 32055031.
@@ -18,25 +22,51 @@ LRSinglecell is derived from nf-core/scnanoseq; please cite it alongside this pi
 
 ## Pipeline tools
 
-- [Flexiplex](https://pubmed.ncbi.nlm.nih.gov/38379414/)
+The methods description in the MultiQC report (`batch_qcs/multiqc/final_qc/`) cites the tools of this list that a run used, with the same references.
 
-  > Cheng O, Ling MH, Wang C, Wu S, Ritchie ME, Göke J, Amin N, Davidson NM. Flexiplex: a versatile demultiplexer and search tool for omics data. Bioinformatics. 2024 Mar 4;40(3):btae102. doi: 10.1093/bioinformatics/btae102. PMID: 38379414; PMCID: PMC10914444.
+- [BamTools](https://pubmed.ncbi.nlm.nih.gov/21493652/)
+
+  > Barnett DW, Garrison EK, Quinlan AR, Strömberg MP, Marth GT. BamTools: a C++ API and toolkit for analyzing and managing BAM files. Bioinformatics. 2011 Jun 15;27(12):1691-2. doi: 10.1093/bioinformatics/btr174. PMID: 21493652; PMCID: PMC3106182.
 
 - [BLAZE](https://pubmed.ncbi.nlm.nih.gov/37024980/)
 
   > You Y, Prawer YDJ, De Paoli-Iseppi R, Hunt CPJ, Parish CL, Shim H, Clark MB. Identification of cell barcodes from long-read single-cell RNA-seq with BLAZE. Genome Biol. 2023 Apr 6;24(1):66. doi: 10.1186/s13059-023-02907-y. PMID: 37024980; PMCID: PMC10077662.
 
+- [bustools](https://pubmed.ncbi.nlm.nih.gov/33795888/)
+
+  > Melsted P, Booeshaghi AS, Liu L, Gao F, Lu L, Min KHJ, da Veiga Beltrame E, Hjörleifsson KE, Gehring J, Pachter L. Modular, efficient and constant-memory single-cell RNA-seq preprocessing. Nat Biotechnol. 2021 Jul;39(7):813-818. doi: 10.1038/s41587-021-00870-2. Epub 2021 Apr 1. PMID: 33795888.
+
+- [Chopper](https://pubmed.ncbi.nlm.nih.gov/37171891/)
+
+  > De Coster W, Rademakers R. NanoPack2: population-scale evaluation of long-read sequencing data. Bioinformatics. 2023 May 4;39(5):btad311. doi: 10.1093/bioinformatics/btad311. PMID: 37171891; PMCID: PMC10196664.
+
+- [csvtk](https://github.com/shenwei356/csvtk)
+
+  > Shen W. csvtk: a cross-platform, efficient and practical CSV/TSV toolkit. Software, https://github.com/shenwei356/csvtk.
+
 - [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
 
-  > Andrews, S. (2010). FastQC: A Quality Control Tool for High Throughput Sequence Data [Online].
+  > Andrews S. FastQC: A Quality Control Tool for High Throughput Sequence Data. 2010. Software, https://www.bioinformatics.babraham.ac.uk/projects/fastqc/.
 
-- [IsoQuant](https://pubmed.ncbi.nlm.nih.gov/36593406/)
+- [Flexiplex](https://pubmed.ncbi.nlm.nih.gov/38379414/)
 
-  > Prjibelski AD, Mikheenko A, Joglekar A, Smetanin A, Jarroux J, Lapidus AL, Tilgner HU. Accurate isoform discovery with IsoQuant using long reads. Nat Biotechnol. 2023 Jul;41(7):915-918. doi: 10.1038/s41587-022-01565-y. Epub 2023 Jan 2. PMID: 36593406; PMCID: PMC10344776.
+  > Cheng O, Ling MH, Wang C, Wu S, Ritchie ME, Göke J, Amin N, Davidson NM. Flexiplex: a versatile demultiplexer and search tool for omics data. Bioinformatics. 2024 Mar 4;40(3):btae102. doi: 10.1093/bioinformatics/btae102. PMID: 38379414; PMCID: PMC10914444.
+
+- [gawk](https://www.gnu.org/software/gawk/)
+
+  > Free Software Foundation. GNU Awk (gawk). Software, https://www.gnu.org/software/gawk/.
 
 - [gffread](https://pubmed.ncbi.nlm.nih.gov/32489650/)
 
   > Pertea G, Pertea M. GFF Utilities: GffRead and GffCompare. F1000Res. 2020 Apr 28;9:ISCB Comm J-304. doi: 10.12688/f1000research.23297.2. PMID: 32489650; PMCID: PMC7222033.
+
+- [HTSlib](https://pubmed.ncbi.nlm.nih.gov/33594436/)
+
+  > Bonfield JK, Marshall J, Danecek P, Li H, Ohan V, Whitwham A, Keane T, Davies RM. HTSlib: C library for reading/writing high-throughput sequencing data. Gigascience. 2021 Feb 16;10(2):giab007. doi: 10.1093/gigascience/giab007. PMID: 33594436; PMCID: PMC7931820.
+
+- [IsoQuant](https://pubmed.ncbi.nlm.nih.gov/36593406/)
+
+  > Prjibelski AD, Mikheenko A, Joglekar A, Smetanin A, Jarroux J, Lapidus AL, Tilgner HU. Accurate isoform discovery with IsoQuant using long reads. Nat Biotechnol. 2023 Jul;41(7):915-918. doi: 10.1038/s41587-022-01565-y. Epub 2023 Jan 2. PMID: 36593406; PMCID: PMC10344776.
 
 - [kallisto](https://pubmed.ncbi.nlm.nih.gov/27043002/)
 
@@ -45,10 +75,6 @@ LRSinglecell is derived from nf-core/scnanoseq; please cite it alongside this pi
 - [lr-kallisto](https://doi.org/10.1371/journal.pcbi.1013692)
 
   > Loving RK, Sullivan DK, Reese F, Rebboah E, Sakr J, Rezaie N, Liang HY, Filimban G, Kawauchi S, Booeshaghi AS, Melsted P, Oakes C, Trout D, Williams BA, MacGregor GR, Wold BJ, Mortazavi A, Pachter L. Long-read sequencing transcriptome quantification with lr-kallisto. PLoS Comput Biol. 2025 Dec 1;21(12):e1013692. doi: 10.1371/journal.pcbi.1013692.
-
-- [bustools](https://pubmed.ncbi.nlm.nih.gov/33795888/)
-
-  > Melsted P, Booeshaghi AS, Liu L, Gao F, Lu L, Min KHJ, da Veiga Beltrame E, Hjörleifsson KE, Gehring J, Pachter L. Modular, efficient and constant-memory single-cell RNA-seq preprocessing. Nat Biotechnol. 2021 Jul;39(7):813-818. doi: 10.1038/s41587-021-00870-2. Epub 2021 Apr 1. PMID: 33795888.
 
 - [Minimap2](https://pubmed.ncbi.nlm.nih.gov/29750242/)
 
@@ -60,39 +86,51 @@ LRSinglecell is derived from nf-core/scnanoseq; please cite it alongside this pi
 
 - [NanoComp](https://pubmed.ncbi.nlm.nih.gov/29547981/)
 
-  > De Coster W, D'Hert S, Schultz DT, Cruts M, Van Broeckhoven C. NanoPack: visualizing and processing long-read sequencing data. Bioinformatics 2018 Aug 1; 34(15):2666-9 doi:10.1093/bioinformatics/bty149. PubMed PMID: 29547981; PubMed Central PMCID: PMC6061794.
-
-- [Chopper](https://doi.org/10.1093/bioinformatics/btad311)
-
-> Wouter De Coster, Rosa Rademakers, NanoPack2: population-scale evaluation of long-read sequencing data, Bioinformatics, Volume 39, Issue 5, May 2023, btad311, https://doi.org/10.1093/bioinformatics/btad311
+  > De Coster W, D'Hert S, Schultz DT, Cruts M, Van Broeckhoven C. NanoPack: visualizing and processing long-read sequencing data. Bioinformatics. 2018 Aug 1;34(15):2666-2669. doi: 10.1093/bioinformatics/bty149. PubMed PMID: 29547981; PubMed Central PMCID: PMC6061794.
 
 - [NanoPlot](https://pubmed.ncbi.nlm.nih.gov/29547981/)
 
   > De Coster W, D'Hert S, Schultz DT, Cruts M, Van Broeckhoven C. NanoPack: visualizing and processing long-read sequencing data. Bioinformatics. 2018 Aug 1;34(15):2666-2669. doi: 10.1093/bioinformatics/bty149. PubMed PMID: 29547981; PubMed Central PMCID: PMC6061794.
 
-- [oarfish](https://github.com/COMBINE-lab/oarfish)
+- [oarfish](https://pubmed.ncbi.nlm.nih.gov/40662837/)
 
-  > Jousheghani ZZ, Singh NP, Patro R. Oarfish: Enhanced probabilistic modeling leads to improved accuracy in long read transcriptome quantification. Bioinformatics. 2025 Jul 1;41(Supplement_1):i304-i313. doi: 10.1093/bioinformatics/btaf240. PMID: 40662837; PMCID: PMC12261437.
+  > Zare Jousheghani Z, Singh NP, Patro R. Oarfish: Enhanced probabilistic modeling leads to improved accuracy in long read transcriptome quantification. Bioinformatics. 2025 Jul 1;41(Supplement_1):i304-i313. doi: 10.1093/bioinformatics/btaf240. PMID: 40662837; PMCID: PMC12261437.
+
+- [p7zip](https://p7zip.sourceforge.net/)
+
+  > p7zip: a port of 7-Zip for POSIX systems. Software, https://p7zip.sourceforge.net/.
 
 - [pigz](https://zlib.net/pigz/)
+
+  > Adler M. pigz: a parallel implementation of gzip. Software, https://zlib.net/pigz/.
+
+- [RSeQC](https://pubmed.ncbi.nlm.nih.gov/22743226/)
+
+  > Wang L, Wang S, Li W. RSeQC: quality control of RNA-seq experiments. Bioinformatics. 2012 Aug 15;28(16):2184-5. doi: 10.1093/bioinformatics/bts356. Epub 2012 Jun 27. PMID: 22743226.
 
 - [SAMtools](https://pubmed.ncbi.nlm.nih.gov/19505943/)
 
   > Li H, Handsaker B, Wysoker A, Fennell T, Ruan J, Homer N, Marth G, Abecasis G, Durbin R; 1000 Genome Project Data Processing Subgroup. The Sequence Alignment/Map format and SAMtools. Bioinformatics. 2009 Aug 15;25(16):2078-9. doi: 10.1093/bioinformatics/btp352. Epub 2009 Jun 8. PubMed PMID: 19505943; PubMed Central PMCID: PMC2723002.
 
+  > Danecek P, Bonfield JK, Liddle J, Marshall J, Ohan V, Pollard MO, Whitwham A, Keane T, McCarthy SA, Davies RM, Li H. Twelve years of SAMtools and BCFtools. Gigascience. 2021 Feb 16;10(2):giab008. doi: 10.1093/gigascience/giab008. PMID: 33590861; PMCID: PMC7931819.
+
+- [SeqKit](https://pubmed.ncbi.nlm.nih.gov/27706213/)
+
+  > Shen W, Le S, Li Y, Hu F. SeqKit: A Cross-Platform and Ultrafast Toolkit for FASTA/Q File Manipulation. PLoS One. 2016 Oct 5;11(10):e0163962. doi: 10.1371/journal.pone.0163962. PMID: 27706213; PMCID: PMC5051824.
+
+  > Shen W, Sipos B, Zhao L. SeqKit2: A Swiss army knife for sequence and alignment processing. iMeta. 2024 Jun;3(3):e191. doi: 10.1002/imt2.191. PMID: 38898985; PMCID: PMC11183193.
+
 - [ToulligQC](https://github.com/GenomiqueENS/toulligQC)
 
-  > Karine Dias, Bérengère Laffay, Lionel Ferrato-Berberian, Sophie Lemoine, Ali Hamraoui, Morgane Thomas-Chollier, Stéphane Le Crom and Laurent Jourdren.
+  > Dias K, Laffay B, Ferrato-Berberian L, Lemoine S, Hamraoui A, Thomas-Chollier M, Le Crom S, Jourdren L. ToulligQC: a post-sequencing quality control tool for Oxford Nanopore sequencers. Software, https://github.com/GenomiqueENS/toulligQC.
+
+- [UCSC tools](https://pubmed.ncbi.nlm.nih.gov/20639541/) (`gtfToGenePred` and `genePredToBed`, which convert the GTF into the RSeQC annotation)
+
+  > Kent WJ, Zweig AS, Barber G, Hinrichs AS, Karolchik D. BigWig and BigBed: enabling browsing of large distributed datasets. Bioinformatics. 2010 Sep 1;26(17):2204-7. doi: 10.1093/bioinformatics/btq351. Epub 2010 Jul 17. PubMed PMID: 20639541; PubMed Central PMCID: PMC2922891.
 
 - [UMI-tools](https://pubmed.ncbi.nlm.nih.gov/28100584/)
 
   > Smith T, Heger A, Sudbery I. UMI-tools: modeling sequencing errors in Unique Molecular Identifiers to improve quantification accuracy Genome Res. 2017 Mar;27(3):491-499. doi: 10.1101/gr.209601.116. Epub 2017 Jan 18. PubMed PMID: 28100584; PubMed Central PMCID: PMC5340976.
-
-- [Picard](https://broadinstitute.github.io/picard/)
-
-- [UCSC tools](https://pubmed.ncbi.nlm.nih.gov/20639541/)
-
-  > Kent WJ, Zweig AS, Barber G, Hinrichs AS, Karolchik D. BigWig and BigBed: enabling browsing of large distributed datasets. Bioinformatics. 2010 Sep 1;26(17):2204-7. doi: 10.1093/bioinformatics/btq351. Epub 2010 Jul 17. PubMed PMID: 20639541; PubMed Central PMCID: PMC2922891.
 
 ## R packages
 
@@ -110,23 +148,21 @@ LRSinglecell is derived from nf-core/scnanoseq; please cite it alongside this pi
 
 - [Seurat](https://pubmed.ncbi.nlm.nih.gov/34062119/)
 
-  > Hao Y, Hao S, Andersen-Nissen E, Mauck WM, 3rd, Zheng S, Butler A, Lee MJ, Wilk AJ, Darby C, Zager M, Hoffman P, Stoeckius M, Papalexi E, Mimitou EP, Jain J, Srivastava A, Stuart T, Fleming LM, Yeung B, Rogers AJ, McElrath JM, Blish CA, Gottardo R, Smibert P, Satija R. Integrated analysis of multimodal single-cell data. Cell 2021 Jun 24; 184(13):3573-87 e29 doi:10.1016/j.cell.2021.04.048. PubMed PMID: 34062119; PubMed Central PMCID: PMC8238499.
+  > Hao Y, Hao S, Andersen-Nissen E, Mauck WM, 3rd, Zheng S, Butler A, Lee MJ, Wilk AJ, Darby C, Zager M, Hoffman P, Stoeckius M, Papalexi E, Mimitou EP, Jain J, Srivastava A, Stuart T, Fleming LM, Yeung B, Rogers AJ, McElrath JM, Blish CA, Gottardo R, Smibert P, Satija R. Integrated analysis of multimodal single-cell data. Cell. 2021 Jun 24;184(13):3573-3587.e29. doi: 10.1016/j.cell.2021.04.048. PubMed PMID: 34062119; PubMed Central PMCID: PMC8238499.
 
 ## Python libraries
 
 - [Biopython](https://pubmed.ncbi.nlm.nih.gov/19304878/)
 
-  > Cock PJ, Antao T, Chang JT, Chapman BA, Cox CJ, Dalke A, Friedberg I, Hamelryck T, Kauff F, Wilczynski B, de Hoon MJ. Biopython: freely available Python tools for computational molecular biology and bioinformatics. Bioinformatics 2009 Jun 1; 25(11):1422-3 doi:10.1093/bioinformatics/btp163. PubMed PMID: 19304878; PubMed Central PMCID: PMC2682512.
+  > Cock PJ, Antao T, Chang JT, Chapman BA, Cox CJ, Dalke A, Friedberg I, Hamelryck T, Kauff F, Wilczynski B, de Hoon MJ. Biopython: freely available Python tools for computational molecular biology and bioinformatics. Bioinformatics. 2009 Jun 1;25(11):1422-3. doi: 10.1093/bioinformatics/btp163. PubMed PMID: 19304878; PubMed Central PMCID: PMC2682512.
 
 - [NumPy](https://pubmed.ncbi.nlm.nih.gov/32939066/)
 
-  > Harris CR, Millman KJ, van der Walt SJ, Gommers R, Virtanen P, Cournapeau D, Wieser E, Taylor J, Berg S, Smith NJ, Kern R, Picus M, Hoyer S, van Kerkwijk MH, Brett M, Haldane A, Del Rio JF, Wiebe M, Peterson P, Gerard-Marchant P, Sheppard K, Reddy T, Weckesser W, Abbasi H, Gohlke C, Oliphant TE. Array programming with NumPy. Nature 2020 Sep; 585(7825):357-62 doi:10.1038/s41586-020-2649-2. PubMed PMID: 32939066; PubMed Central PMCID: PMC7759461.
+  > Harris CR, Millman KJ, van der Walt SJ, Gommers R, Virtanen P, Cournapeau D, Wieser E, Taylor J, Berg S, Smith NJ, Kern R, Picus M, Hoyer S, van Kerkwijk MH, Brett M, Haldane A, Del Río JF, Wiebe M, Peterson P, Gérard-Marchant P, Sheppard K, Reddy T, Weckesser W, Abbasi H, Gohlke C, Oliphant TE. Array programming with NumPy. Nature. 2020 Sep;585(7825):357-362. doi: 10.1038/s41586-020-2649-2. PubMed PMID: 32939066; PubMed Central PMCID: PMC7759461.
 
-- [Pandas](https://pandas.pydata.org/)
+- [Pysam](https://github.com/pysam-developers/pysam)
 
-  > McKinney W. Data Structures for Statistical Computing in Python. Proceedings of the 9th Python in Science Conference 2010. doi: 10.25080/Majora-92bf1922-00a
-
-- [Pysam](https://pysam.readthedocs.io/en/latest/index.html)
+  > The pysam developers. pysam: a Python module for reading and manipulating SAM/BAM/VCF/BCF files, built on HTSlib. Software, https://github.com/pysam-developers/pysam. Please also cite HTSlib (above).
 
 ## Software packaging/containerisation tools
 

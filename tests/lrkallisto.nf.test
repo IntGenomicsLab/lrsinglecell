@@ -18,8 +18,53 @@ nextflow_pipeline {
             def stable_name = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}'])
             // stable_path: All files in ${params.outdir}/ with stable content
             def stable_path = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+
+            def samples = ['ERR9958133', 'ERR9958134']
+            // The Matrix Market size line of a gzipped matrix, the first line that is not a comment
+            def mtxSize = { File f ->
+                def line = new java.util.zip.GZIPInputStream(new FileInputStream(f)).withReader { reader -> reader.readLines().find { l -> !l.startsWith('%') } }
+                line.tokenize()*.toLong()
+            }
+            def gunzipLines = { File f ->
+                new java.util.zip.GZIPInputStream(new FileInputStream(f)).withReader { reader -> reader.readLines() }
+            }
+            def versions = path("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml").text
+
             assertAll(
                 { assert workflow.success},
+                // Gene and transcript matrices of both passes are non-empty, with one
+                // column per barcode, and the called-cell pass has no '-' barcode
+                { samples.each { sample ->
+                    ['lrkallisto', 'lrkallisto_all_droplets'].each { pass ->
+                        ['gene', 'transcript'].each { feature ->
+                            def dir = "$outputDir/${sample}/cdna/${pass}/${feature}"
+                            def mtx = new File("${dir}/matrix.mtx.gz")
+                            def barcodes = gunzipLines(new File("${dir}/barcodes.tsv.gz"))
+                            def features = gunzipLines(new File("${dir}/features.tsv.gz"))
+                            def (n_rows, n_cols, n_entries) = mtxSize(mtx)
+                            assert n_entries > 0 : "${sample} ${pass}/${feature} matrix has no entries"
+                            assert [n_rows, n_cols].sort() == [features.size(), barcodes.size()].sort() : "${sample} ${pass}/${feature} matrix does not match its barcodes and features"
+                            assert !barcodes.contains('-') : "${sample} ${pass}/${feature} has a '-' barcode"
+                        }
+                    }
+                } },
+                // The genome alignment is still deduplicated for lr-kallisto runs
+                { samples.each { sample ->
+                    def summary = file("$outputDir/${sample}/cdna/genome/qc/umitools/dedup/${sample}.cdna.genome.umi_dedup_summary.tsv")
+                    def (header, row) = summary.readLines()*.tokenize('\t')
+                    def rec = [header, row].transpose().collectEntries()
+                    assert rec.input_reads.toLong() > 0
+                    assert rec.duplication_rate.toDouble() > 0
+                } },
+                { assert file("$outputDir/references/lrkallisto/transcripts.fasta").size() > 0 },
+                // lr-kallisto does not need the transcriptome arm, so none of it ran
+                { assert !file("$outputDir/references/transcriptome").exists() },
+                { ['GFFREAD', 'GTF_TO_T2G', 'KALLISTO_INDEX', 'KALLISTO_BUS', 'BUSTOOLS_TCC', 'KALLISTO_QUANTTCC', 'SPLIT_BC_UMI'].each { proc ->
+                    assert versions.contains("${proc}:") : "${proc} is missing from the versions"
+                } },
+                { ['TRANSCRIPT_FAIDX', 'ISOQUANT', 'OARFISH'].each { proc ->
+                    assert !versions.contains("${proc}:") : "${proc} ran in an lr-kallisto-only run"
+                } },
                 { assert snapshot(
                     // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
                     removeNextflowVersion("$outputDir/pipeline_info/lrsinglecell_software_mqc_versions.yml"),
