@@ -143,7 +143,7 @@ If you use LRSinglecell for your analysis, please cite:
 >
 > _bioRxiv_ 2025. doi: [10.1101/2025.09.08.674950](https://doi.org/10.1101/2025.09.08.674950)
 
-and the version of the pipeline you used, archived on Zenodo: [10.5281/zenodo.24341090](https://doi.org/10.5281/zenodo.24341090) (this concept DOI always resolves to the latest release; each release has its own version DOI on the Zenodo record, e.g. [10.5281/zenodo.24341091](https://doi.org/10.5281/zenodo.24341091) for v1.1.0).
+and the version of the pipeline you used, archived on Zenodo: [10.5281/zenodo.24341090](https://doi.org/10.5281/zenodo.24341090) (this concept DOI always resolves to the latest release; each release has its own version DOI on the Zenodo record, e.g. [10.5281/zenodo.24393545](https://doi.org/10.5281/zenodo.24393545) for v1.2.0).
 
 Please also cite nf-core/scnanoseq, on which LRSinglecell is based:
 
