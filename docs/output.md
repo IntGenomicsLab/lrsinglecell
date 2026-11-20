@@ -112,7 +112,7 @@ FastQC is **off by default** (`--skip_fastqc true`); set `--skip_fastqc=false` t
 ![MultiQC - FastQC adapter content plot](images/mqc_fastqc_adapter.png)
 
 :::note
-The raw-read FastQC results are shown in the raw-QC MultiQC report (`batch_qcs/multiqc/raw_qc/`), which is only produced when FASTQ NanoComp and NanoPlot run as well (see [MultiQC](#multiqc)); the post-trim and post-extract results are shown in the final report.
+The raw-read FastQC results are shown in the raw-QC MultiQC report (`batch_qcs/multiqc/raw_qc/`), and the post-trim and post-extract results in the final report (see [MultiQC](#multiqc)).
 :::
 
 ### ToulligQC
@@ -317,13 +317,14 @@ Barcodes are corrected against the whitelist with the custom script `bin/correct
 
 ### Gene assignment
 
-_cDNA only. Produced when `--dedup_per_gene` is enabled (the default) and the genome alignment is deduplicated (i.e. not with `--skip_cdna_dedup`)._
+_cDNA only. Produced when there is a genome alignment (`--quantifier` includes `isoquant` or `lrkallisto`), `--dedup_per_gene` is enabled (the default) and the genome alignment is deduplicated (i.e. not with `--skip_cdna_dedup`). Not produced for the transcriptome alignment._
 
 <details markdown="1">
 <summary>Output files</summary>
 
 - `<sample>/cdna/genome/qc/gene_assignment/`
   - `<sample>.cdna.genome.gene_assignment.tsv`: The distribution of gene assignment statuses (`GS`), per contig.
+  - `<sample>.cdna.genome.gene_tag_summary.tsv`: One row per sample with the share of alignments that overlap no gene (`GS=none`). Columns: `sample`, `reads` (every alignment record tagged, including secondary and supplementary ones), `gs_none_reads` and `gs_none_fraction` (`gs_none_reads / reads`, a fraction between 0 and 1). The same figure is logged by `TAG_GENES` as the `GS=none fraction`, and shown in the MultiQC general statistics as "% reads without gene".
 
 </details>
 
@@ -335,7 +336,7 @@ gene name tag   = "GN"
 gene status tag = "GS"    # unique | ambiguous | none
 ```
 
-Assignment is by gene-body overlap and is strand-agnostic. `GX` always holds the winning gene, even when a second gene also covers a meaningful share of the read, in which case `GS` is `ambiguous`. Only `unique` alignments are grouped by gene; the rest are deduplicated by position and merged back, so the `GS` distribution in the summary tsv is the ceiling on what gene grouping can act on.
+Assignment is by gene-body overlap and is strand-agnostic. `GX` always holds the winning gene, even when a second gene also covers a meaningful share of the read, in which case `GS` is `ambiguous`. Only `unique` alignments are grouped by gene; the rest are deduplicated by position and merged back, so the `GS` distribution in the summary tsv is the ceiling on what gene grouping can act on. A `gs_none_fraction` that jumps between runs of similar data usually means the GTF does not match the reference.
 
 ### UMI-tools dedup
 
@@ -384,7 +385,7 @@ _DNA only._
 
 DNA samples (Tn5 tagmentation, no UMI) are deduplicated by `bin/mark_dna_duplicates.py`. Within one barcode (`XB`), two primary alignments are one molecule when they share the 5' unclipped anchor and strand (Picard's key), when their 5' anchors are within 10 bp and the far ends within 20 bp of reads that read through into the far adapter, when they are two records of one raw read (flexiplex writes a read out once per barcode it finds, so a read with the barcode pattern at both ends appears twice, on opposite strands), or when one is an A-A fragment read from the other end. One read per molecule stays unflagged, and the duplicate flag is propagated to the secondary and supplementary alignments of every duplicate, so `samtools view -F 0x400` alone gives a deduplicated BAM. Members of a duplicate set carry `DS` (set size) and `DI` (set index, unique across the BAM).
 
-On the contigs listed in `--dna_exact_only_contigs` (default `chrM,MT`, the mitochondrial genome under both common names; matched exactly) only the exact relations apply: the shared 5' anchor and strand, and the two records of one raw read. Mitochondrial coverage is dense enough that the 10/20 bp tolerances merge distinct molecules by chance (on one library they took the chrM duplicate rate from 42% to 63%), and mtDNA has no heterozygous sites to check them against. If your reference names the mitochondrial genome differently, add its name to `--dna_exact_only_contigs`; the pipeline logs a warning when none of the listed contigs is in the reference. Because these contigs can hold a large share of the reads, the summary also reports the duplicate rate on all other contigs as `nuclear_duplicate_rate` (and the reads and duplicates on the listed contigs as `exact_only_contigs_primary_reads` and `exact_only_contigs_duplicates`); the Picard-format metrics, and so the MultiQC Picard section, keep the whole-genome rate.
+On the contigs listed in `--dna_exact_only_contigs` (default `chrM,MT`, the mitochondrial genome under both common names; matched exactly) only the exact relations apply: the shared 5' anchor and strand, and the two records of one raw read. Mitochondrial coverage is dense enough that the 10/20 bp tolerances merge distinct molecules by chance (on one library they took the chrM duplicate rate from 42% to 63%), and mtDNA has no heterozygous sites to check them against. If your reference names the mitochondrial genome differently, add its name to `--dna_exact_only_contigs`; the pipeline logs a warning when none of the listed contigs is in the reference. Because these contigs can hold a large share of the reads, the summary also reports the duplicate rate on all other contigs as `nuclear_duplicate_rate` (and the reads and duplicates on the listed contigs as `exact_only_contigs_primary_reads` and `exact_only_contigs_duplicates`); the Picard-format metrics, and so the MultiQC Picard section, keep the whole-genome rate. The MultiQC report also shows the summary as the "DNA Duplicate Marking" table (primary reads, molecules, duplicates, both duplicate rates and the chrM/MT counts, with the per-rule counts as hidden columns), and `nuclear_duplicate_rate` as the "DNA nuclear dups" column of the general statistics.
 
 These rules were chosen against a heterozygous-SNP ground truth: reads of one molecule share an allele at every het site they both cover. On three libraries, 5'-identical reads remain one molecule even when their far ends are more than 1 kb apart, 1-10 bp of 5' jitter is at most 4% distinct molecules while 11-20 bp is 12-52%, and the two records of one raw read are always the same molecule.
 
@@ -505,7 +506,7 @@ Ambient RNA and empty-droplet tools such as CellBender fit a count likelihood an
 
 ![Seurat](images/seurat.png)
 
-[Seurat](https://satijalab.org/seurat/) is an R package designed for QC, analysis, and exploration of single-cell RNA-seq data. The pipeline runs it on the called-cell matrices only (not on the all-droplet matrices). The statistics of the IsoQuant gene and transcript matrices and of the oarfish transcript matrix are also collected in the MultiQC report, one section each; the lr-kallisto statistics are only published here. Seurat QC is not run with `--skip_seurat` or `--skip_qc`.
+[Seurat](https://satijalab.org/seurat/) is an R package designed for QC, analysis, and exploration of single-cell RNA-seq data. The pipeline runs it on the called-cell matrices only (not on the all-droplet matrices). The statistics of the IsoQuant gene and transcript matrices, the oarfish transcript matrix and the lr-kallisto gene and transcript matrices are also collected in the MultiQC report, one section each. Seurat QC is not run with `--skip_seurat` or `--skip_qc`.
 
 ## Summary QC
 
@@ -561,8 +562,20 @@ For performance, this step parses the read counts from the output of either Fast
 
 The pipeline writes two reports:
 
-- `raw_qc/` summarises the raw reads, before trimming: the pre-trim FastQC results, NanoPlot statistics and FASTQ NanoComp statistics. It is only produced when all three of these tools run, and FastQC and FASTQ NanoComp are off by default, so a default run has no `raw_qc/` report.
-- `final_qc/` is the main report. Its sections depend on the data types and quantifiers in the run, and include the read counts table; samtools `flagstat`/`idxstats` of the cDNA alignments and `flagstat` of the DNA alignment; RSeQC read distribution; the UMI-tools deduplication summary; the DNA duplicate-marking metrics (Picard-format duplication metrics); the Seurat statistics of the IsoQuant gene and transcript and oarfish transcript matrices; the post-trim and post-extract FastQC results when FastQC is enabled; the BAM NanoComp statistics when enabled; and the software versions and run parameters.
+- `raw_qc/` summarises the raw reads, before trimming: the pre-trim NanoPlot statistics, FastQC results and FASTQ NanoComp statistics, for whichever of these tools ran. It is produced whenever at least one of them runs. NanoPlot runs by default (FastQC and FASTQ NanoComp are off by default), so a default run has a `raw_qc/` report with the pre-trim NanoPlot statistics; only a run with `--skip_nanoplot` and neither FastQC nor FASTQ NanoComp enabled has none.
+- `final_qc/` is the main report. Its sections depend on the data types and quantifiers in the run:
+  - one read counts table covering every sample, cDNA and DNA (also in DNA-only runs);
+  - samtools `flagstat`/`idxstats` of the cDNA alignments, and `flagstat`, `stats` and `idxstats` of the DNA alignment;
+  - RSeQC read distribution;
+  - the UMI-tools deduplication summary;
+  - the DNA duplicate marking: the Picard-format duplication metrics and the "DNA Duplicate Marking" table (see [DNA duplicate marking](#dna-duplicate-marking));
+  - the Seurat statistics of the IsoQuant gene and transcript, oarfish transcript and lr-kallisto gene and transcript matrices, one section each;
+  - the post-trim and post-extract FastQC results when FastQC is enabled, and the BAM NanoComp statistics when enabled;
+  - in the general statistics, besides the columns of the modules above: "% reads without gene" (the `GS=none` share of the genome alignment, from `*.gene_tag_summary.tsv`, see [Gene assignment](#gene-assignment)) and "DNA nuclear dups" (`nuclear_duplicate_rate`);
+  - the software versions and run parameters;
+  - a methods description: a paragraph describing the steps this run performed, with in-text citations of the tools and their references, ready to adapt for a publication. It names only the tools of the steps that ran, for the data types in the samplesheet. The references match [`CITATIONS.md`](../CITATIONS.md). Use `--multiqc_methods_description` to replace the template.
+
+Both reports carry a comment at the top linking to the pipeline version that ran: the release tag (e.g. `v1.1.0`) for a release, the `dev` branch for a development version.
 
 For more information about how to use MultiQC reports, see <http://multiqc.info>.
 

@@ -322,9 +322,10 @@ def genomeExistsError() {
 //
 
 //
-// In-text citation and bibliography entry of every tool the methods text can name.
-// The entries follow CITATIONS.md. NanoPlot and NanoComp share the NanoPack paper,
-// and toolBibliographyText lists a shared entry once.
+// In-text citation and bibliography entries of every tool the methods text can name.
+// The entries match CITATIONS.md: keep the two in step. `bib` is one entry, or a list
+// of entries for a tool with two papers. NanoPlot and NanoComp share the NanoPack
+// paper, and toolBibliographyText lists a shared entry once.
 //
 def doiLink(id) {
     return "doi: <a href=\"https://doi.org/${id}\">${id}</a>"
@@ -333,8 +334,11 @@ def doiLink(id) {
 def toolReferences() {
     return [
         seqkit    : [
-            text: 'SeqKit (Shen et al. 2016)',
-            bib : "Shen W, Le S, Li Y, Hu F. SeqKit: A Cross-Platform and Ultrafast Toolkit for FASTA/Q File Manipulation. PLoS One. 2016 Oct 5;11(10):e0163962. ${doiLink('10.1371/journal.pone.0163962')}"
+            text: 'SeqKit (Shen et al. 2016; Shen et al. 2024)',
+            bib : [
+                "Shen W, Le S, Li Y, Hu F. SeqKit: A Cross-Platform and Ultrafast Toolkit for FASTA/Q File Manipulation. PLoS One. 2016 Oct 5;11(10):e0163962. ${doiLink('10.1371/journal.pone.0163962')}",
+                "Shen W, Sipos B, Zhao L. SeqKit2: A Swiss army knife for sequence and alignment processing. iMeta. 2024 Jun;3(3):e191. ${doiLink('10.1002/imt2.191')}"
+            ]
         ],
         chopper   : [
             text: 'chopper (De Coster and Rademakers 2023)',
@@ -353,12 +357,27 @@ def toolReferences() {
             bib : "Li H. Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics. 2018 Sep 15;34(18):3094-3100. ${doiLink('10.1093/bioinformatics/bty191')}"
         ],
         samtools  : [
-            text: 'SAMtools (Li et al. 2009)',
-            bib : "Li H, Handsaker B, Wysoker A, Fennell T, Ruan J, Homer N, Marth G, Abecasis G, Durbin R; 1000 Genome Project Data Processing Subgroup. The Sequence Alignment/Map format and SAMtools. Bioinformatics. 2009 Aug 15;25(16):2078-9. ${doiLink('10.1093/bioinformatics/btp352')}"
+            text: 'SAMtools (Li et al. 2009; Danecek et al. 2021)',
+            bib : [
+                "Li H, Handsaker B, Wysoker A, Fennell T, Ruan J, Homer N, Marth G, Abecasis G, Durbin R; 1000 Genome Project Data Processing Subgroup. The Sequence Alignment/Map format and SAMtools. Bioinformatics. 2009 Aug 15;25(16):2078-9. ${doiLink('10.1093/bioinformatics/btp352')}",
+                "Danecek P, Bonfield JK, Liddle J, Marshall J, Ohan V, Pollard MO, Whitwham A, Keane T, McCarthy SA, Davies RM, Li H. Twelve years of SAMtools and BCFtools. Gigascience. 2021 Feb 16;10(2):giab008. ${doiLink('10.1093/gigascience/giab008')}"
+            ]
+        ],
+        htslib    : [
+            text: 'HTSlib (Bonfield et al. 2021)',
+            bib : "Bonfield JK, Marshall J, Danecek P, Li H, Ohan V, Whitwham A, Keane T, Davies RM. HTSlib: C library for reading/writing high-throughput sequencing data. Gigascience. 2021 Feb 16;10(2):giab007. ${doiLink('10.1093/gigascience/giab007')}"
         ],
         pysam     : [
             text: 'pysam',
-            bib : 'pysam: a Python module for reading and manipulating SAM/BAM/CRAM files. URL: <a href="https://github.com/pysam-developers/pysam">https://github.com/pysam-developers/pysam</a>'
+            bib : 'The pysam developers. pysam: a Python module for reading and manipulating SAM/BAM/VCF/BCF files, built on HTSlib. Software, <a href="https://github.com/pysam-developers/pysam">https://github.com/pysam-developers/pysam</a>'
+        ],
+        numpy     : [
+            text: 'NumPy (Harris et al. 2020)',
+            bib : "Harris CR, Millman KJ, van der Walt SJ, Gommers R, Virtanen P, Cournapeau D, Wieser E, Taylor J, Berg S, Smith NJ, Kern R, Picus M, Hoyer S, van Kerkwijk MH, Brett M, Haldane A, Del Río JF, Wiebe M, Peterson P, Gérard-Marchant P, Sheppard K, Reddy T, Weckesser W, Abbasi H, Gohlke C, Oliphant TE. Array programming with NumPy. Nature. 2020 Sep;585(7825):357-362. ${doiLink('10.1038/s41586-020-2649-2')}"
+        ],
+        biopython : [
+            text: 'Biopython (Cock et al. 2009)',
+            bib : "Cock PJ, Antao T, Chang JT, Chapman BA, Cox CJ, Dalke A, Friedberg I, Hamelryck T, Kauff F, Wilczynski B, de Hoon MJ. Biopython: freely available Python tools for computational molecular biology and bioinformatics. Bioinformatics. 2009 Jun 1;25(11):1422-3. ${doiLink('10.1093/bioinformatics/btp163')}"
         ],
         bamtools  : [
             text: 'BamTools (Barnett et al. 2011)',
@@ -373,8 +392,8 @@ def toolReferences() {
             bib : "Prjibelski AD, Mikheenko A, Joglekar A, Smetanin A, Jarroux J, Lapidus AL, Tilgner HU. Accurate isoform discovery with IsoQuant using long reads. Nat Biotechnol. 2023 Jul;41(7):915-918. ${doiLink('10.1038/s41587-022-01565-y')}"
         ],
         oarfish   : [
-            text: 'oarfish (Jousheghani et al. 2025)',
-            bib : "Jousheghani ZZ, Singh NP, Patro R. Oarfish: Enhanced probabilistic modeling leads to improved accuracy in long read transcriptome quantification. Bioinformatics. 2025 Jul 1;41(Supplement_1):i304-i313. ${doiLink('10.1093/bioinformatics/btaf240')}"
+            text: 'oarfish (Zare Jousheghani et al. 2025)',
+            bib : "Zare Jousheghani Z, Singh NP, Patro R. Oarfish: Enhanced probabilistic modeling leads to improved accuracy in long read transcriptome quantification. Bioinformatics. 2025 Jul 1;41(Supplement_1):i304-i313. ${doiLink('10.1093/bioinformatics/btaf240')}"
         ],
         lrkallisto: [
             text: 'lr-kallisto (Loving et al. 2025)',
@@ -402,11 +421,11 @@ def toolReferences() {
         ],
         toulligqc : [
             text: 'ToulligQC (Dias et al.)',
-            bib : 'Dias K, Laffay B, Ferrato-Berberian L, Lemoine S, Hamraoui A, Thomas-Chollier M, Le Crom S, Jourdren L. ToulligQC. URL: <a href="https://github.com/GenomiqueENS/toulligQC">https://github.com/GenomiqueENS/toulligQC</a>'
+            bib : 'Dias K, Laffay B, Ferrato-Berberian L, Lemoine S, Hamraoui A, Thomas-Chollier M, Le Crom S, Jourdren L. ToulligQC: a post-sequencing quality control tool for Oxford Nanopore sequencers. Software, <a href="https://github.com/GenomiqueENS/toulligQC">https://github.com/GenomiqueENS/toulligQC</a>'
         ],
         fastqc    : [
             text: 'FastQC (Andrews 2010)',
-            bib : 'Andrews S. (2010). FastQC: A Quality Control Tool for High Throughput Sequence Data. URL: <a href="https://www.bioinformatics.babraham.ac.uk/projects/fastqc/">https://www.bioinformatics.babraham.ac.uk/projects/fastqc/</a>'
+            bib : 'Andrews S. FastQC: A Quality Control Tool for High Throughput Sequence Data. 2010. Software, <a href="https://www.bioinformatics.babraham.ac.uk/projects/fastqc/">https://www.bioinformatics.babraham.ac.uk/projects/fastqc/</a>'
         ],
         rseqc     : [
             text: 'RSeQC (Wang et al. 2012)',
@@ -419,6 +438,22 @@ def toolReferences() {
         seurat    : [
             text: 'Seurat (Hao et al. 2021)',
             bib : "Hao Y, Hao S, Andersen-Nissen E, Mauck WM 3rd, Zheng S, Butler A, Lee MJ, Wilk AJ, Darby C, Zager M, Hoffman P, Stoeckius M, Papalexi E, Mimitou EP, Jain J, Srivastava A, Stuart T, Fleming LM, Yeung B, Rogers AJ, McElrath JM, Blish CA, Gottardo R, Smibert P, Satija R. Integrated analysis of multimodal single-cell data. Cell. 2021 Jun 24;184(13):3573-3587.e29. ${doiLink('10.1016/j.cell.2021.04.048')}"
+        ],
+        csvtk     : [
+            text: 'csvtk',
+            bib : 'Shen W. csvtk: a cross-platform, efficient and practical CSV/TSV toolkit. Software, <a href="https://github.com/shenwei356/csvtk">https://github.com/shenwei356/csvtk</a>'
+        ],
+        gawk      : [
+            text: 'GNU Awk',
+            bib : 'Free Software Foundation. GNU Awk (gawk). Software, <a href="https://www.gnu.org/software/gawk/">https://www.gnu.org/software/gawk/</a>'
+        ],
+        pigz      : [
+            text: 'pigz',
+            bib : 'Adler M. pigz: a parallel implementation of gzip. Software, <a href="https://zlib.net/pigz/">https://zlib.net/pigz/</a>'
+        ],
+        p7zip     : [
+            text: 'p7zip',
+            bib : 'p7zip: a port of 7-Zip for POSIX systems. Software, <a href="https://p7zip.sourceforge.net/">https://p7zip.sourceforge.net/</a>'
         ],
         multiqc   : [
             text: 'MultiQC (Ewels et al. 2016)',
@@ -446,6 +481,22 @@ def methodsSteps(sample_types) {
 
     def steps = []
 
+    // Decompression of the references (PREPARE_REFERENCE_FILES), the barcode
+    // whitelists (DEMULTIPLEX_FLEXIPLEX/BLAZE) and the BLAZE fastq round trip
+    def ref_files     = [ params.genome_fasta, params.gtf, params.transcript_fasta ].findAll { f -> f }*.toString()
+    def demux_cdna    = params.demux_tool_cdna == 'blaze' ? 'blaze' : 'flexiplex'
+    def tenx_presets  = [ '10X_3v3', '10X_5v2', '10X_3v4', '10X_5v3', '10X_multiome' ]
+    def cdna_wl_gz    = params.cdna_whitelist ? params.cdna_whitelist.toString().endsWith('.gz') : params.barcode_format in tenx_presets
+    def dna_wl_gz     = params.dna_whitelist ? params.dna_whitelist.toString().endsWith('.gz') : params.barcode_format == '10X_multiome'
+    def uses_pigz     = ref_files.any { f -> f.endsWith('.gz') } ||
+        (has_cdna && (demux_cdna == 'blaze' || cdna_wl_gz)) ||
+        (has_dna && dna_wl_gz)
+    def uses_p7zip    = ref_files.any { f -> f.endsWith('.zip') }
+    def unpack        = (uses_pigz ? [ 'pigz' ] : []) + (uses_p7zip ? [ 'p7zip' ] : [])
+    if (unpack) {
+        steps << [ "Compressed inputs were decompressed with ${citeToolsAnd(refs, unpack)}.", unpack ]
+    }
+
     // Pre-processing
     // SEQKIT_SPLIT2 only runs as part of trimming (workflows/lrsinglecell.nf)
     if (!params.skip_trimming && (params.split_amount as Integer) > 0) {
@@ -456,9 +507,14 @@ def methodsSteps(sample_types) {
     }
 
     // Demultiplexing
-    if (has_cdna) {
-        def demux = params.demux_tool_cdna == 'blaze' ? 'blaze' : 'flexiplex'
-        steps << [ "Cell barcodes and UMIs of the cDNA reads were identified with ${citeTools(refs, [demux])}.", [ demux ] ]
+    if (has_cdna && demux_cdna == 'blaze') {
+        // PREEXTRACT_FASTQ (pre_extract_barcodes.py) reads the fastq with Biopython
+        steps << [
+            "Cell barcodes of the cDNA reads were identified with ${citeTools(refs, ['blaze'])}; barcodes and UMIs were then extracted from the reads with the pipeline's pre_extract_barcodes.py, built on ${citeTools(refs, ['biopython'])}, and corrected against the whitelist with the pipeline's correct_barcodes.py.",
+            [ 'blaze', 'biopython' ]
+        ]
+    } else if (has_cdna) {
+        steps << [ "Cell barcodes and UMIs of the cDNA reads were identified with ${citeTools(refs, ['flexiplex'])}.", [ 'flexiplex' ] ]
     }
     if (has_dna) {
         steps << [ "Cell barcodes of the DNA reads were identified with ${citeTools(refs, ['flexiplex'])}.", [ 'flexiplex' ] ]
@@ -468,13 +524,22 @@ def methodsSteps(sample_types) {
     def cdna_refs = []
     if (genome_arm)        { cdna_refs << 'the genome' }
     if (transcriptome_arm) { cdna_refs << 'the transcriptome' }
-    def aligned = []
-    if (cdna_refs) { aligned << "cDNA reads were aligned to ${cdna_refs.join(' and ')}" }
-    if (has_dna)   { aligned << (aligned ? 'DNA reads to the genome' : 'DNA reads were aligned to the genome') }
+    // "cDNA and DNA reads were aligned to the genome", "cDNA reads were aligned to
+    // the genome and the transcriptome, and DNA reads to the genome", ...
+    def aligned = ''
+    if (cdna_refs == [ 'the genome' ] && has_dna) {
+        aligned = 'cDNA and DNA reads were aligned to the genome'
+    } else if (cdna_refs && has_dna) {
+        aligned = "cDNA reads were aligned to ${cdna_refs.join(' and ')}${cdna_refs.size() > 1 ? ',' : ''} and DNA reads to the genome"
+    } else if (cdna_refs) {
+        aligned = "cDNA reads were aligned to ${cdna_refs.join(' and ')}"
+    } else if (has_dna) {
+        aligned = 'DNA reads were aligned to the genome'
+    }
     if (aligned) {
         steps << [
-            "${aligned.join(' and ')} with ${citeTools(refs, ['minimap2'])}. Alignments were sorted, indexed, filtered and summarised with ${citeTools(refs, ['samtools'])} and ${citeTools(refs, ['pysam'])}.",
-            [ 'minimap2', 'samtools', 'pysam' ]
+            "${aligned} with ${citeTools(refs, ['minimap2'])}. Alignments were sorted, indexed, filtered and summarised with ${citeTools(refs, ['samtools'])} and ${citeTools(refs, ['pysam'])}, both built on ${citeTools(refs, ['htslib'])}.",
+            [ 'minimap2', 'samtools', 'pysam', 'htslib' ]
         ]
     }
 
@@ -489,10 +554,12 @@ def methodsSteps(sample_types) {
                 ? "; genome alignments were split per chromosome with ${citeTools(refs, ['bamtools'])}, assigned to genes by gene-body overlap with ${citeTools(refs, ['pysam'])} and grouped by gene"
                 : "; genome alignments were split per chromosome with ${citeTools(refs, ['bamtools'])}"
         }
-        steps << [ "cDNA UMI duplicates were removed with ${citeTools(refs, ['umitools'])}${detail}.", keys ]
+        // UMITOOLS_DEDUP_SUMMARY sums the per-chunk dedup logs with gawk
+        keys << 'gawk'
+        steps << [ "cDNA UMI duplicates were removed with ${citeTools(refs, ['umitools'])}${detail}. The per-chunk UMI-tools statistics were summed with ${citeTools(refs, ['gawk'])}.", keys ]
     }
     if (has_dna && !params.skip_dedup) {
-        steps << [ "Duplicate DNA reads were marked per cell barcode with the pipeline's mark_dna_duplicates.py, built on ${citeTools(refs, ['pysam'])}.", [ 'pysam' ] ]
+        steps << [ "Duplicate DNA reads were marked per cell barcode with the pipeline's mark_dna_duplicates.py, built on ${citeToolsAnd(refs, ['pysam', 'numpy'])}.", [ 'pysam', 'numpy' ] ]
     }
 
     // Quantification
@@ -535,7 +602,8 @@ def methodsSteps(sample_types) {
         ]
     }
     if (run_qc && !params.skip_seurat && has_cdna && quants) {
-        steps << [ "Per-cell summary statistics of the unfiltered count matrices were computed with ${citeTools(refs, ['seurat'])}.", [ 'seurat' ] ]
+        // QC_SCRNA collates the per-sample Seurat statistics with csvtk concat
+        steps << [ "Per-cell summary statistics of the unfiltered count matrices were computed with ${citeTools(refs, ['seurat'])} and collated with ${citeTools(refs, ['csvtk'])}.", [ 'seurat', 'csvtk' ] ]
     }
     steps << [ "Results were summarised in a report with ${citeTools(refs, ['multiqc'])}.", [ 'multiqc' ] ]
 
@@ -560,7 +628,8 @@ def toolBibliographyText(sample_types) {
     def refs = toolReferences()
     return methodsSteps(sample_types)
         .collectMany { step -> step[1] }
-        .collect { key -> refs[key].bib.toString() }
+        .collectMany { key -> refs[key].bib instanceof List ? refs[key].bib : [ refs[key].bib ] }
+        .collect { bib -> bib.toString() }
         .unique()
         .collect { bib -> "<li>${bib}</li>" }
         .join('\n    ')

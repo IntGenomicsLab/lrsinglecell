@@ -220,7 +220,7 @@ cDNA and DNA are deduplicated differently, and each arm has its own switch:
 
 By default UMI-tools groups UMIs by feature rather than by alignment position: `--dedup_per_gene` (genome alignments) and `--dedup_per_contig` (transcriptome alignments), both `true`. This matters because `umi_tools` corrects its bundling position for soft clipping, and long reads carry variable amounts of untrimmed adapter and polyA, so reads from one PCR family end up in different position groups even when they align at an identical coordinate. Position-based grouping consequently leaves a large fraction of duplicates in place, and absolute molecule counts come out inflated.
 
-- `--dedup_per_gene` tags every alignment with the gene whose body it overlaps most (`GX`/`GN`/`GS` tags, written by `TAG_GENES`) and groups on that gene. It requires `--gtf`. Reads whose gene call is ambiguous, or that overlap no gene at all, are deduplicated by position instead and merged back in, so no reads are dropped. The `GS` distribution per contig, which includes the reads without a gene, is published under `qc/gene_assignment/`. The genome fasta and the gtf must use the same contig names: `TAG_GENES` fails if the BAM header shares no contig with the gtf (e.g. `chr1` vs `1`), and warns if fewer than half of the gtf's gene-bearing contigs are in the BAM.
+- `--dedup_per_gene` tags every alignment with the gene whose body it overlaps most (`GX`/`GN`/`GS` tags, written by `TAG_GENES`) and groups on that gene. It requires `--gtf`. Reads whose gene call is ambiguous, or that overlap no gene at all, are deduplicated by position instead and merged back in, so no reads are dropped. The `GS` distribution per contig, which includes the reads without a gene, is published under `qc/gene_assignment/`, next to `*.gene_tag_summary.tsv`, which holds the per-sample `GS=none` fraction (also shown in MultiQC as "% reads without gene"; see [Gene assignment](output.md#gene-assignment)). The genome fasta and the gtf must use the same contig names: `TAG_GENES` fails if the BAM header shares no contig with the gtf (e.g. `chr1` vs `1`), and warns if fewer than half of the gtf's gene-bearing contigs are in the BAM.
 - `--dedup_per_contig` applies to transcriptome alignments only, where a contig is a transcript. It needs no gene tag and no fallback.
 - Set either to `false` to restore position-based grouping. Note that these change absolute UMI counts substantially. Relative expression is essentially unaffected, but anything quoting UMIs per cell, library complexity or saturation will differ from earlier releases.
 
@@ -393,6 +393,10 @@ Results obtained with a different tool version are no longer those of the pipeli
 ### Custom tool arguments
 
 Most tools receive their arguments from `ext.args` in [`conf/modules.config`](../conf/modules.config). To add or change arguments of a tool, override `ext.args` for its process in a config passed with `-c`, as in the [lr-kallisto strandedness example](#lr-kallisto) above. Copy the existing `ext.args` of the process from `conf/modules.config` first: your value replaces it, it is not appended to it.
+
+### MultiQC report
+
+`--multiqc_config` takes a [MultiQC config file](https://docs.seqera.io/multiqc/getting_started/config) that is applied to both reports (`raw_qc/` and `final_qc/`) after the pipeline's own: MultiQC is given [`assets/multiqc_config.yml`](../assets/multiqc_config.yml), then the report comment with the pipeline version, then your file, each with its own `--config`. A later config wins, so your file only needs the settings you want to change (e.g. `report_header_info`, a `custom_logo` or a different `report_section_order`); the rest of the pipeline's config stays in effect. `--multiqc_logo` adds a logo, and `--multiqc_methods_description` replaces the template of the methods description ([`assets/methods_description_template.yml`](../assets/methods_description_template.yml)).
 
 ## Running in the background
 
